@@ -1,0 +1,51 @@
+{
+  "name": "dkdao",
+  "version": "1.0.0",
+  "description": "DKDAO",
+  "main": "index.js",
+  "repository": "git@github.com:DK-DAO/infrastructure.git",
+  "author": "Chiro Hiro <chiro8x@gmail.com>",
+  "license": "Apache-2.0",
+  "files": [
+    "/contracts/**/*.sol",
+    "/build/contracts/*.json",
+    "!/contracts/mocks/**/*"
+  ],
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "smart",
+    "contracts",
+    "security",
+    "dkdao"
+  ],
+  "private": false,
+  "devDependencies": {
+    "@types/chai": "^4.2.18",
+    "@types/mocha": "^8.2.2",
+    "@types/node": "^15.0.3",
+    "@typescript-eslint/eslint-plugin": "^4.23.0",
+    "@typescript-eslint/parser": "^4.23.0",
+    "chai": "^4.3.4",
+    "eslint": "^7.26.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-import": "^2.22.1",
+    "mocha": "^8.4.0",
+    "prettier": "^2.3.0",
+    "ts-node": "^9.1.1",
+    "typechain": "^4.0.1",
+    "typescript": "^4.2.4"
+  },
+  "dependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@openzeppelin/contracts": "^4.1.0",
+    "@typechain/ethers-v5": "^7.0.0",
+    "dotenv": "^9.0.2",
+    "ethers": "^5.0.0",
+    "hardhat": "^2.3.0",
+    "hardhat-typechain": "^0.3.5",
+    "ts-generator": "^0.1.1",
+    "typechain-target-ethers-v5": "^5.0.1"
+  }
+}
