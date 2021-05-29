@@ -8,10 +8,10 @@ import './Registry.sol';
 
 abstract contract User {
   // Registry contract
-  Registry internal registry;
+  Registry internal immutable registry;
 
   // Active domain
-  bytes32 internal domain;
+  bytes32 internal immutable domain;
 
   // Allow same domain calls
   modifier onlyAllowSameDomain(bytes32 name) {
