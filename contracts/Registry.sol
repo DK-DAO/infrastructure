@@ -7,7 +7,7 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 
 contract Registry is Ownable {
   // Mapping bytes32 -> address
-  mapping(bytes32 => address) private registered;
+  mapping(bytes32 => mapping(bytes32 => address)) private registered;
 
   // Mapping address -> bytes32 name
   mapping(address => bytes32) private revertedName;
@@ -45,7 +45,7 @@ contract Registry is Ownable {
 
   // Get address by name
   function getAddress(bytes32 domain, bytes32 name) external view returns (address) {
-    return registered[keccak256(abi.encodePacked(domain, name))];
+    return registered[domain][name];
   }
 
   // Get name by address
@@ -59,8 +59,8 @@ contract Registry is Ownable {
     bytes32 name,
     address addr
   ) internal returns (bool) {
-    bytes32 key = keccak256(abi.encodePacked(domain, name));
-    registered[key] = addr;
+    require(addr != address(0), "Registry: We don't allow zero address");
+    registered[domain][name] = addr;
     revertedName[addr] = name;
     revertedDomain[addr] = domain;
     emit Registered(domain, name, addr);
