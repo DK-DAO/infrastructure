@@ -5,9 +5,11 @@ pragma abicoder v2;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
+import './libraries/User.sol';
 import './Press.sol';
-import './User.sol';
 
+// Random Number Generator
+// Domain: DKDAO Infrastructure
 contract RNG is User, Ownable {
   // Total commited digest
   uint256 private currentCommited;
@@ -30,9 +32,6 @@ contract RNG is User, Ownable {
   // Events
   event Committed(uint256 indexed index, bytes32 indexed digest);
   event Revealed(uint256 indexed index, uint192 indexed s, uint64 indexed t);
-
-  // Construct contract with oracle's address
-  constructor(address _registry, bytes32 _domain) User(_registry, _domain) {}
 
   // Duelist King Oracle will commit H(S||t) to blockchain
   function commit(bytes32 digest) external onlyAllowSameDomain(bytes32('Oracle')) returns (uint256) {
