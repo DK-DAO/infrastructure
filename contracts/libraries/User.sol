@@ -4,14 +4,14 @@ pragma abicoder v2;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
-import './Registry.sol';
+import '../interfaces/IRegistry.sol';
 
 abstract contract User {
   // Registry contract
-  Registry internal immutable registry;
+  IRegistry internal registry;
 
   // Active domain
-  bytes32 internal immutable domain;
+  bytes32 internal domain;
 
   // Allow same domain calls
   modifier onlyAllowSameDomain(bytes32 name) {
@@ -26,8 +26,9 @@ abstract contract User {
   }
 
   // Constructing with registry address and its active domain
-  constructor(address _registry, bytes32 _domain) {
-    registry = Registry(_registry);
+  function init(address _registry, bytes32 _domain) external virtual {
+    require(domain == bytes32('') && address(registry) == address(0), "User: It's only able to set once");
+    registry = IRegistry(_registry);
     domain = _domain;
   }
 

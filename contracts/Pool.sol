@@ -4,16 +4,13 @@ pragma abicoder v2;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
-import './User.sol';
+import './libraries/User.sol';
 
 /**
  * Only allow a DAO in the same domain to call them
  * That's mean another DAO has no power here even GrandDAO
  */
 contract Pool is User, Ownable {
-  // Constructor with registry and domain
-  constructor(address _registry, bytes32 _domain) User(_registry, _domain) {}
-
   // Safe call to a target address with given payload
   function safeCall(
     address target,

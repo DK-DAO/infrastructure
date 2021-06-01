@@ -13,7 +13,7 @@ contractName('DuelistKingRng');
 contractName('DuelistKingFairDistributor');
 contractName('DuelistKingOracle');
 
-const compilers = ['0.8.4'].map((item: string) => ({
+const compilers = ['0.6.12', '0.7.6', '0.8.4'].map((item: string) => ({
   version: item,
   settings: {
     optimizer: {

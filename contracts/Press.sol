@@ -4,7 +4,7 @@ pragma abicoder v2;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
-import './User.sol';
+import './libraries/User.sol';
 
 contract Press {
   function compute(bytes32 secretValue) external returns (bool) {}
