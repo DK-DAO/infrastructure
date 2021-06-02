@@ -9,5 +9,7 @@ abstract contract TokenMetadata {
     string name;
     address genesis;
     address grandDAO;
+    address registry;
+    bytes32 domain;
   }
 }

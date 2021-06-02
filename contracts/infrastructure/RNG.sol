@@ -5,11 +5,14 @@ pragma abicoder v2;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
-import './libraries/User.sol';
-import './Press.sol';
+import '../libraries/User.sol';
+import '../interfaces/IRNGConsumer.sol';
 
-// Random Number Generator
-// Domain: DKDAO Infrastructure
+/**
+ * Random Number Generator
+ * Name: RNG
+ * Domain: DKDAO Infrastructure
+ */
 contract RNG is User, Ownable {
   // Total commited digest
   uint256 private currentCommited;
@@ -33,6 +36,11 @@ contract RNG is User, Ownable {
   event Committed(uint256 indexed index, bytes32 indexed digest);
   event Revealed(uint256 indexed index, uint192 indexed s, uint64 indexed t);
 
+  // Pass constructor parameter to User
+  constructor(address _registry, bytes32 _domain) {
+    init(_registry, _domain);
+  }
+
   // Duelist King Oracle will commit H(S||t) to blockchain
   function commit(bytes32 digest) external onlyAllowSameDomain(bytes32('Oracle')) returns (uint256) {
     // We begin from 1 instead of 0 to prevent error
@@ -43,11 +51,9 @@ contract RNG is User, Ownable {
   }
 
   // Duelist King Oracle will reveal S and t
-  function reveal(bytes32 secret) external onlyAllowSameDomain(bytes32('Oracle')) returns (uint256) {
+  function reveal(bytes32 secret, address target) external onlyAllowSameDomain(bytes32('Oracle')) returns (uint256) {
     uint192 s;
     uint64 t;
-    // Press is a hub of distributor
-    address press = registry.getAddress(domain, bytes32('Press'));
     // We begin from 1 instead of 0 to prevent error
     currentRevealed += 1;
     // Decompose secret to its components
@@ -62,8 +68,8 @@ contract RNG is User, Ownable {
     // Increase last reveal value
     lastReveal = t;
     // Hook call to fair distribution
-    if (press != address(0x00)) {
-      require(Press(press).compute(secret), "Rng: Can't do callback to distributor");
+    if (target != address(0x00)) {
+      require(IRNGConsumer(target).compute(secret), "Rng: Can't do callback to distributor");
     }
     emit Revealed(currentRevealed, s, t);
     return currentRevealed;

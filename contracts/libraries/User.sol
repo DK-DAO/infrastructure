@@ -26,10 +26,11 @@ abstract contract User {
   }
 
   // Constructing with registry address and its active domain
-  function init(address _registry, bytes32 _domain) external virtual {
-    require(domain == bytes32('') && address(registry) == address(0), "User: It's only able to set once");
+  function init(address _registry, bytes32 _domain) public returns(bool) {
+    require(domain == bytes32(0) && address(registry) == address(0), "User: It's only able to set once");
     registry = IRegistry(_registry);
     domain = _domain;
+    return true;
   }
 
   // Return active domain

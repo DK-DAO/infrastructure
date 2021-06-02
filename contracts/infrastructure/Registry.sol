@@ -5,6 +5,10 @@ pragma abicoder v2;
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 
+/**
+ * DKDAO domain name system
+ * Domain: DKDAO Infrastructure
+ */
 contract Registry is Ownable {
   // Mapping bytes32 -> address
   mapping(bytes32 => mapping(bytes32 => address)) private registered;
@@ -41,6 +45,11 @@ contract Registry is Ownable {
       require(!_set(domains[i], names[i], addrs[i]), 'Registry: Unable to set records');
     }
     return true;
+  }
+
+  // Check is record existed
+  function isExistRecord(bytes32 domain, bytes32 name) external view returns (bool) {
+    return registered[domain][name] != address(0);
   }
 
   // Get address by name

@@ -24,7 +24,6 @@ contract DAO is User, IDAO {
   mapping(uint256 => Proposal) proposalStorage;
 
   function createProposal(Proposal memory newProposal) external onlyTokenOwner override returns (uint256) {
-    address payable addr;
     proposalIndex += 1;
     // Clone the DAO Token of the same domain for snapshot
     newProposal.voting = registry.getAddress(domain, 'DAOToken').clone();

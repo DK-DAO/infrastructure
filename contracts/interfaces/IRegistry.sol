@@ -5,6 +5,8 @@ pragma abicoder v2;
 interface IRegistry {
   event Registered(bytes32 domain, bytes32 indexed name, address indexed addr);
 
+  function isExistRecord(bytes32 domain, bytes32 name) external view returns (bool);
+
   function set(
     bytes32 domain,
     bytes32 name,
