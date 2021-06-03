@@ -8,10 +8,12 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 import './libraries/User.sol';
 
 /**
- * Only allow a DAO in the same domain to call them
- * That's mean another DAO has no power here even GrandDAO
+ * Profit Pool
+ * Name: Pool
+ * Domain: DKDAO, *
  */
 contract Pool is User, Ownable {
+  // Use address lib for address
   using Address for address;
 
   // Safe call to a target address with given payload

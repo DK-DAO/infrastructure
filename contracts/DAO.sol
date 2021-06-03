@@ -9,6 +9,11 @@ import './interfaces/IDAO.sol';
 import './interfaces/IDAOToken.sol';
 import './libraries/User.sol';
 
+/**
+ * DAO
+ * Name: DAO
+ * Domain: DKDAO, *
+ */
 contract DAO is User, IDAO {
   // Address lib providing safe {call} and {delegatecall}
   using Address for address;

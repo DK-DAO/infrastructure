@@ -7,7 +7,9 @@ import './libraries/User.sol';
 import './libraries/TokenMetadata.sol';
 
 /**
- * DAO token of DAOs
+ * DAO Token
+ * Name: DAO Token
+ * Domain: DKDAO, *
  */
 contract DAOToken is User, ERC20 {
   // Mapping locked amount
