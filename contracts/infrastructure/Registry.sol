@@ -7,6 +7,7 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 
 /**
  * DKDAO domain name system
+ * Name: Registry
  * Domain: DKDAO Infrastructure
  */
 contract Registry is Ownable {

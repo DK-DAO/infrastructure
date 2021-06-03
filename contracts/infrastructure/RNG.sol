@@ -41,7 +41,7 @@ contract RNG is User, Ownable {
     init(_registry, _domain);
   }
 
-  // Duelist King Oracle will commit H(S||t) to blockchain
+  // DKDAO Oracle will commit H(S||t) to blockchain
   function commit(bytes32 digest) external onlyAllowSameDomain(bytes32('Oracle')) returns (uint256) {
     // We begin from 1 instead of 0 to prevent error
     currentCommited += 1;
@@ -50,7 +50,7 @@ contract RNG is User, Ownable {
     return currentCommited;
   }
 
-  // Duelist King Oracle will reveal S and t
+  // DKDAO Oracle will reveal S and t
   function reveal(bytes32 secret, address target) external onlyAllowSameDomain(bytes32('Oracle')) returns (uint256) {
     uint192 s;
     uint64 t;

@@ -5,17 +5,17 @@ pragma abicoder v2;
 interface IDAO {
   struct Proposal {
     bytes32 proposalDigest;
-    address voting;
+    int256 vote;
     uint64 expired;
-    bool success;
+    bool executed;
     bool delegate;
     address target;
-    bytes executeData;
+    bytes data;
   }
 
   function createProposal(Proposal memory newProposal) external returns (uint256);
 
-  function voteProposal(uint256 proposalId) external returns (bool);
+  function voteProposal(uint256 proposalId, bool positive) external returns (bool);
 
   function execute(uint256 proposalId) external returns (bool);
 }

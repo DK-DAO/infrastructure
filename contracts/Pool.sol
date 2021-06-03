@@ -2,6 +2,7 @@
 pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
+import '@openzeppelin/contracts/utils/Address.sol';
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import './libraries/User.sol';
@@ -11,14 +12,15 @@ import './libraries/User.sol';
  * That's mean another DAO has no power here even GrandDAO
  */
 contract Pool is User, Ownable {
+  using Address for address;
+
   // Safe call to a target address with given payload
   function safeCall(
     address target,
     uint256 value,
-    bytes calldata data
+    bytes memory data
   ) external onlyAllowSameDomain(bytes32('DAO')) returns (bool) {
-    (bool success, bytes memory returnData) = target.call{ value: value, gas: (gasleft() - 5000) }(data);
-    require(success, string(returnData));
+    target.functionCallWithValue(data, value);
     return true;
   }
 
@@ -28,8 +30,7 @@ contract Pool is User, Ownable {
     onlyAllowSameDomain(bytes32('DAO'))
     returns (bool)
   {
-    (bool success, bytes memory returnData) = target.delegatecall{ gas: (gasleft() - 5000) }(data);
-    require(success, string(returnData));
+    target.functionDelegateCall(data);
     return true;
   }
 }
