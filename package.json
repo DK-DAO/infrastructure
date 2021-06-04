@@ -6,19 +6,6 @@
   "repository": "git@github.com:DK-DAO/infrastructure.git",
   "author": "Chiro Hiro <chiro8x@gmail.com>",
   "license": "Apache-2.0",
-  "files": [
-    "/contracts/**/*.sol",
-    "/build/contracts/*.json",
-    "!/contracts/mocks/**/*"
-  ],
-  "keywords": [
-    "solidity",
-    "ethereum",
-    "smart",
-    "contracts",
-    "security",
-    "dkdao"
-  ],
   "private": false,
   "devDependencies": {
     "@types/chai": "^4.2.18",

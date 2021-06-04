@@ -1,0 +1,29 @@
+{
+  "name": "dkdao",
+  "description": "DKDAO infrastructure",
+  "version": "1.1.1",
+  "private": false,
+  "files": [
+    "**/*.sol",
+    "/build/contracts/*.json",
+    "!/mocks/**/*"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DK-DAO/infrastructure.git"
+  },
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "smart",
+    "contracts",
+    "security",
+    "dkdao"
+  ],
+  "author": "Chiro Hiro <chiro8x@gmail.com>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/DK-DAO/infrastructure/issues"
+  },
+  "homepage": "https://github.com/DK-DAO/infrastructure"
+}
