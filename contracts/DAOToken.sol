@@ -12,16 +12,21 @@ import './libraries/TokenMetadata.sol';
  * Domain: DKDAO, *
  */
 contract DAOToken is User, ERC20 {
+  // Lock structure
+  struct Lock {
+    uint256 amount;
+    uint128 lockAt;
+    uint128 unlockAt;
+  }
+
   // Mapping locked amount
-  mapping(address => uint256) private locked;
-  // Mapping address to unlock time
-  mapping(address => uint256) private unlockTime;
+  mapping(address => Lock) private lockStorage;
 
   // Lock event
-  event Lock(address indexed owner, uint256 indexed amount);
+  event TokenLock(address indexed owner, uint256 indexed amount, uint256 lockTime);
 
   // Unlock event
-  event Unlock(address indexed owner, uint256 indexed amount, uint256 indexed unlockTime);
+  event TokenUnlock(address indexed owner, uint256 indexed amount, uint256 indexed unlockTime);
 
   // Constructing with token Metadata
   function init(TokenMetadata.Metadata memory metadata) external returns (bool) {
@@ -72,20 +77,24 @@ contract DAOToken is User, ERC20 {
     address owner = _msgSender();
     uint256 balance = balanceOf(owner);
     require(amount > 0 && amount <= balance, "DAOToken: Lock amount can't be geater than your current balance");
-    locked[owner] = amount;
-    unlockTime[owner] = 0;
-    emit Lock(owner, amount);
+    // Store lock to storage
+    lockStorage[owner] = Lock({ amount: amount, lockAt: uint128(block.timestamp), unlockAt: 0 });
+    emit TokenLock(owner, amount, block.timestamp);
     return true;
   }
 
   // Unlock balance in the next 30 days
   function unlock() external returns (bool) {
     address owner = _msgSender();
-    uint256 amount = locked[owner];
-    require(amount > 0, 'DAOToken: Unlock amount must greater than 0');
-    uint256 unlockAt = block.timestamp + 30 days;
-    unlockTime[owner] = unlockAt;
-    emit Unlock(owner, amount, unlockAt);
+    Lock memory lockData = lockStorage[owner];
+    require(lockData.amount > 0, 'DAOToken: Unlock amount must greater than 0');
+    // Set unlock time to next 30 days
+    lockData.unlockAt = uint128(block.timestamp + 30 days);
+    // Set lock time to 0
+    lockData.lockAt = 0;
+    // Update lock data
+    lockStorage[owner] = lockData;
+    emit TokenUnlock(owner, lockData.amount, lockData.unlockAt);
     return true;
   }
 
@@ -94,7 +103,7 @@ contract DAOToken is User, ERC20 {
     if (isUnlocked(owner)) {
       return balanceOf(owner);
     }
-    return balanceOf(owner) - locked[owner];
+    return balanceOf(owner) - lockStorage[owner].amount;
   }
 
   // Get balance info at once
@@ -104,29 +113,30 @@ contract DAOToken is User, ERC20 {
     returns (
       uint256 available,
       uint256 balance,
-      uint256 unlockAt
+      Lock memory unlockAt
     )
   {
-    return (_available(owner), balanceOf(owner), unlockTime[owner]);
+    return (_available(owner), balanceOf(owner), lockStorage[owner]);
   }
 
   // Calculate voting power
   function votePower(address owner) external view returns (uint256) {
     // If token is locked and no unlocking
     if (isLocked(owner)) {
-      return locked[owner];
+      return lockStorage[owner].amount;
     }
     return 0;
   }
 
   // Is completed unlock?
   function isUnlocked(address owner) public view returns (bool) {
-    // Completed unlocked where they didn't lock or the unlocking period is completed
-    return block.timestamp > unlockTime[owner] || locked[owner] == 0;
+    Lock memory lockData = lockStorage[owner];
+    // Completed unlocked where they didn't lock or the unlocking period was over
+    return lockData.lockAt == 0 && (block.timestamp > lockData.unlockAt || lockData.amount == 0);
   }
 
   // Is completed lock?
   function isLocked(address owner) public view returns (bool) {
-    return unlockTime[owner] == 0 && locked[owner] > 0;
+    return lockStorage[owner].lockAt > 0;
   }
 }
