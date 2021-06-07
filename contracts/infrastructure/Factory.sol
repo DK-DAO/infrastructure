@@ -29,7 +29,7 @@ contract Factory is User {
     init(_registry, _domain);
   }
 
-  function cloneNewDAO(NewDAO calldata creatingDAO) external onlyAllowCrossDomain(bytes32('DKDAO'), bytes32('Press')) returns (bool) {
+  function cloneNewDAO(NewDAO calldata creatingDAO) external onlyAllowCrossDomain(bytes32('DKDAO'), bytes32('Factory Operator')) returns (bool) {
     // New DAO will be cloned from KDDAO
     address newDAO = registry.getAddress(bytes32('DKDAO'), 'DAO').clone();
     IUser(newDAO).init(address(registry), creatingDAO.domain);

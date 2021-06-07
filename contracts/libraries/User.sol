@@ -26,11 +26,16 @@ abstract contract User {
   }
 
   // Constructing with registry address and its active domain
-  function init(address _registry, bytes32 _domain) public returns(bool) {
+  function init(address _registry, bytes32 _domain) public returns (bool) {
     require(domain == bytes32(0) && address(registry) == address(0), "User: It's only able to set once");
     registry = IRegistry(_registry);
     domain = _domain;
     return true;
+  }
+
+  // Get address in the same domain
+  function getAddressSameDomain(bytes32 name) internal view returns (address) {
+    return registry.getAddress(domain, name);
   }
 
   // Return active domain

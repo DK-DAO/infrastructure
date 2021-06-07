@@ -49,7 +49,7 @@ contract Press is User {
       registedDistributors[_domain][bytes32('Distributor')] = appId;
     }
     // Item application's id will be overwrited no matter what
-    return INFT(registry.getAddress(domain, bytes32('NFT'))).mint(_owner, _itemId.setApplicationId(appId));
+    return INFT(getAddressSameDomain(bytes32('NFT'))).mint(_owner, _itemId.setApplicationId(appId));
   }
 
   // Get application id of domain
