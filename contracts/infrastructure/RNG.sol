@@ -14,8 +14,16 @@ import '../interfaces/IRNGConsumer.sol';
  * Domain: DKDAO Infrastructure
  */
 contract RNG is User, Ownable {
-  // Total commited digest
-  uint256 private currentCommited;
+  // Commit scheme data
+  struct CommitSchemeProgress {
+    uint256 committed;
+    uint256 revealed;
+    address oracle;
+    uint256 lasReveal;
+  }
+
+  // Total committed digest
+  uint256 private currentCommitted;
 
   // Secret digests map
   mapping(uint256 => bytes32) private secretDigests;
@@ -30,11 +38,11 @@ contract RNG is User, Ownable {
   address private oracle;
 
   // Last reveal number
-  uint64 private lastReveal;
+  uint256 private lastReveal;
 
   // Events
   event Committed(uint256 indexed index, bytes32 indexed digest);
-  event Revealed(uint256 indexed index, uint192 indexed s, uint64 indexed t);
+  event Revealed(uint256 indexed index, uint192 indexed s, uint256 indexed t);
 
   // Pass constructor parameter to User
   constructor(address _registry, bytes32 _domain) {
@@ -44,16 +52,16 @@ contract RNG is User, Ownable {
   // DKDAO Oracle will commit H(S||t) to blockchain
   function commit(bytes32 digest) external onlyAllowSameDomain(bytes32('Oracle')) returns (uint256) {
     // We begin from 1 instead of 0 to prevent error
-    currentCommited += 1;
-    secretDigests[currentCommited] = digest;
-    emit Committed(currentCommited, digest);
-    return currentCommited;
+    currentCommitted += 1;
+    secretDigests[currentCommitted] = digest;
+    emit Committed(currentCommitted, digest);
+    return currentCommitted;
   }
 
   // DKDAO Oracle will reveal S and t
   function reveal(bytes32 secret, address target) external onlyAllowSameDomain(bytes32('Oracle')) returns (uint256) {
     uint192 s;
-    uint64 t;
+    uint256 t;
     // We begin from 1 instead of 0 to prevent error
     currentRevealed += 1;
     // Decompose secret to its components
@@ -73,5 +81,16 @@ contract RNG is User, Ownable {
     }
     emit Revealed(currentRevealed, s, t);
     return currentRevealed;
+  }
+
+  // Get progress of commit scheme
+  function getProgress() external view returns (CommitSchemeProgress memory) {
+    return
+      CommitSchemeProgress({
+        committed: currentCommitted,
+        revealed: currentRevealed,
+        oracle: oracle,
+        lasReveal: lastReveal
+      });
   }
 }

@@ -24,6 +24,9 @@ contract Press is User {
   // Registed distributors
   mapping(bytes32 => mapping(bytes32 => uint256)) private registedDistributors;
 
+  // Registy new application
+  event NewApplication(bytes32 indexed domain, uint256 indexed applicationId);
+
   // We only allow call from registed distributor on Registry
   modifier onlyAllowExistedDistributor(bytes32 _domain) {
     require(registry.isExistRecord(_domain, bytes32('Distributor')), 'Press: Distributor was not existed');
@@ -46,7 +49,9 @@ contract Press is User {
     if (appId == 0) {
       applicationIndex += 1;
       appId = applicationIndex;
+      // Each domain will be assign with an 64 bits application id
       registedDistributors[_domain][bytes32('Distributor')] = appId;
+      emit NewApplication(_domain, appId);
     }
     // Item application's id will be overwrited no matter what
     return INFT(getAddressSameDomain(bytes32('NFT'))).mint(_owner, _itemId.setApplicationId(appId));

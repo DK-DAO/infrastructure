@@ -21,20 +21,24 @@ contract OracleProxy is Ownable {
 
   // List controller
   event ListAddress(address indexed addr);
+
   // Delist controller
   event DelistAddress(address indexed addr);
 
+  // Only allow listed oracle to trigger oracle proxy
   modifier onlyListedController() {
     require(controllers[msg.sender], 'OracleProxy: Controller was not in the list');
     _;
   }
 
+  // Add real Oracle to controller list
   function addController(address controllerAddr) external returns (bool) {
     controllers[controllerAddr] = true;
     emit ListAddress(controllerAddr);
     return true;
   }
 
+  // Remove real Oracle from controller list
   function removeController(address controllerAddr) external returns (bool) {
     controllers[controllerAddr] = false;
     emit DelistAddress(controllerAddr);
