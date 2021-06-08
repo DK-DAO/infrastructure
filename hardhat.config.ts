@@ -1,19 +1,10 @@
 import { HardhatUserConfig } from 'hardhat/types';
 import 'hardhat-typechain';
 import '@nomiclabs/hardhat-ethers';
+import 'hardhat-gas-reporter';
+import 'solidity-coverage';
 
-function contractName(name: string) {
-  const buf = Buffer.alloc(32);
-  buf.write(name);
-  console.log(`bytes32 internal immutable ${name.replace('DuelistKing', '')} = 0x${buf.toString('hex')};`);
-}
-
-contractName('DuelistKingRegistry');
-contractName('DuelistKingRng');
-contractName('DuelistKingFairDistributor');
-contractName('DuelistKingOracle');
-
-const compilers = ['0.6.12', '0.7.6', '0.8.4'].map((item: string) => ({
+const compilers = ['0.8.4'].map((item: string) => ({
   version: item,
   settings: {
     optimizer: {
@@ -28,10 +19,13 @@ const config: HardhatUserConfig = {
   networks: {
     // Do forking mainnet to test
     hardhat: {
-      blockGasLimit: 12500000,
-      gas: 6500000,
+      blockGasLimit: 62500000,
+      gas: 3000000,
       gasPrice: 2000000000,
       hardfork: 'berlin',
+      // forking: {
+      //  url: 'https://bsc-dataseed.binance.org/',
+      // },
       accounts: {
         path: "m/44'/60'/0'/0",
       },

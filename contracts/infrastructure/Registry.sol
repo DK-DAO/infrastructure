@@ -43,7 +43,7 @@ contract Registry is Ownable {
       'Registry: Number of records and addreses must be matched'
     );
     for (uint256 i = 0; i < names.length; i += 1) {
-      require(!_set(domains[i], names[i], addrs[i]), 'Registry: Unable to set records');
+      require(_set(domains[i], names[i], addrs[i]), 'Registry: Unable to set records');
     }
     return true;
   }
@@ -60,7 +60,7 @@ contract Registry is Ownable {
 
   // Get name by address
   function getDomainAndName(address addr) external view returns (bytes32, bytes32) {
-    return (revertedName[addr], revertedDomain[addr]);
+    return (revertedDomain[addr], revertedName[addr]);
   }
 
   // Set record internally
