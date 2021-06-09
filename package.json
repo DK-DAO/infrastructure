@@ -7,6 +7,9 @@
   "author": "Chiro Hiro <chiro8x@gmail.com>",
   "license": "Apache-2.0",
   "private": false,
+  "scripts": {
+    "coverage": "hardhat coverage"
+  },
   "devDependencies": {
     "@types/chai": "^4.2.18",
     "@types/mocha": "^8.2.2",
