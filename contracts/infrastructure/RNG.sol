@@ -6,6 +6,7 @@ pragma abicoder v2;
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '../libraries/User.sol';
+import '../libraries/Bytes.sol';
 import '../interfaces/IRNGConsumer.sol';
 
 /**
@@ -14,6 +15,9 @@ import '../interfaces/IRNGConsumer.sol';
  * Domain: DKDAO Infrastructure
  */
 contract RNG is User, Ownable {
+  // Use bytes lib for bytes
+  using Bytes for bytes;
+
   // Commit scheme data
   struct CommitSchemeProgress {
     uint256 committed;
@@ -51,11 +55,16 @@ contract RNG is User, Ownable {
 
   // DKDAO Oracle will commit H(S||t) to blockchain
   function commit(bytes32 digest) external onlyAllowSameDomain(bytes32('Oracle')) returns (uint256) {
-    // We begin from 1 instead of 0 to prevent error
-    currentCommitted += 1;
-    secretDigests[currentCommitted] = digest;
-    emit Committed(currentCommitted, digest);
-    return currentCommitted;
+    return _commit(digest);
+  }
+
+  // Allow Oracle to commit multiple values to blockchain
+  function batchCommit(bytes calldata digest) external onlyAllowSameDomain(bytes32('Oracle')) returns (bool) {
+    bytes32[] memory digestList = digest.toBytes32Array();
+    for (uint256 i = 0; i < digestList.length; i += 1) {
+      require(_commit(digestList[i]) > 0, 'RNG: Unable to add digest to blockchain');
+    }
+    return true;
   }
 
   // DKDAO Oracle will reveal S and t
@@ -81,6 +90,15 @@ contract RNG is User, Ownable {
     }
     emit Revealed(currentRevealed, s, t);
     return currentRevealed;
+  }
+
+  // Commit digest to blockchain state
+  function _commit(bytes32 digest) internal returns (uint256) {
+    // We begin from 1 instead of 0 to prevent error
+    currentCommitted += 1;
+    secretDigests[currentCommitted] = digest;
+    emit Committed(currentCommitted, digest);
+    return currentCommitted;
   }
 
   // Get progress of commit scheme

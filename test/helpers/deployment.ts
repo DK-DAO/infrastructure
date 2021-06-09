@@ -1,7 +1,7 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
 import { Signer } from 'ethers';
-import { stringToBytes32, contractDeploy } from '../helpers/functions';
+import { contractDeploy } from '../helpers/functions';
 import { registryRecords } from '../helpers/const';
 import { NFT, OracleProxy, Press, Registry, RNG } from '../../typechain';
 
@@ -12,7 +12,7 @@ export interface IInitialResult {
     contractRNG: RNG;
     contractPress: Press;
     contractRegistry: Registry;
-    oracleOracleProxy: OracleProxy;
+    contractOracleProxy: OracleProxy;
     oracle: Signer;
     owner: Signer;
     addressOracle: string;
@@ -32,7 +32,7 @@ export async function init(): Promise<IInitialResult> {
 
     const contractRegistry = await contractDeploy(owner, 'DKDAO Infrastructure/Registry');
 
-    const oracleOracleProxy = await contractDeploy(owner, 'DKDAO Infrastructure/OracleProxy');
+    const contractOracleProxy = await contractDeploy(owner, 'DKDAO Infrastructure/OracleProxy');
 
     const contractNFT = await contractDeploy(
       owner,
@@ -55,22 +55,24 @@ export async function init(): Promise<IInitialResult> {
       registryRecords.domain.infrastructure,
     );
 
-    console.log('Add OracleProxy -> Registry');
     await contractRegistry.set(
       registryRecords.domain.infrastructure,
       registryRecords.name.oracle,
-      oracleOracleProxy.address,
+      contractOracleProxy.address,
+      //addressOracle,
     );
 
-    console.log('Add Press -> Registry');
     await contractRegistry.batchSet(
-      [registryRecords.domain.infrastructure, registryRecords.domain.infrastructure, registryRecords.domain.infrastructure],
-      [registryRecords.name.press,registryRecords.name.nft,registryRecords.name.rng],
+      [
+        registryRecords.domain.infrastructure,
+        registryRecords.domain.infrastructure,
+        registryRecords.domain.infrastructure,
+      ],
+      [registryRecords.name.press, registryRecords.name.nft, registryRecords.name.rng],
       [contractPress.address, contractNFT.address, contractRNG.address],
     );
 
-    console.log(`Add oracle controller -> OracleProxy`);
-    await oracleOracleProxy.addController(addressOracle);
+    await contractOracleProxy.addController(addressOracle);
 
     result = <any>{
       infrastructure: {
@@ -78,7 +80,7 @@ export async function init(): Promise<IInitialResult> {
         contractRNG,
         contractPress,
         contractRegistry,
-        oracleOracleProxy,
+        contractOracleProxy,
         oracle,
         owner,
         addressOracle,
