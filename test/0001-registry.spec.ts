@@ -7,58 +7,44 @@ let ctx: IInitialResult;
 describe('Registry', () => {
   it('account[0] must be the owner of registry', async () => {
     ctx = await init();
-    expect(await ctx.infrastructure.contractRegistry.owner()).to.eq(await ctx.infrastructure.owner.getAddress());
+    const {
+      infrastructure: { contractRegistry, owner },
+    } = ctx;
+    expect(await contractRegistry.owner()).to.eq(await owner.getAddress());
   });
 
-  it('Oracle in registry should be OracleProxy', async () => {
-    expect(ctx.infrastructure.contractOracleProxy.address).to.eq(
-      await ctx.infrastructure.contractRegistry.getAddress(
-        registryRecords.domain.infrastructure,
-        registryRecords.name.oracle,
-      ),
+  it('All records in registry should be set correctly', async () => {
+    const {
+      infrastructure: { contractRNG, contractOracleProxy, contractPress, contractRegistry, contractNFT },
+    } = ctx;
+    expect(contractOracleProxy.address).to.eq(
+      await contractRegistry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.oracle),
     );
-  });
-
-  it('Press in registry should be Press', async () => {
-    expect(ctx.infrastructure.contractPress.address).to.eq(
-      await ctx.infrastructure.contractRegistry.getAddress(
-        registryRecords.domain.infrastructure,
-        registryRecords.name.press,
-      ),
+    expect(contractPress.address).to.eq(
+      await contractRegistry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.press),
     );
-  });
-
-  it('NFT in registry should be NFT', async () => {
-    expect(ctx.infrastructure.contractNFT.address).to.eq(
-      await ctx.infrastructure.contractRegistry.getAddress(
-        registryRecords.domain.infrastructure,
-        registryRecords.name.nft,
-      ),
+    expect(contractNFT.address).to.eq(
+      await contractRegistry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.nft),
     );
-  });
-
-  it('RNG in registry should be RNG', async () => {
-    expect(ctx.infrastructure.contractRNG.address).to.eq(
-      await ctx.infrastructure.contractRegistry.getAddress(
-        registryRecords.domain.infrastructure,
-        registryRecords.name.rng,
-      ),
+    expect(contractRNG.address).to.eq(
+      await contractRegistry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.rng),
     );
   });
 
   it('RNG record must be existed', async () => {
+    const {
+      infrastructure: { contractRegistry },
+    } = ctx;
     expect(true).to.eq(
-      await ctx.infrastructure.contractRegistry.isExistRecord(
-        registryRecords.domain.infrastructure,
-        registryRecords.name.rng,
-      ),
+      await contractRegistry.isExistRecord(registryRecords.domain.infrastructure, registryRecords.name.rng),
     );
   });
 
   it('reversed mapping should be correct', async () => {
-    const [domain, name] = await ctx.infrastructure.contractRegistry.getDomainAndName(
-      ctx.infrastructure.contractRNG.address,
-    );
+    const {
+      infrastructure: { contractRNG, contractRegistry },
+    } = ctx;
+    const [domain, name] = await contractRegistry.getDomainAndName(contractRNG.address);
     expect(domain).to.eq(registryRecords.domain.infrastructure);
     expect(name).to.eq(registryRecords.name.rng);
   });

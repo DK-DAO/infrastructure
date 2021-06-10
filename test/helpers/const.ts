@@ -7,6 +7,7 @@ export const registryRecords = {
     duelistKing: stringToBytes32('Duelist King'),
   },
   name: {
+    distributor: stringToBytes32('Distributor'),
     dao: stringToBytes32('DAO'),
     daoToken: stringToBytes32('DAO Token'),
     pool: stringToBytes32('Pool'),
@@ -17,3 +18,6 @@ export const registryRecords = {
     factory: stringToBytes32('Factory'),
   },
 };
+
+
+export const zeroAddress = '0x0000000000000000000000000000000000000000';

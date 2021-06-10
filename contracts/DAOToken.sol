@@ -3,7 +3,6 @@ pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
 import './libraries/ERC20.sol';
-import './libraries/User.sol';
 import './libraries/TokenMetadata.sol';
 
 /**
@@ -11,7 +10,7 @@ import './libraries/TokenMetadata.sol';
  * Name: DAO Token
  * Domain: DKDAO, *
  */
-contract DAOToken is User, ERC20 {
+contract DAOToken is ERC20 {
   // Lock structure
   struct Lock {
     uint256 amount;
@@ -30,8 +29,7 @@ contract DAOToken is User, ERC20 {
 
   // Constructing with token Metadata
   function init(TokenMetadata.Metadata memory metadata) external returns (bool) {
-    // Set registry and domain to User
-    require(super.init(metadata.registry, metadata.domain), "DAOToken: This method can't be trigger twice");
+    require(totalSupply() == 0, "DAOToken: It's only allowed to called once");
     // Set name and symbol to DAO Token
     _init(metadata.name, metadata.symbol);
     // Setup balance and genesis token distribution

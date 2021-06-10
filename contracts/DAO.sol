@@ -41,7 +41,7 @@ contract DAO is User, IDAO {
     uint256 votePower = IDAOToken(getAddressSameDomain(bytes32('DAOToken'))).votePower(msg.sender);
     require(votePower > 0, 'DAO: Only allow locked token to vote');
     proposalIndex += 1;
-    newProposal.expired = uint64(block.timestamp + 15 days);
+    newProposal.expired = uint64(block.timestamp + 7 days);
     proposalStorage[proposalIndex] = newProposal;
     return proposalIndex;
   }
@@ -65,9 +65,9 @@ contract DAO is User, IDAO {
   // Execute a voted proposal
   function execute(uint256 proposalId) external override returns (bool) {
     Proposal memory currentProposal = proposalStorage[proposalId];
-    int256 threshhold = int256(IDAOToken(getAddressSameDomain(bytes32('DAOToken'))).totalSupply() / 2);
+    int256 threshold = int256(IDAOToken(getAddressSameDomain(bytes32('DAOToken'))).totalSupply() / 2);
     require(block.timestamp > proposalStorage[proposalId].expired, "DAO: Voting period wasn't over");
-    require(currentProposal.vote > threshhold, "DAO: Voting period wasn't over");
+    require(currentProposal.vote > threshold, 'DAO: Vote was not pass threshold');
     require(currentProposal.executed == false, 'DAO: Proposal was executed');
     if (currentProposal.delegate) {
       currentProposal.target.functionDelegateCall(currentProposal.data);
