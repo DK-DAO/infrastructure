@@ -53,7 +53,7 @@ describe('RNG', () => {
         0,
         contractRNG.interface.encodeFunctionData('reveal', [
           digests.s[1],
-          '0x0000000000000000000000000000000000000000',
+          zeroAddress,
         ]),
       );
     const { revealed, committed } = await contractRNG.getProgress();

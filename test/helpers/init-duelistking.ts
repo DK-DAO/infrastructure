@@ -11,7 +11,6 @@ export interface IInitialDuelistKingResult extends IInitialDKDAOInfrastructureRe
     contractDAO: DAO;
     contractDAOToken: DAOToken;
     contractPool: Pool;
-    contractOracleProxy: OracleProxy;
     oracle: Signer;
     owner: Signer;
     addressOracle: string;
@@ -42,8 +41,6 @@ export async function initDuelistKing() {
   }
 
   const contractPool = await contractDeploy(owner, 'Duelist King/Pool');
-
-  const contractOracleProxy = await contractDeploy(owner, 'Duelist King/OracleProxy');
 
   // The Divine Contract https://github.com/chiro-hiro/thedivine
   const tx = await owner.sendTransaction({
@@ -76,8 +73,6 @@ export async function initDuelistKing() {
     [contractDAO.address, contractDAOToken.address, contractPool.address, contractDuelistKingFairDistributor.address],
   );
 
-  await contractOracleProxy.addController(addressOracle);
-
   return <IInitialDuelistKingResult>{
     ...result,
     duelistKing: {
@@ -87,7 +82,6 @@ export async function initDuelistKing() {
       addressOwner,
       contractDAO,
       contractDAOToken,
-      contractOracleProxy,
       contractPool,
       contractDuelistKingFairDistributor,
     },
