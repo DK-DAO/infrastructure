@@ -105,3 +105,4 @@ dist
 artifacts
 typechain
 cache
+coverage.json
