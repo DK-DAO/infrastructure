@@ -59,6 +59,7 @@ contract DAO is User, IDAO {
       proposalStorage[proposalId].vote -= int256(votePower);
       emit NegativeVote(proposalId, msg.sender, votePower);
     }
+    votedStorage[proposalId][msg.sender] = false;
     return true;
   }
 
