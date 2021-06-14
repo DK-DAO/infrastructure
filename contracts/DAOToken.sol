@@ -81,13 +81,13 @@ contract DAOToken is ERC20 {
     return true;
   }
 
-  // Unlock balance in the next 30 days
+  // Unlock balance in the next 15 days
   function unlock() external returns (bool) {
     address owner = _msgSender();
     Lock memory lockData = lockStorage[owner];
     require(lockData.amount > 0, 'DAOToken: Unlock amount must greater than 0');
-    // Set unlock time to next 30 days
-    lockData.unlockAt = uint128(block.timestamp + 30 days);
+    // Set unlock time to next 15 days
+    lockData.unlockAt = uint128(block.timestamp + 15 days);
     // Set lock time to 0
     lockData.lockAt = 0;
     // Update lock data
