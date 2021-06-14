@@ -76,7 +76,7 @@ describe('DuelistKingFairDistributor', function () {
     );
 
     const { revealed, committed } = await contractRNG.getProgress();
-    expect(revealed.toNumber()).to.eq(3);
-    expect(committed.toNumber()).to.eq(11);
+    expect(revealed.toNumber()).to.eq(12);
+    expect(committed.toNumber()).to.eq(12);
   });
 });
