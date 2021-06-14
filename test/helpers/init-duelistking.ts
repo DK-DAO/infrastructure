@@ -10,6 +10,7 @@ export interface IInitialDuelistKingResult extends IInitialDKDAOInfrastructureRe
     contractDuelistKingFairDistributor: DuelistKingFairDistributor;
     contractDAO: DAO;
     contractDAOToken: DAOToken;
+    contractOracleProxy: OracleProxy;
     contractPool: Pool;
     oracle: Signer;
     owner: Signer;
@@ -24,21 +25,12 @@ export async function initDuelistKing() {
   const result = await initDKDAOInfrastructure();
   const addressOwner = await owner.getAddress();
   const addressOracle = await oracle.getAddress();
-
   const contractDAO = <DAO>await contractDeploy(owner, 'Duelist King/DAO');
 
   const contractDAOToken = <DAOToken>await contractDeploy(owner, 'Duelist King/DAOToken');
 
-  // Init() is only able to be called once
-  if ((await contractDAO.getRegistry()) === zeroAddress) {
-    await contractDAO.init(result.infrastructure.contractRegistry.address, registryRecords.domain.duelistKing);
-    await contractDAOToken.init({
-      symbol: 'DKT',
-      name: 'Duelist King Token',
-      grandDAO: zeroAddress,
-      genesis: addressOwner,
-    });
-  }
+  const contractOracleProxy = await contractDeploy(owner, 'Duelist King/OracleProxy');
+
 
   const contractPool = await contractDeploy(owner, 'Duelist King/Pool');
 
@@ -53,25 +45,54 @@ export async function initDuelistKing() {
     owner,
     'Duelist King/DuelistKingFairDistributor',
     result.infrastructure.contractRegistry.address,
-    registryRecords.domain.infrastructure,
+    registryRecords.domain.duelistKing,
     theDivine,
   );
 
-  await result.infrastructure.contractRegistry.batchSet(
-    [
+  // Init() is only able to be called once
+  if (
+    !(await result.infrastructure.contractRegistry.isExistRecord(
       registryRecords.domain.duelistKing,
-      registryRecords.domain.duelistKing,
-      registryRecords.domain.duelistKing,
-      registryRecords.domain.duelistKing,
-    ],
-    [
       registryRecords.name.dao,
-      registryRecords.name.daoToken,
-      registryRecords.name.pool,
-      registryRecords.name.distributor,
-    ],
-    [contractDAO.address, contractDAOToken.address, contractPool.address, contractDuelistKingFairDistributor.address],
-  );
+    ))
+  ) {
+    await contractDAO.init(result.infrastructure.contractRegistry.address, registryRecords.domain.duelistKing);
+
+    await contractDAOToken.init({
+      symbol: 'DKT',
+      name: 'Duelist King Token',
+      grandDAO: zeroAddress,
+      genesis: addressOwner,
+    });
+
+    await contractOracleProxy.connect(owner).addController(addressOracle);
+
+    await result.infrastructure.contractRegistry
+      .connect(result.infrastructure.owner)
+      .batchSet(
+        [
+          registryRecords.domain.duelistKing,
+          registryRecords.domain.duelistKing,
+          registryRecords.domain.duelistKing,
+          registryRecords.domain.duelistKing,
+          registryRecords.domain.duelistKing,
+        ],
+        [
+          registryRecords.name.dao,
+          registryRecords.name.daoToken,
+          registryRecords.name.pool,
+          registryRecords.name.distributor,
+          registryRecords.name.oracle,
+        ],
+        [
+          contractDAO.address,
+          contractDAOToken.address,
+          contractPool.address,
+          contractDuelistKingFairDistributor.address,
+          contractOracleProxy.address,
+        ],
+      );
+  }
 
   return <IInitialDuelistKingResult>{
     ...result,
@@ -82,6 +103,7 @@ export async function initDuelistKing() {
       addressOwner,
       contractDAO,
       contractDAOToken,
+      contractOracleProxy,
       contractPool,
       contractDuelistKingFairDistributor,
     },

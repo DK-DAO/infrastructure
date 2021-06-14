@@ -3,6 +3,7 @@ import { Contract } from '@ethersproject/contracts';
 import crypto from 'crypto';
 import { keccak256 } from 'js-sha3';
 import hre from 'hardhat';
+import { ContractTransaction } from 'ethers';
 
 interface IKeyValues {
   [key: string]: string;
@@ -109,3 +110,13 @@ export function buildDigestArray(size: number) {
     v: buf,
   };
 }
+
+export function randInt(start: number, end: number) {
+  return start + ((Math.random() * (end - start)) >>> 0);
+}
+
+export async function getGasCost(tx: ContractTransaction) {
+  console.log('\tGas cost:', (await tx.wait()).gasUsed.toString());
+}
+
+

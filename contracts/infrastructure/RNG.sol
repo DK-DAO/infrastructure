@@ -46,7 +46,7 @@ contract RNG is User, Ownable {
 
   // Events
   event Committed(uint256 indexed index, bytes32 indexed digest);
-  event Revealed(uint256 indexed index, uint192 indexed s, uint256 indexed t);
+  event Revealed(uint256 indexed index, uint256 indexed s, uint256 indexed t);
 
   // Pass constructor parameter to User
   constructor(address _registry, bytes32 _domain) {
@@ -68,25 +68,28 @@ contract RNG is User, Ownable {
   }
 
   // DKDAO Oracle will reveal S and t
-  function reveal(bytes32 secret, address target) external onlyAllowSameDomain(bytes32('Oracle')) returns (uint256) {
-    uint192 s;
+  function reveal(bytes memory data) external onlyAllowSameDomain(bytes32('Oracle')) returns (uint256) {
+    require(data.length >= 52, 'RNG: Input data has wrong format');
+    uint256 secret = data.readUint256(0);
+    address target = data.readAddress(32);
+    uint256 s;
     uint256 t;
     // We begin from 1 instead of 0 to prevent error
     currentRevealed += 1;
-    // Decompose secret to its components
-    assembly {
-      t := and(t, 0xffffffffffffffff)
-      s := shr(64, secret)
-    }
+    t = secret & 0xffffffffffffffff;
+    s = secret >> 64;
     // We won't allow invalid timestamp
-    require(t >= lastReveal, 'Rng: Invalid time stamp');
+    require(t >= lastReveal, 'RNG: Invalid time stamp');
     require(keccak256(abi.encodePacked(secret)) == secretDigests[currentRevealed], "Rng: Secret doesn't match digest");
-    secretValues[currentRevealed] = secret;
+    secretValues[currentRevealed] = bytes32(secret);
     // Increase last reveal value
     lastReveal = t;
     // Hook call to fair distribution
     if (target != address(0x00)) {
-      require(IRNGConsumer(target).compute(secret), "Rng: Can't do callback to distributor");
+      require(
+        IRNGConsumer(target).compute(secret, data.readBytes(52, data.length - 52)),
+        "RNG: Can't do callback to distributor"
+      );
     }
     emit Revealed(currentRevealed, s, t);
     return currentRevealed;

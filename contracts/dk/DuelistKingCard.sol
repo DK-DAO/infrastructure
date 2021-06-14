@@ -14,7 +14,7 @@ library DuelistKingCard {
 
   // Edition:         16  bits    For now, 0-Standard edition 0xff-Creator edition
   // Generation:      16  bits    Generation of item, now it's Gen 0
-  // Rareness:        16  bits    0-C, 1-U, 2-R, 3-SR, 4-SSR, 5-L
+  // Rareness:        16  bits    1-C, 2-U, 3-R, 4-SR, 5-SSR, 6-L
   // Type:            16  bits    0-Card, 1-Loot Box
   // Id:              64  bits    Increasement value that unique for each item
   // Serial:          64  bits    Increasement value that count the number of items
