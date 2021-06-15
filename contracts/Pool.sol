@@ -21,7 +21,7 @@ contract Pool is User, Ownable {
     address target,
     uint256 value,
     bytes memory data
-  ) external onlyAllowSameDomain(bytes32('DAO')) returns (bool) {
+  ) external onlyAllowSameDomain('DAO') returns (bool) {
     target.functionCallWithValue(data, value);
     return true;
   }
@@ -29,7 +29,7 @@ contract Pool is User, Ownable {
   // Delegatecall to a target address with given payload
   function safeDelegateCall(address target, bytes calldata data)
     external
-    onlyAllowSameDomain(bytes32('DAO'))
+    onlyAllowSameDomain('DAO')
     returns (bool)
   {
     target.functionDelegateCall(data);

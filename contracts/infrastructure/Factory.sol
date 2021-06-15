@@ -30,19 +30,19 @@ contract Factory is User {
 
   function cloneNewDAO(NewDAO calldata creatingDAO)
     external
-    onlyAllowCrossDomain(bytes32('DKDAO'), bytes32('DAO'))
+    onlyAllowCrossDomain('DKDAO', 'DAO')
     returns (bool)
   {
     // New DAO will be cloned from KDDAO
-    address newDAO = registry.getAddress(bytes32('DKDAO'), 'DAO').clone();
+    address newDAO = registry.getAddress('DKDAO', 'DAO').clone();
     IUser(newDAO).init(address(registry), creatingDAO.domain);
 
     // New DAO Token will be cloned from DKDAOToken
-    address newDAOToken = registry.getAddress(bytes32('DKDAO'), 'DAOToken').clone();
+    address newDAOToken = registry.getAddress('DKDAO', 'DAOToken').clone();
     IDAOToken(newDAOToken).init(creatingDAO.tokenMetadata);
 
     // New Pool will be clone from
-    address newPool = registry.getAddress(bytes32('DKDAO'), 'Pool').clone();
+    address newPool = registry.getAddress('DKDAO', 'Pool').clone();
     IUser(newPool).init(address(registry), creatingDAO.domain);
 
     return true;

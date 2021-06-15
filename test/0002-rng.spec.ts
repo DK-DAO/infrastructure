@@ -15,7 +15,7 @@ describe('RNG', () => {
     const { s, h } = buildDigest();
     const {
       infrastructure: { contractOracleProxy, oracle, contractRNG },
-      duelistKing: { contractDuelistKingNFT, addressOwner },
+      duelistKing: { contractDuelistKingDistributor, addressOwner },
     } = ctx;
 
     await contractOracleProxy
@@ -37,7 +37,7 @@ describe('RNG', () => {
 
     const {
       infrastructure: { contractOracleProxy, oracle, contractRNG },
-      duelistKing: { contractDuelistKingNFT, addressOwner },
+      duelistKing: { contractDuelistKingDistributor, addressOwner },
     } = ctx;
 
     await contractOracleProxy
@@ -46,7 +46,7 @@ describe('RNG', () => {
 
     for (let i = 0; i < digests.s.length; i += 1) {
       const data: BytesLike = BytesBuffer.newInstance()
-        .writeAddress(contractDuelistKingNFT.address)
+        .writeAddress(contractDuelistKingDistributor.address)
         .writeUint256(digests.s[i])
         .invoke();
       await contractOracleProxy

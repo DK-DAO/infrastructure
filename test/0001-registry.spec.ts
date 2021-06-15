@@ -28,7 +28,7 @@ describe('Registry', () => {
   it('All records in registry should be set correctly for Duelist King domain', async () => {
     const {
       infrastructure: { contractRegistry },
-      duelistKing: { contractDAO, contractDAOToken, contractDuelistKingNFT, contractPool, contractOracleProxy },
+      duelistKing: { contractDAO, contractDAOToken, contractDuelistKingDistributor, contractPool, contractOracleProxy },
     } = ctx;
     expect(contractDAO.address).to.eq(
       await contractRegistry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.dao),
@@ -39,8 +39,8 @@ describe('Registry', () => {
     expect(contractPool.address).to.eq(
       await contractRegistry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.pool),
     );
-    expect(contractDuelistKingNFT.address).to.eq(
-      await contractRegistry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.nft),
+    expect(contractDuelistKingDistributor.address).to.eq(
+      await contractRegistry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.distributor),
     );
     expect(contractOracleProxy.address).to.eq(
       await contractRegistry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.oracle),

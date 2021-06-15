@@ -54,12 +54,12 @@ contract RNG is User, Ownable {
   }
 
   // DKDAO Oracle will commit H(S||t) to blockchain
-  function commit(bytes32 digest) external onlyAllowSameDomain(bytes32('Oracle')) returns (uint256) {
+  function commit(bytes32 digest) external onlyAllowSameDomain('Oracle') returns (uint256) {
     return _commit(digest);
   }
 
   // Allow Oracle to commit multiple values to blockchain
-  function batchCommit(bytes calldata digest) external onlyAllowSameDomain(bytes32('Oracle')) returns (bool) {
+  function batchCommit(bytes calldata digest) external onlyAllowSameDomain('Oracle') returns (bool) {
     bytes32[] memory digestList = digest.toBytes32Array();
     for (uint256 i = 0; i < digestList.length; i += 1) {
       require(_commit(digestList[i]) > 0, 'RNG: Unable to add digest to blockchain');
@@ -68,7 +68,7 @@ contract RNG is User, Ownable {
   }
 
   // DKDAO Oracle will reveal S and t
-  function reveal(bytes memory data) external onlyAllowSameDomain(bytes32('Oracle')) returns (uint256) {
+  function reveal(bytes memory data) external onlyAllowSameDomain('Oracle') returns (uint256) {
     require(data.length >= 52, 'RNG: Input data has wrong format');
     address target = data.readAddress(0);
     uint256 secret = data.readUint256(20);

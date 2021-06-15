@@ -13,9 +13,10 @@ export const registryRecords = {
     oracle: stringToBytes32('Oracle'),
     rng: stringToBytes32('RNG'),
     nft: stringToBytes32('NFT'),
+    distributor: stringToBytes32('Distributor'),
     factory: stringToBytes32('Factory'),
+    press: stringToBytes32('Press'),
   },
 };
-
 
 export const zeroAddress = '0x0000000000000000000000000000000000000000';

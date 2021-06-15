@@ -2,12 +2,14 @@ import hre from 'hardhat';
 import { Signer } from 'ethers';
 import { contractDeploy } from './functions';
 import { registryRecords } from './const';
-import { OracleProxy, Registry, RNG } from '../../typechain';
+import { NFT, OracleProxy, Press, Registry, RNG } from '../../typechain';
 
 export interface IInitialDKDAOInfrastructureResult {
   infrastructure: {
     contractRNG: RNG;
     contractRegistry: Registry;
+    contractPress: Press;
+    contractNFT: NFT;
     contractOracleProxy: OracleProxy;
     oracle: Signer;
     owner: Signer;
@@ -26,6 +28,15 @@ export async function initDKDAOInfrastructure() {
 
   const contractOracleProxy = await contractDeploy(owner, 'DKDAO Infrastructure/OracleProxy');
 
+  const contractPress = await contractDeploy(
+    owner,
+    'DKDAO Infrastructure/Press',
+    contractRegistry.address,
+    registryRecords.domain.infrastructure,
+  );
+
+  const contractNFT = <NFT>await contractDeploy(owner, 'DKDAO Infrastructure/NFT');
+
   const contractRNG = await contractDeploy(
     owner,
     'DKDAO Infrastructure/RNG',
@@ -40,11 +51,15 @@ export async function initDKDAOInfrastructure() {
       registryRecords.name.oracle,
       contractOracleProxy.address,
     );
-
+    await contractNFT.nftInit('DKDAO NFT', 'DKN', contractRegistry.address, registryRecords.domain.infrastructure);
     await contractRegistry.batchSet(
-      [registryRecords.domain.infrastructure],
-      [registryRecords.name.rng],
-      [contractRNG.address],
+      [
+        registryRecords.domain.infrastructure,
+        registryRecords.domain.infrastructure,
+        registryRecords.domain.infrastructure,
+      ],
+      [registryRecords.name.rng, registryRecords.name.nft, registryRecords.name.press],
+      [contractRNG.address, contractNFT.address, contractPress.address],
     );
 
     await contractOracleProxy.addController(addressOracle);
@@ -52,6 +67,8 @@ export async function initDKDAOInfrastructure() {
   return <IInitialDKDAOInfrastructureResult>{
     infrastructure: {
       contractRNG,
+      contractPress,
+      contractNFT,
       contractRegistry,
       contractOracleProxy,
       oracle,
