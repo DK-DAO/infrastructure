@@ -3,11 +3,11 @@ import { Signer } from 'ethers';
 import { contractDeploy } from './functions';
 import { registryRecords, zeroAddress } from './const';
 import { IInitialDKDAOInfrastructureResult, initDKDAOInfrastructure } from './init-dkdao-insfrastructure';
-import { DAO, DAOToken, DuelistKingFairDistributor, OracleProxy, Pool } from '../../typechain';
+import { DAO, DAOToken, DuelistKingNFT, OracleProxy, Pool } from '../../typechain';
 
 export interface IInitialDuelistKingResult extends IInitialDKDAOInfrastructureResult {
   duelistKing: {
-    contractDuelistKingFairDistributor: DuelistKingFairDistributor;
+    contractDuelistKingNFT: DuelistKingNFT;
     contractDAO: DAO;
     contractDAOToken: DAOToken;
     contractOracleProxy: OracleProxy;
@@ -41,9 +41,9 @@ export async function initDuelistKing() {
 
   const theDivine = (await tx.wait()).contractAddress;
 
-  const contractDuelistKingFairDistributor = await contractDeploy(
+  const contractDuelistKingNFT = await contractDeploy(
     owner,
-    'Duelist King/DuelistKingFairDistributor',
+    'Duelist King/DuelistKingNFT',
     result.infrastructure.contractRegistry.address,
     registryRecords.domain.duelistKing,
     theDivine,
@@ -81,14 +81,14 @@ export async function initDuelistKing() {
           registryRecords.name.dao,
           registryRecords.name.daoToken,
           registryRecords.name.pool,
-          registryRecords.name.distributor,
+          registryRecords.name.nft,
           registryRecords.name.oracle,
         ],
         [
           contractDAO.address,
           contractDAOToken.address,
           contractPool.address,
-          contractDuelistKingFairDistributor.address,
+          contractDuelistKingNFT.address,
           contractOracleProxy.address,
         ],
       );
@@ -105,7 +105,7 @@ export async function initDuelistKing() {
       contractDAOToken,
       contractOracleProxy,
       contractPool,
-      contractDuelistKingFairDistributor,
+      contractDuelistKingNFT,
     },
   };
 }

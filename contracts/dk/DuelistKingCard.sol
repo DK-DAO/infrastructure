@@ -12,14 +12,14 @@ library DuelistKingCard {
   // We have 256 bits to store an item's id so we dicide to contain as much as posible data
   // Application      64  bits    We can't control this, it will be assigned by DKDAO
 
-  // Edition:         16  bits    For now, 0-Standard edition 0xff-Creator edition
+  // Edition:         16  bits    For now, 1-Standard edition 0xff-Creator edition
   // Generation:      16  bits    Generation of item, now it's Gen 0
   // Rareness:        16  bits    1-C, 2-U, 3-R, 4-SR, 5-SSR, 6-L
   // Type:            16  bits    0-Card, 1-Loot Box
   // Id:              64  bits    Increasement value that unique for each item
   // Serial:          64  bits    Increasement value that count the number of items
-  // 256         192         176             160            144         128       64            0 
-  //  |application|  edition  |  generation   |   rareness   |   type    |   id    |   seiral   |
+  // 256         240             224            208         192       128            0 
+  //  |  edition  |  generation   |   rareness   |   type    |   id    |   seiral   |
   function set(
     uint256 value,
     uint256 shift,
@@ -44,50 +44,50 @@ library DuelistKingCard {
   }
 
   function setSerial(uint256 a, uint256 b) internal pure returns (uint256 c) {
-    return set(a, 0, 0xffffffffffffffff, b);
+    return set(a, 0, 0xffffffffffffffffffffffffffffffff, b);
   }
 
   function getSerial(uint256 a) internal pure returns (uint256 c) {
-    return get(a, 0, 0xffffffffffffffff);
+    return get(a, 0, 0xffffffffffffffffffffffffffffffff);
   }
 
   function setId(uint256 a, uint256 b) internal pure returns (uint256 c) {
-    return set(a, 64, 0xffffffffffffffff, b);
+    return set(a, 128, 0xffffffffffffffff, b);
   }
 
   function getId(uint256 a) internal pure returns (uint256 c) {
-    return get(a, 64, 0xffffffffffffffff);
+    return get(a, 128, 0xffffffffffffffff);
   }
 
   function setType(uint256 a, uint256 b) internal pure returns (uint256 c) {
-    return set(a, 128, 0xffff, b);
+    return set(a, 192, 0xffff, b);
   }
 
   function getType(uint256 a) internal pure returns (uint256 c) {
-    return get(a, 128, 0xffff);
+    return get(a, 192, 0xffff);
   }
 
   function setRareness(uint256 a, uint256 b) internal pure returns (uint256 c) {
-    return set(a, 144, 0xffff, b);
+    return set(a, 208, 0xffff, b);
   }
 
   function getRareness(uint256 a) internal pure returns (uint256 c) {
-    return get(a, 144, 0xffff);
+    return get(a, 208, 0xffff);
   }
 
   function setGeneration(uint256 a, uint256 b) internal pure returns (uint256 c) {
-    return set(a, 160, 0xffff, b);
+    return set(a, 224, 0xffff, b);
   }
 
   function getGeneration(uint256 a) internal pure returns (uint256 c) {
-    return get(a, 160, 0xffff);
+    return get(a, 224, 0xffff);
   }
 
   function setEdition(uint256 a, uint256 b) internal pure returns (uint256 c) {
-    return set(a, 176, 0xffff, b);
+    return set(a, 240, 0xffff, b);
   }
 
   function getEdition(uint256 a) internal pure returns (uint256 c) {
-    return get(a, 176, 0xffff);
+    return get(a, 240, 0xffff);
   }
 }

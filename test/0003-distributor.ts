@@ -1,24 +1,25 @@
 import { expect } from 'chai';
-import { getGasCost, buildDigest } from './helpers/functions';
+import { getGasCost } from './helpers/functions';
+import { BytesBuffer } from './helpers/bytes';
 import { IInitialResult, init } from './helpers/deployment';
 import crypto from 'crypto';
-import { BytesLike } from 'ethers';
+import { BigNumber } from 'ethers';
 
 let ctx: IInitialResult;
 let digests: { s: Buffer[]; h: Buffer[]; v: Buffer };
 
-describe('DuelistKingFairDistributor', function () {
+describe('DuelistKingNFT', function () {
   this.timeout(5000000);
 
-  it('OracleProxy should able to forward newCampaign() call from oracle to DuelistKingFairDistributor', async () => {
+  it('OracleProxy should able to forward newCampaign() call from oracle to DuelistKingNFT', async () => {
     ctx = await init();
     const {
-      duelistKing: { contractOracleProxy, contractDuelistKingFairDistributor, oracle },
+      duelistKing: { contractOracleProxy, contractDuelistKingNFT, oracle },
     } = ctx;
     await contractOracleProxy.connect(oracle).safeCall(
-      contractDuelistKingFairDistributor.address,
+      contractDuelistKingNFT.address,
       0,
-      contractDuelistKingFairDistributor.interface.encodeFunctionData('newCampaign', [
+      contractDuelistKingNFT.interface.encodeFunctionData('newCampaign', [
         {
           distribution: [
             '0x000000000000000000000001000000060000000000003fff000000000fffffff',
@@ -31,52 +32,38 @@ describe('DuelistKingFairDistributor', function () {
           designs: 20,
           generation: 0,
           start: 0,
+          opened: 0,
+          softCap: 1000000,
+          deadline: 0,
         },
       ]),
     );
   });
 
-  it('OracleProxy should able to forward openBox() call from oracle to DuelistKingFairDistributor', async () => {
+  it('OracleProxy should able to forward openBox() call from oracle to DuelistKingNFT', async () => {
     ctx = await init();
     const {
-      duelistKing: { contractDuelistKingFairDistributor, addressOwner },
+      duelistKing: { contractDuelistKingNFT, addressOwner, contractOracleProxy, oracle },
     } = ctx;
-
-    const result = await contractDuelistKingFairDistributor.openBox(1, addressOwner, 100, crypto.randomBytes(32));
-    expect(result.length).to.eq(100 * 5);
-  });
-
-  it('OracleProxy should able to forward reveal call from oracle to RNG and Distributor', async () => {
-    const {
-      infrastructure: { contractOracleProxy, oracle, contractRNG },
-      duelistKing: { contractDuelistKingFairDistributor, addressOwner },
-    } = ctx;
-
-    const { s, h } = buildDigest();
-
-    await contractOracleProxy
+    
+    const result = await contractOracleProxy
       .connect(oracle)
-      .safeCall(contractRNG.address, 0, contractRNG.interface.encodeFunctionData('commit', [h]));
+      .safeCall(
+        contractDuelistKingNFT.address,
+        0,
+        contractDuelistKingNFT.interface.encodeFunctionData('openBox', [1, addressOwner, 10]),
+      );
+    const txReceipt = await result.wait();
+    console.log('\tGas used:', BigNumber.from(txReceipt.gasUsed).toString(), 'Gas');
 
-    const data = <BytesLike>(
-      await contractDuelistKingFairDistributor.constructData(
-        s,
-        contractDuelistKingFairDistributor.address,
-        addressOwner,
-        100,
-      )
-    );
-
-    getGasCost(
-      await contractOracleProxy
-        .connect(oracle)
-        .safeCall(contractRNG.address, 0, contractRNG.interface.encodeFunctionData('reveal', [data]), {
-          gasLimit: 10000000,
-        }),
-    );
-
-    const { revealed, committed } = await contractRNG.getProgress();
-    expect(revealed.toNumber()).to.eq(12);
-    expect(committed.toNumber()).to.eq(12);
+    txReceipt.logs
+      .filter((l) => ['0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'].indexOf(l.topics[0]) >= 0)
+      .forEach((l) => {
+        const {
+          args: { from, to, tokenId },
+          name,
+        } = contractDuelistKingNFT.interface.parseLog(l);
+        console.log(`\t${name}(${[from, to, BigNumber.from(tokenId).toHexString()].join(',')})`);
+      });
   });
 });

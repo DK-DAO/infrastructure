@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { buildDigestArray, buildDigest } from './helpers/functions';
 import { IInitialResult, init } from './helpers/deployment';
+import { BytesBuffer } from './helpers/bytes';
 import { zeroAddress } from './helpers/const';
 import { BytesLike } from 'ethers';
 
@@ -14,14 +15,14 @@ describe('RNG', () => {
     const { s, h } = buildDigest();
     const {
       infrastructure: { contractOracleProxy, oracle, contractRNG },
-      duelistKing: { contractDuelistKingFairDistributor, addressOwner },
+      duelistKing: { contractDuelistKingNFT, addressOwner },
     } = ctx;
 
     await contractOracleProxy
       .connect(oracle)
       .safeCall(contractRNG.address, 0, contractRNG.interface.encodeFunctionData('commit', [h]));
 
-    const data = <BytesLike>await contractDuelistKingFairDistributor.constructData(s, zeroAddress, addressOwner, 100);
+    const data: BytesLike = BytesBuffer.newInstance().writeAddress(zeroAddress).writeUint256(s).invoke();
     await contractOracleProxy
       .connect(oracle)
       .safeCall(contractRNG.address, 0, contractRNG.interface.encodeFunctionData('reveal', [data]));
@@ -36,7 +37,7 @@ describe('RNG', () => {
 
     const {
       infrastructure: { contractOracleProxy, oracle, contractRNG },
-      duelistKing: { contractDuelistKingFairDistributor, addressOwner },
+      duelistKing: { contractDuelistKingNFT, addressOwner },
     } = ctx;
 
     await contractOracleProxy
@@ -44,10 +45,10 @@ describe('RNG', () => {
       .safeCall(contractRNG.address, 0, contractRNG.interface.encodeFunctionData('batchCommit', [digests.v]));
 
     for (let i = 0; i < digests.s.length; i += 1) {
-      const data = <BytesLike>(
-        await contractDuelistKingFairDistributor.constructData(digests.s[i], zeroAddress, addressOwner, 100)
-      );
-
+      const data: BytesLike = BytesBuffer.newInstance()
+        .writeAddress(contractDuelistKingNFT.address)
+        .writeUint256(digests.s[i])
+        .invoke();
       await contractOracleProxy
         .connect(oracle)
         .safeCall(contractRNG.address, 0, contractRNG.interface.encodeFunctionData('reveal', [data]));

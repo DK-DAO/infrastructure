@@ -70,8 +70,8 @@ contract RNG is User, Ownable {
   // DKDAO Oracle will reveal S and t
   function reveal(bytes memory data) external onlyAllowSameDomain(bytes32('Oracle')) returns (uint256) {
     require(data.length >= 52, 'RNG: Input data has wrong format');
-    uint256 secret = data.readUint256(0);
-    address target = data.readAddress(32);
+    address target = data.readAddress(0);
+    uint256 secret = data.readUint256(20);
     uint256 s;
     uint256 t;
     // We begin from 1 instead of 0 to prevent error
@@ -87,7 +87,7 @@ contract RNG is User, Ownable {
     // Hook call to fair distribution
     if (target != address(0x00)) {
       require(
-        IRNGConsumer(target).compute(secret, data.readBytes(52, data.length - 52)),
+        IRNGConsumer(target).compute(data.readBytes(20, data.length - 20)),
         "RNG: Can't do callback to distributor"
       );
     }

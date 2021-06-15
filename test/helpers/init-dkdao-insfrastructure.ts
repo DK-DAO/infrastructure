@@ -2,13 +2,11 @@ import hre from 'hardhat';
 import { Signer } from 'ethers';
 import { contractDeploy } from './functions';
 import { registryRecords } from './const';
-import { NFT, OracleProxy, Press, Registry, RNG } from '../../typechain';
+import { OracleProxy, Registry, RNG } from '../../typechain';
 
 export interface IInitialDKDAOInfrastructureResult {
   infrastructure: {
-    contractNFT: NFT;
     contractRNG: RNG;
-    contractPress: Press;
     contractRegistry: Registry;
     contractOracleProxy: OracleProxy;
     oracle: Signer;
@@ -28,23 +26,9 @@ export async function initDKDAOInfrastructure() {
 
   const contractOracleProxy = await contractDeploy(owner, 'DKDAO Infrastructure/OracleProxy');
 
-  const contractNFT = await contractDeploy(
-    owner,
-    'DKDAO Infrastructure/NFT',
-    contractRegistry.address,
-    registryRecords.domain.infrastructure,
-  );
-
   const contractRNG = await contractDeploy(
     owner,
     'DKDAO Infrastructure/RNG',
-    contractRegistry.address,
-    registryRecords.domain.infrastructure,
-  );
-
-  const contractPress = await contractDeploy(
-    owner,
-    'DKDAO Infrastructure/Press',
     contractRegistry.address,
     registryRecords.domain.infrastructure,
   );
@@ -58,22 +42,16 @@ export async function initDKDAOInfrastructure() {
     );
 
     await contractRegistry.batchSet(
-      [
-        registryRecords.domain.infrastructure,
-        registryRecords.domain.infrastructure,
-        registryRecords.domain.infrastructure,
-      ],
-      [registryRecords.name.press, registryRecords.name.nft, registryRecords.name.rng],
-      [contractPress.address, contractNFT.address, contractRNG.address],
+      [registryRecords.domain.infrastructure],
+      [registryRecords.name.rng],
+      [contractRNG.address],
     );
 
     await contractOracleProxy.addController(addressOracle);
   }
   return <IInitialDKDAOInfrastructureResult>{
     infrastructure: {
-      contractNFT,
       contractRNG,
-      contractPress,
       contractRegistry,
       contractOracleProxy,
       oracle,

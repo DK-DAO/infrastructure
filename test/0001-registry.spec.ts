@@ -15,16 +15,10 @@ describe('Registry', () => {
 
   it('All records in registry should be set correctly for DKDAO infrastructure domain', async () => {
     const {
-      infrastructure: { contractRNG, contractOracleProxy, contractPress, contractRegistry, contractNFT },
+      infrastructure: { contractRNG, contractOracleProxy, contractRegistry, },
     } = ctx;
     expect(contractOracleProxy.address).to.eq(
       await contractRegistry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.oracle),
-    );
-    expect(contractPress.address).to.eq(
-      await contractRegistry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.press),
-    );
-    expect(contractNFT.address).to.eq(
-      await contractRegistry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.nft),
     );
     expect(contractRNG.address).to.eq(
       await contractRegistry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.rng),
@@ -34,7 +28,7 @@ describe('Registry', () => {
   it('All records in registry should be set correctly for Duelist King domain', async () => {
     const {
       infrastructure: { contractRegistry },
-      duelistKing: { contractDAO, contractDAOToken, contractDuelistKingFairDistributor, contractPool, contractOracleProxy },
+      duelistKing: { contractDAO, contractDAOToken, contractDuelistKingNFT, contractPool, contractOracleProxy },
     } = ctx;
     expect(contractDAO.address).to.eq(
       await contractRegistry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.dao),
@@ -45,8 +39,8 @@ describe('Registry', () => {
     expect(contractPool.address).to.eq(
       await contractRegistry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.pool),
     );
-    expect(contractDuelistKingFairDistributor.address).to.eq(
-      await contractRegistry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.distributor),
+    expect(contractDuelistKingNFT.address).to.eq(
+      await contractRegistry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.nft),
     );
     expect(contractOracleProxy.address).to.eq(
       await contractRegistry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.oracle),
