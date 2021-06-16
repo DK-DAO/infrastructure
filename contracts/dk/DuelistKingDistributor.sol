@@ -19,9 +19,6 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   // Using Bytes for bytes
   using Bytes for bytes;
 
-  // Card id of unique design
-  uint256 private assignedcard;
-
   // Number of seiral
   uint256 private serial;
 
@@ -37,9 +34,10 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   // Card storage
   mapping(uint256 => address) cardStorage;
 
-  uint256 entropy;
+  // Entropy data
+  uint256 private entropy;
 
-  // Caompaign structure
+  // Campaign structure
   struct Campaign {
     // Total number of issued card
     uint64 opened;
@@ -86,8 +84,6 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     // Overwrite start with number of unique design
     // and then increase unique design to new card
     // To make sure card id won't be duplicated
-    campaign.start = uint64(assignedcard);
-    assignedcard += campaign.designs;
     // Auto assign generation
     campaignIndex += 1;
     campaign.generation = uint64(campaignIndex / 25);
@@ -120,7 +116,7 @@ contract DuelistKingDistributor is User, IRNGConsumer {
       uint256 start = (t >> 192) & 0xffffffffffffffff;
       if ((luckyNumber & mask) < difficulty) {
         // Return card Id
-        return start + (luckyNumber % factor);
+        return currentCampaign.start + start + (luckyNumber % factor);
       }
     }
     return 0;
@@ -146,7 +142,7 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     if (currentCampaign.deadline == 0 && currentCampaign.opened > currentCampaign.softCap) {
       currentCampaign.deadline = uint64(block.timestamp + 3 days);
     }
-    uint256 rand = uint256(keccak256(abi.encodePacked(entropy)));
+    uint256 rand = entropy;
     uint256 boughtCards = numberOfBoxes * 5;
     uint256 luckyNumber;
     uint256 card;
@@ -201,7 +197,7 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   }
 
   // Read card storage of a given card index
-  function getCard(uint256 index) public view returns (address) {
+  function getCard(uint256 index) external view returns (address) {
     return cardStorage[index];
   }
 }

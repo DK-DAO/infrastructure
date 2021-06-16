@@ -12,6 +12,21 @@ import '../libraries/User.sol';
  * Domain: DKDAO Infrastructure
  */
 contract NFT is ERC721 {
+  /**
+   * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
+   */
+  function nftInit(
+    string memory name_,
+    string memory symbol_,
+    address registry,
+    bytes32 domain
+  ) external returns (bool) {
+    require(init(registry, domain), 'ERC721: This method only able to be called once');
+    _name = name_;
+    _symbol = symbol_;
+    return true;
+  }
+
   // Only press able to mint new item
   function mint(address to, uint256 tokenId) external onlyAllowSameDomain('Distributor') returns (bool) {
     _mint(to, tokenId);

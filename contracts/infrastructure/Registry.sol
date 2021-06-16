@@ -2,7 +2,6 @@
 pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
-import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 
 /**
@@ -21,7 +20,7 @@ contract Registry is Ownable {
   mapping(address => bytes32) private revertedDomain;
 
   // Event when new address registered
-  event Registered(bytes32 domain, bytes32 indexed name, address indexed addr);
+  event RecordSet(bytes32 domain, bytes32 indexed name, address indexed addr);
 
   // Set a record
   function set(
@@ -73,7 +72,7 @@ contract Registry is Ownable {
     registered[domain][name] = addr;
     revertedName[addr] = name;
     revertedDomain[addr] = domain;
-    emit Registered(domain, name, addr);
+    emit RecordSet(domain, name, addr);
     return true;
   }
 }

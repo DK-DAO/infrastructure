@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { keccak256 } from 'js-sha3';
 import hre from 'hardhat';
 import { ContractTransaction } from 'ethers';
+import { getContractFactory } from '@nomiclabs/hardhat-ethers/types';
 
 interface IKeyValues {
   [key: string]: string;
@@ -119,4 +120,7 @@ export async function getGasCost(tx: ContractTransaction) {
   console.log('\tGas cost:', (await tx.wait()).gasUsed.toString());
 }
 
-
+export async function contractAt(name: string, at: string) {
+  const factory = await hre.ethers.getContractFactory(name);
+  return factory.attach(at);
+}

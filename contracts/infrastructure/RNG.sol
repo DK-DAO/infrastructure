@@ -3,8 +3,6 @@
 pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
-import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
-import '@openzeppelin/contracts/access/Ownable.sol';
 import '../libraries/User.sol';
 import '../libraries/Bytes.sol';
 import '../interfaces/IRNGConsumer.sol';
@@ -14,7 +12,7 @@ import '../interfaces/IRNGConsumer.sol';
  * Name: RNG
  * Domain: DKDAO Infrastructure
  */
-contract RNG is User, Ownable {
+contract RNG is User {
   // Use bytes lib for bytes
   using Bytes for bytes;
 
@@ -22,7 +20,6 @@ contract RNG is User, Ownable {
   struct CommitSchemeProgress {
     uint256 committed;
     uint256 revealed;
-    address oracle;
     uint256 lasReveal;
   }
 
@@ -37,9 +34,6 @@ contract RNG is User, Ownable {
 
   // Revealed secret values map
   mapping(uint256 => bytes32) private secretValues;
-
-  // Oracle address
-  address private oracle;
 
   // Last reveal number
   uint256 private lastReveal;
@@ -110,7 +104,6 @@ contract RNG is User, Ownable {
       CommitSchemeProgress({
         committed: currentCommitted,
         revealed: currentRevealed,
-        oracle: oracle,
         lasReveal: lastReveal
       });
   }

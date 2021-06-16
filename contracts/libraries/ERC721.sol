@@ -21,10 +21,10 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, User {
   using Strings for uint256;
 
   // Token name
-  string private _name;
+  string internal _name;
 
   // Token symbol
-  string private _symbol;
+  string internal _symbol;
 
   // Mapping from token ID to owner address
   mapping(uint256 => address) private _owners;
@@ -37,21 +37,6 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, User {
 
   // Mapping from owner to operator approvals
   mapping(address => mapping(address => bool)) private _operatorApprovals;
-
-  /**
-   * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
-   */
-  function nftInit(
-    string memory name_,
-    string memory symbol_,
-    address registry,
-    bytes32 domain
-  ) external returns (bool) {
-    require(init(registry, domain), 'ERC721: This method only able to be called once');
-    _name = name_;
-    _symbol = symbol_;
-    return true;
-  }
 
   /**
    * @dev See {IERC165-supportsInterface}.
