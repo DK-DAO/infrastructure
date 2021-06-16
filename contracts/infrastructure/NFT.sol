@@ -11,17 +11,17 @@ import '../libraries/User.sol';
  * Name: NFT
  * Domain: DKDAO Infrastructure
  */
-contract NFT is ERC721 {
+contract NFT is ERC721, User {
   /**
    * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
    */
-  function nftInit(
+  function init(
     string memory name_,
     string memory symbol_,
     address registry,
     bytes32 domain
   ) external returns (bool) {
-    require(init(registry, domain), 'ERC721: This method only able to be called once');
+    require(_init(registry, domain), 'ERC721: This method only able to be called once');
     _name = name_;
     _symbol = symbol_;
     return true;

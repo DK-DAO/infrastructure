@@ -13,6 +13,8 @@ interface IDAO {
     bytes data;
   }
 
+  function init(address _registry, bytes32 _domain) external returns (bool);
+
   function createProposal(Proposal memory newProposal) external returns (uint256);
 
   function voteProposal(uint256 proposalId, bool positive) external returns (bool);

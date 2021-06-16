@@ -3,7 +3,8 @@ pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
 import '@openzeppelin/contracts/proxy/Clones.sol';
-import '../interfaces/IUser.sol';
+import '../interfaces/IPool.sol';
+import '../interfaces/IDAO.sol';
 import '../interfaces/IDAOToken.sol';
 import '../libraries/User.sol';
 import '../libraries/TokenMetadata.sol';
@@ -25,7 +26,7 @@ contract Factory is User {
 
   // Pass constructor parameter to User
   constructor(address _registry, bytes32 _domain) {
-    init(_registry, _domain);
+    _init(_registry, _domain);
   }
 
   function cloneNewDAO(NewDAO calldata creatingDAO)
@@ -35,7 +36,7 @@ contract Factory is User {
   {
     // New DAO will be cloned from KDDAO
     address newDAO = registry.getAddress('DKDAO', 'DAO').clone();
-    IUser(newDAO).init(address(registry), creatingDAO.domain);
+    IDAO(newDAO).init(address(registry), creatingDAO.domain);
 
     // New DAO Token will be cloned from DKDAOToken
     address newDAOToken = registry.getAddress('DKDAO', 'DAOToken').clone();
@@ -43,7 +44,7 @@ contract Factory is User {
 
     // New Pool will be clone from
     address newPool = registry.getAddress('DKDAO', 'Pool').clone();
-    IUser(newPool).init(address(registry), creatingDAO.domain);
+    IPool(newPool).init(address(registry), creatingDAO.domain);
 
     return true;
   }

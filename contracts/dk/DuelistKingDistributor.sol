@@ -71,7 +71,7 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     bytes32 _domain,
     address divine
   ) {
-    init(_registry, _domain);
+    _init(_registry, _domain);
     theDivine = ITheDivine(divine);
   }
 

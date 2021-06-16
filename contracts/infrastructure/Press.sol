@@ -28,7 +28,7 @@ contract Press is User {
 
   // Pass constructor parameter to User
   constructor(address _registry, bytes32 _domain) {
-    init(_registry, _domain);
+    _init(_registry, _domain);
   }
 
   // Allow another distributor of other domain to trigger item creation
@@ -39,7 +39,7 @@ contract Press is User {
   ) external onlyAllowExistedDistributor(_domain) returns (address) {
     address nft = registry.getAddress('DKDAO Infrastructure', 'NFT');
     address cloned = nft.clone();
-    INFT(cloned).nftInit(_name, _symbol, address(registry), _domain);
+    INFT(cloned).init(_name, _symbol, address(registry), _domain);
     emit NewNFT(_domain, _name, cloned);
     return cloned;
   }

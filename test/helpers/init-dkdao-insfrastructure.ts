@@ -51,7 +51,7 @@ export async function initDKDAOInfrastructure() {
       registryRecords.name.oracle,
       contractOracleProxy.address,
     );
-    await contractNFT.nftInit('DKDAO NFT', 'DKN', contractRegistry.address, registryRecords.domain.infrastructure);
+    await contractNFT.init('DKDAO NFT', 'DKN', contractRegistry.address, registryRecords.domain.infrastructure);
     await contractRegistry.batchSet(
       [
         registryRecords.domain.infrastructure,

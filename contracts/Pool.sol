@@ -16,6 +16,10 @@ contract Pool is User, Ownable {
   // Use address lib for address
   using Address for address;
 
+  function init(address _registry, bytes32 _domain) external returns (bool) {
+    return _init(_registry, _domain);
+  }
+
   // Safe call to a target address with given payload
   function safeCall(
     address target,
@@ -27,11 +31,7 @@ contract Pool is User, Ownable {
   }
 
   // Delegatecall to a target address with given payload
-  function safeDelegateCall(address target, bytes calldata data)
-    external
-    onlyAllowSameDomain('DAO')
-    returns (bool)
-  {
+  function safeDelegateCall(address target, bytes calldata data) external onlyAllowSameDomain('DAO') returns (bool) {
     target.functionDelegateCall(data);
     return true;
   }

@@ -44,7 +44,7 @@ contract RNG is User {
 
   // Pass constructor parameter to User
   constructor(address _registry, bytes32 _domain) {
-    init(_registry, _domain);
+    _init(_registry, _domain);
   }
 
   // DKDAO Oracle will commit H(S||t) to blockchain
