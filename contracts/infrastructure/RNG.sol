@@ -68,7 +68,7 @@ contract RNG is User {
 
   // DKDAO Oracle will reveal S and t
   function reveal(bytes memory data) external onlyAllowSameDomain('Oracle') returns (uint256) {
-    require(data.length >= 52, 'RNG: Input data has wrong format');
+    require(data.length >= 84, 'RNG: Input data has wrong format');
     address target = data.readAddress(0);
     uint256 index = data.readUint256(20);
     uint256 secret = data.readUint256(52);
