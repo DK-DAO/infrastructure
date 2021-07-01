@@ -106,3 +106,4 @@ artifacts
 typechain
 cache
 coverage.json
+copy-artifact.sh
