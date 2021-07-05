@@ -2,6 +2,7 @@
 pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
+import '@openzeppelin/contracts/utils/Strings.sol';
 import '../libraries/ERC721.sol';
 import '../libraries/User.sol';
 
@@ -12,6 +13,9 @@ import '../libraries/User.sol';
  * Domain: DKDAO Infrastructure
  */
 contract NFT is ERC721, User {
+  // Use string for uint256
+  using Strings for uint256;
+
   /**
    * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
    */
@@ -25,6 +29,16 @@ contract NFT is ERC721, User {
     _name = name_;
     _symbol = symbol_;
     return true;
+  }
+
+  // Base URL that provided token metadata
+  function _baseURI() internal pure override returns (string memory) {
+    return 'https://nft.duelistking.com/?card=';
+  }
+
+  // Contruct token URI for a given tokenId
+  function tokenURI(uint256 tokenId) public view override returns (string memory) {
+    return string(abi.encodePacked(_baseURI(), _symbol, '&id=', tokenId.toString()));
   }
 
   // Only press able to mint new item
