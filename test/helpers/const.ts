@@ -1,4 +1,8 @@
-import { stringToBytes32 } from './functions';
+export function stringToBytes32(v: string) {
+  const buf = Buffer.alloc(32);
+  buf.write(v);
+  return `0x${buf.toString('hex')}`;
+}
 
 export const registryRecords = {
   domain: {
