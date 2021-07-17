@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop */
 import '@nomiclabs/hardhat-ethers';
 import { task } from 'hardhat/config';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
@@ -6,7 +7,43 @@ import { registryRecords, zeroAddress } from '../test/helpers/const';
 // @ts-ignore
 import { NFT, Press, Registry, RNG, DAO, DAOToken, DuelistKingDistributor, Pool, TestToken } from '../typechain';
 
+const cardList = [
+  'Verdict of God',
+  'Banished Fairy',
+  'Wrath of The Sea',
+  'Eternal Storm',
+  'Skadi',
+  'Unforgiven Creatures',
+  'Deadly Pool',
+  'Euphemia',
+  'Sayyida',
+  'Shadowmare',
+  "Deepsea's Hunger",
+  'Krakenetics',
+  'Death Knight',
+  'Mighty Fist',
+  'Aoife',
+  'Corock',
+  'Little Johnny',
+  'Nix',
+  'Regalia of the Sea',
+  'Undying Sailor',
+];
+
 const contractCache: any = {};
+
+function cardToSymbol(cardId: number) {
+  const rarenessMap = [6, 5, 5, 4, 4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1];
+  const mapSym = new Map<number, string>();
+  mapSym.set(6, 'L');
+  mapSym.set(5, 'SSR');
+  mapSym.set(4, 'SR');
+  mapSym.set(3, 'R');
+  mapSym.set(2, 'U');
+  mapSym.set(1, 'C');
+  const rareness = mapSym.get(rarenessMap[cardId]);
+  return `${rareness}>${cardList[cardId].replace(/[\s']/g, '').toUpperCase()}`;
+}
 
 export async function contractDeploy(
   hre: HardhatRuntimeEnvironment,
@@ -185,6 +222,29 @@ export async function initDuelistKing(hre: HardhatRuntimeEnvironment) {
         ],
       );
   }
+
+  for (let i = 0; i < 20; i += 1) {
+    console.log(`Issue card: ${cardToSymbol(i)}\t\t\t\tName: ${cardList[i]}`);
+    await contractDuelistKingDistributor.connect(oracle).issueCard(cardList[i], cardToSymbol(i));
+  }
+
+  await contractDuelistKingDistributor.connect(oracle).newCampaign({
+    distribution: [
+      '0x000000000000000000000000000000010000000000001fff0000000000ffffff',
+      '0x00000000000000010000000000000002000000000000ffff0000000000ffffff',
+      '0x00000000000000030000000000000003000000000007ffff0000000000ffffff',
+      '0x0000000000000006000000000000000400000000000fffff0000000000ffffff',
+      '0x000000000000000a000000000000000500000000003fffff0000000000ffffff',
+      '0x000000000000000f000000000000000500000000ffffffff0000000000ffffff',
+    ],
+    opened: 0,
+    softCap: 1000000,
+    deadline: 0,
+    generation: 0,
+    start: 1,
+    end: 21,
+    designs: 20,
+  });
 
   return <IInitialDuelistKingResult>{
     ...result,
