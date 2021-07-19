@@ -8,7 +8,9 @@
   "license": "Apache-2.0",
   "private": false,
   "scripts": {
-    "coverage": "hardhat compile && hardhat coverage"
+    "coverage": "hardhat compile && hardhat coverage",
+    "node": "hardhat node",
+    "deploy": "hardhat --network local deploy"
   },
   "devDependencies": {
     "@types/chai": "^4.2.18",

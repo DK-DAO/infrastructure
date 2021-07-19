@@ -224,7 +224,7 @@ export async function initDuelistKing(hre: HardhatRuntimeEnvironment) {
   }
 
   for (let i = 0; i < 20; i += 1) {
-    console.log(`Issue card: ${cardToSymbol(i)}\t\t\t\tName: ${cardList[i]}`);
+    console.log(`Issue card: ${cardToSymbol(i)}\t\t\t\t\tName: ${cardList[i]}`);
     await contractDuelistKingDistributor.connect(oracle).issueCard(cardList[i], cardToSymbol(i));
   }
 
