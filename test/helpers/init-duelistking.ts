@@ -31,7 +31,6 @@ export async function initDuelistKing() {
 
   const contractOracleProxy = await contractDeploy(owner, 'Duelist King/OracleProxy');
 
-
   const contractPool = await contractDeploy(owner, 'Duelist King/Pool');
 
   // The Divine Contract https://github.com/chiro-hiro/thedivine
@@ -66,8 +65,7 @@ export async function initDuelistKing() {
     });
 
     await contractOracleProxy.connect(owner).addController(addressOracle);
-
-    await result.infrastructure.contractRegistry
+    const tx = await result.infrastructure.contractRegistry
       .connect(result.infrastructure.owner)
       .batchSet(
         [
@@ -92,6 +90,8 @@ export async function initDuelistKing() {
           contractOracleProxy.address,
         ],
       );
+    // Sometime weird thing happened we add this to prevent weird things.
+    await tx.wait();
   }
 
   return <IInitialDuelistKingResult>{

@@ -23,6 +23,7 @@ describe('Registry', () => {
     expect(contractRNG.address).to.eq(
       await contractRegistry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.rng),
     );
+    console.log('++', await contractRegistry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.rng));
   });
 
   it('All records in registry should be set correctly for Duelist King domain', async () => {
@@ -30,6 +31,7 @@ describe('Registry', () => {
       infrastructure: { contractRegistry },
       duelistKing: { contractDAO, contractDAOToken, contractDuelistKingDistributor, contractPool, contractOracleProxy },
     } = ctx;
+    console.log('++', await contractRegistry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.dao));
     expect(contractDAO.address).to.eq(
       await contractRegistry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.dao),
     );

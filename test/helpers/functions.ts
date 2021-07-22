@@ -5,6 +5,7 @@ import { keccak256 } from 'js-sha3';
 import hre from 'hardhat';
 import { ContractTransaction } from 'ethers';
 import { getContractFactory } from '@nomiclabs/hardhat-ethers/types';
+import config from '../../hardhat.config';
 
 interface IKeyValues {
   [key: string]: string;
@@ -73,6 +74,7 @@ export async function contractDeploy(actor: Signer, contractPath: string, ...par
     const instanceFactory = await hre.ethers.getContractFactory(contractName);
     contractCache[contractPath] = await instanceFactory.connect(actor).deploy(...params);
   }
+
   return contractCache[contractPath];
 }
 

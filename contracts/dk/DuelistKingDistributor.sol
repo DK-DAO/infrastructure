@@ -22,6 +22,9 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   // Number of seiral
   uint256 private serial;
 
+  // Uin256 genesis serial
+  uint256 private genesisSerial;
+
   // Campaign index
   uint256 campaignIndex;
 
@@ -33,6 +36,9 @@ contract DuelistKingDistributor is User, IRNGConsumer {
 
   // Card storage
   mapping(uint256 => address) cardStorage;
+
+  // Maping genesis
+  mapping(address => uint256) genesisEdition;
 
   // Entropy data
   uint256 private entropy;
@@ -165,6 +171,16 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     campaignStorage[campaignId] = currentCampaign;
     // Update old random with new one
     entropy = rand;
+    return true;
+  }
+
+  // Issue genesis edition for card creator
+  function issueGenesisEdittion(uint256 cardId, address owner) public onlyAllowSameDomain('Oracle') returns (bool) {
+    require(genesisEdition[cardStorage[cardId]] == 0, 'Distributor: Only one genesis edition will be distributed');
+    genesisSerial += 1;
+    uint256 genesisCardSerial = 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000 | genesisSerial;
+    genesisEdition[cardStorage[cardId]] = genesisCardSerial;
+    INFT(cardStorage[cardId]).mint(owner, genesisCardSerial);
     return true;
   }
 

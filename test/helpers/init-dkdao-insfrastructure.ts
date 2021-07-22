@@ -46,23 +46,19 @@ export async function initDKDAOInfrastructure() {
 
   // Init() is only able to be called once
   if (!(await contractRegistry.isExistRecord(registryRecords.domain.infrastructure, registryRecords.name.oracle))) {
-    await contractRegistry.set(
-      registryRecords.domain.infrastructure,
-      registryRecords.name.oracle,
-      contractOracleProxy.address,
-    );
     await contractNFT.init('DKDAO NFT', 'DKN', contractRegistry.address, registryRecords.domain.infrastructure);
-    await contractRegistry.batchSet(
+    const tx = await contractRegistry.batchSet(
       [
         registryRecords.domain.infrastructure,
         registryRecords.domain.infrastructure,
         registryRecords.domain.infrastructure,
+        registryRecords.domain.infrastructure,
       ],
-      [registryRecords.name.rng, registryRecords.name.nft, registryRecords.name.press],
-      [contractRNG.address, contractNFT.address, contractPress.address],
+      [registryRecords.name.rng, registryRecords.name.nft, registryRecords.name.press, registryRecords.name.oracle],
+      [contractRNG.address, contractNFT.address, contractPress.address, contractOracleProxy.address],
     );
-
     await contractOracleProxy.addController(addressOracle);
+    await tx.wait();
   }
   return <IInitialDKDAOInfrastructureResult>{
     infrastructure: {

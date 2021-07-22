@@ -95,4 +95,27 @@ describe('DuelistKingDistributor', function () {
       );
     }
   });
+
+  it('OracleProxy should able to forward issueGenesis() call from oracle to DuelistKingDistributor', async () => {
+    ctx = await init();
+    const {
+      infrastructure: { contractNFT },
+      duelistKing: { contractDuelistKingDistributor, addressOwner, contractOracleProxy, oracle },
+    } = ctx;
+    const tx = await contractOracleProxy
+      .connect(oracle)
+      .safeCall(
+        contractDuelistKingDistributor.address,
+        0,
+        contractDuelistKingDistributor.interface.encodeFunctionData('issueGenesisEdittion', [1, addressOwner]),
+        {
+          gasLimit: 3000000,
+        },
+      );
+    await tx.wait();
+    const cNft = <NFT>await contractAt('NFT', await contractDuelistKingDistributor.getCard(1));
+    expect(await cNft.ownerOf('0xffffffffffffffffffffffffffffffff00000000000000000000000000000001')).to.eq(
+      addressOwner,
+    );
+  });
 });
