@@ -17,7 +17,11 @@ const compilers = ['0.8.6'].map((item: string) => ({
   },
 }));
 
-const env: any = parse(fs.readFileSync(`${__dirname}/.env`));
+const env: any = fs.existsSync(`${__dirname}/.env`)
+  ? parse(fs.readFileSync(`${__dirname}/.env`))
+  : {
+      DUELIST_KING_MNEMONIC: 'baby nose young alone sport inside grain rather undo donor void exotic',
+    };
 
 const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
@@ -43,6 +47,7 @@ const config: HardhatUserConfig = {
         path: "m/44'/60'/0'/0",
       },
       mining: {
+        // This is cause of unexpected issue
         interval: 1000,
       },
     },
