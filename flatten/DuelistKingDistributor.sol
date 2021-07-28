@@ -223,7 +223,7 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   uint256 private serial;
 
   // Uin256 genesis serial
-  uint256 private genesisSerial;
+  uint256 private genesisSerial = 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000;
 
   // Campaign index
   uint256 campaignIndex;
@@ -348,7 +348,7 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     if (currentCampaign.deadline == 0 && currentCampaign.opened > currentCampaign.softCap) {
       currentCampaign.deadline = uint64(block.timestamp + 3 days);
     }
-    uint256 rand = entropy;
+    uint256 rand = uint256(keccak256(abi.encodePacked(entropy, buyer)));
     uint256 boughtCards = numberOfBoxes * 5;
     uint256 luckyNumber;
     uint256 card;
@@ -378,9 +378,8 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   function issueGenesisEdittion(uint256 cardId, address owner) public onlyAllowSameDomain('Oracle') returns (bool) {
     require(genesisEdition[cardStorage[cardId]] == 0, 'Distributor: Only one genesis edition will be distributed');
     genesisSerial += 1;
-    uint256 genesisCardSerial = 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000 | genesisSerial;
-    genesisEdition[cardStorage[cardId]] = genesisCardSerial;
-    INFT(cardStorage[cardId]).mint(owner, genesisCardSerial);
+    genesisEdition[cardStorage[cardId]] = genesisSerial;
+    INFT(cardStorage[cardId]).mint(owner, genesisSerial);
     return true;
   }
 
