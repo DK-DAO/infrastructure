@@ -224,7 +224,7 @@ export async function initDuelistKing(hre: HardhatRuntimeEnvironment) {
   }
 
   for (let i = 0; i < 20; i += 1) {
-    console.log(`Issue card: ${cardToSymbol(i)}\t\t\t\t\tName: ${cardList[i]}`);
+    console.log(`Issue card: ${cardToSymbol(i).padEnd(32, ' ')}Name: ${cardList[i]}`);
     await contractDuelistKingDistributor.connect(oracle).issueCard(cardList[i], cardToSymbol(i));
   }
 
@@ -282,6 +282,14 @@ task('deploy', 'Deploy all contract')
     await ctx.infrastructure.contractTestToken
       .connect(ctx.infrastructure.owner)
       .transfer('0x9ccc80a5beD6f15AdFcB9096109500B3c96a8e52', '40000000000000000000');
+    // Buy first 40 loot boxes
+    await ctx.infrastructure.contractTestToken
+      .connect(ctx.infrastructure.owner)
+      .transfer('0x9ccc80a5beD6f15AdFcB9096109500B3c96a8e52', '10000000000000000000');
+    // Buy first 40 loot boxes
+    await ctx.infrastructure.contractTestToken
+      .connect(ctx.infrastructure.owner)
+      .transfer('0x9ccc80a5beD6f15AdFcB9096109500B3c96a8e52', '5000000000000000000');
   });
 
 export default {};
