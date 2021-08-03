@@ -1,6 +1,100 @@
+// Dependency file: contracts/dk/DuelistKingCard.sol
+
+// SPDX-License-Identifier: Apache-2.0
+
+// pragma solidity >=0.8.4 <0.9.0;
+
+/**
+ * Card of Duelist King
+ * Name: Card
+ * Domain: Duelist King
+ */
+library DuelistKingCard {
+  // We have 256 bits to store an item's id so we dicide to contain as much as posible data
+  // Application      64  bits    We can't control this, it will be assigned by DKDAO
+
+  // Edition:         16  bits    For now, 0-Standard edition 0xffff-Creator edition
+  // Generation:      16  bits    Generation of item, now it's Gen 0
+  // Rareness:        16  bits    1-C, 2-U, 3-R, 4-SR, 5-SSR, 6-L
+  // Type:            16  bits    0-Card, 1-Loot Box
+  // Id:              64  bits    Increasement value that unique for each item
+  // Serial:          64  bits    Increasement value that count the number of items
+  // 256         192         176             160            144         128       64            0 
+  //  |application|  edition  |  generation   |   rareness   |   type    |   id    |   seiral   |
+  function set(
+    uint256 value,
+    uint256 shift,
+    uint256 mask,
+    uint256 newValue
+  ) internal pure returns (uint256 result) {
+    require((mask | newValue) ^ mask == 0, 'Card: New value is out range');
+    assembly {
+      result := and(value, not(shl(shift, mask)))
+      result := or(shl(shift, newValue), result)
+    }
+  }
+
+  function get(
+    uint256 value,
+    uint256 shift,
+    uint256 mask
+  ) internal pure returns (uint256 result) {
+    assembly {
+      result := shr(shift, and(value, shl(shift, mask)))
+    }
+  }
+
+  function setSerial(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    return set(a, 0, 0xffffffffffffffff, b);
+  }
+
+  function getSerial(uint256 a) internal pure returns (uint256 c) {
+    return get(a, 0, 0xffffffffffffffff);
+  }
+
+  function setId(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    return set(a, 64, 0xffffffffffffffff, b);
+  }
+
+  function getId(uint256 a) internal pure returns (uint256 c) {
+    return get(a, 64, 0xffffffffffffffff);
+  }
+
+  function setType(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    return set(a, 128, 0xffff, b);
+  }
+
+  function getType(uint256 a) internal pure returns (uint256 c) {
+    return get(a, 128, 0xffff);
+  }
+
+  function setRareness(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    return set(a, 144, 0xffff, b);
+  }
+
+  function getRareness(uint256 a) internal pure returns (uint256 c) {
+    return get(a, 144, 0xffff);
+  }
+
+  function setGeneration(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    return set(a, 160, 0xffff, b);
+  }
+
+  function getGeneration(uint256 a) internal pure returns (uint256 c) {
+    return get(a, 160, 0xffff);
+  }
+
+  function setEdition(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    return set(a, 176, 0xffff, b);
+  }
+
+  function getEdition(uint256 a) internal pure returns (uint256 c) {
+    return get(a, 176, 0xffff);
+  }
+}
+
 // Dependency file: contracts/interfaces/IRNGConsumer.sol
 
-// SPDX-License-Identifier: MIT
 // pragma solidity >=0.8.4 <0.9.0;
 
 interface IRNGConsumer {
@@ -195,6 +289,12 @@ interface IPress {
     string calldata name,
     string calldata symbol
   ) external returns (address);
+
+  function createItem(
+    bytes32 _domain,
+    address _owner,
+    uint256 _itemId
+  ) external returns (bool);
 }
 
 
@@ -203,6 +303,7 @@ interface IPress {
 
 pragma solidity >=0.8.4 <0.9.0;
 
+// import 'contracts/dk/DuelistKingCard.sol';
 // import 'contracts/interfaces/IRNGConsumer.sol';
 // import 'contracts/libraries/User.sol';
 // import 'contracts/libraries/Bytes.sol';
@@ -219,11 +320,11 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   // Using Bytes for bytes
   using Bytes for bytes;
 
+  // Using Duelist King Card for uint256
+  using DuelistKingCard for uint256;
+
   // Number of seiral
   uint256 private serial;
-
-  // Uin256 genesis serial
-  uint256 private genesisSerial = 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000;
 
   // Campaign index
   uint256 campaignIndex;
@@ -231,14 +332,8 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   // The Divine
   ITheDivine private immutable theDivine;
 
-  // Card index
-  uint256 cardIndex;
-
-  // Card storage
-  mapping(uint256 => address) cardStorage;
-
   // Maping genesis
-  mapping(address => uint256) genesisEdition;
+  mapping(uint256 => uint256) genesisEdition;
 
   // Entropy data
   uint256 private entropy;
@@ -257,8 +352,6 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     uint64 start;
     // Start end card Id
     uint64 end;
-    // Unique design
-    uint64 designs;
     // Card distribution
     uint256[] distribution;
   }
@@ -267,10 +360,7 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   mapping(uint256 => Campaign) private campaignStorage;
 
   // New campaign
-  event NewCampaign(uint256 indexed campaginId, uint256 indexed generation, uint64 indexed designs);
-
-  // New card
-  event NewCard(uint256 indexed cardIndex, address indexed cardAddress, string indexed cardName);
+  event NewCampaign(uint256 indexed campaginId, uint256 indexed generation, uint64 indexed softcap);
 
   constructor(
     address _registry,
@@ -283,18 +373,13 @@ contract DuelistKingDistributor is User, IRNGConsumer {
 
   // Create new campaign
   function newCampaign(Campaign memory campaign) external onlyAllowSameDomain('Oracle') returns (uint256) {
-    require(
-      (campaign.end - campaign.start) == campaign.designs,
-      'Distributor: Number of deisgns and number of issued NFTs must be the same'
-    );
     // Overwrite start with number of unique design
     // and then increase unique design to new card
     // To make sure card id won't be duplicated
     // Auto assign generation
     campaignIndex += 1;
-    campaign.generation = uint64(campaignIndex / 25);
     campaignStorage[campaignIndex] = campaign;
-    emit NewCampaign(campaignIndex, campaign.generation, campaign.designs);
+    emit NewCampaign(campaignIndex, campaign.generation, campaign.softCap);
     return campaignIndex;
   }
 
@@ -314,15 +399,17 @@ contract DuelistKingDistributor is User, IRNGConsumer {
 
   // Calcualte card
   function caculateCard(Campaign memory currentCampaign, uint256 luckyNumber) private pure returns (uint256) {
+    uint256 luckyDraw = luckyNumber % (currentCampaign.softCap * 5);
     for (uint256 i = 0; i < currentCampaign.distribution.length; i += 1) {
       uint256 t = currentCampaign.distribution[i];
-      uint256 mask = t & 0xffffffffffffffff;
-      uint256 difficulty = (t >> 64) & 0xffffffffffffffff;
-      uint256 factor = (t >> 128) & 0xffffffffffffffff;
-      uint256 start = (t >> 192) & 0xffffffffffffffff;
-      if ((luckyNumber & mask) < difficulty) {
+      uint256 rEnd = t & 0xffffffff;
+      uint256 rStart = (t >> 32) & 0xffffffff;
+      uint256 rareness = (t >> 64) & 0xffffffff;
+      uint256 cardStart = (t >> 96) & 0xffffffff;
+      uint256 cardFactor = (t >> 128) & 0xffffffff;
+      if (luckyDraw >= rStart && luckyDraw <= rEnd) {
         // Return card Id
-        return currentCampaign.start + start + (luckyNumber % factor);
+        return uint256(0).setRareness(rareness).setId(currentCampaign.start + cardStart + (luckyNumber % cardFactor));
       }
     }
     return 0;
@@ -331,13 +418,14 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   // Open loot boxes
   function openBox(
     uint256 campaignId,
-    address buyer,
+    address owner,
     uint256 numberOfBoxes
   ) external onlyAllowSameDomain('Oracle') returns (bool) {
     require(
       numberOfBoxes == 1 || numberOfBoxes == 5 || numberOfBoxes == 10,
       'Distributor: Invalid number of loot boxes'
     );
+    IPress infrastructurePress = IPress(registry.getAddress('DKDAO Infrastructure', 'Press'));
     require(campaignId > 0 && campaignId <= campaignIndex, 'Distributor: Invalid campaign Id');
     Campaign memory currentCampaign = campaignStorage[campaignId];
     currentCampaign.opened += uint64(numberOfBoxes);
@@ -348,10 +436,10 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     if (currentCampaign.deadline == 0 && currentCampaign.opened > currentCampaign.softCap) {
       currentCampaign.deadline = uint64(block.timestamp + 3 days);
     }
-    uint256 rand = uint256(keccak256(abi.encodePacked(entropy, buyer)));
+    uint256 rand = uint256(keccak256(abi.encodePacked(entropy, owner)));
     uint256 boughtCards = numberOfBoxes * 5;
     uint256 luckyNumber;
-    uint256 card;
+    uint256 card = uint256(0).setGeneration(currentCampaign.generation);
     uint256 cardSerial = serial;
     for (uint256 i = 0; i < boughtCards; ) {
       // Repeat hash on its selft
@@ -362,7 +450,7 @@ contract DuelistKingDistributor is User, IRNGConsumer {
         card = caculateCard(currentCampaign, luckyNumber);
         if (card > 0) {
           cardSerial += 1;
-          INFT(cardStorage[card]).mint(buyer, cardSerial);
+          infrastructurePress.createItem(domain, owner, card.setSerial(cardSerial));
           i += 1;
         }
       }
@@ -375,24 +463,14 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   }
 
   // Issue genesis edition for card creator
-  function issueGenesisEdittion(uint256 cardId, address owner) public onlyAllowSameDomain('Oracle') returns (bool) {
-    require(genesisEdition[cardStorage[cardId]] == 0, 'Distributor: Only one genesis edition will be distributed');
-    genesisSerial += 1;
-    genesisEdition[cardStorage[cardId]] = genesisSerial;
-    INFT(cardStorage[cardId]).mint(owner, genesisSerial);
-    return true;
-  }
-
-  // Open loot boxes
-  function issueCard(string calldata name, string calldata symbol)
-    external
-    onlyAllowSameDomain('Oracle')
-    returns (bool)
-  {
-    cardIndex += 1;
-    address addrNFT = IPress(registry.getAddress('DKDAO Infrastructure', 'Press')).newNFT(domain, name, symbol);
-    cardStorage[cardIndex] = addrNFT;
-    emit NewCard(cardIndex, addrNFT, name);
+  function issueGenesisEdittion(address owner, uint256 id) public onlyAllowSameDomain('Oracle') returns (bool) {
+    // This card is genesis edittion
+    uint256 card = uint256(0x0000000000000000ffff00000000000000000000000000000000000000000000).setId(id);
+    require(genesisEdition[card] == 0, 'Distributor: Only one genesis edition will be distributed');
+    serial += 1;
+    uint256 issueCard = card.setSerial(serial);
+    genesisEdition[card] = issueCard;
+    IPress(registry.getAddress('DKDAO Infrastructure', 'Press')).createItem(domain, owner, issueCard);
     return true;
   }
 
@@ -404,15 +482,5 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   // Read campaign storage of a given campaign index
   function getCampaign(uint256 index) external view returns (Campaign memory) {
     return campaignStorage[index];
-  }
-
-  // Get card index
-  function getCardIndex() external view returns (uint256) {
-    return cardIndex;
-  }
-
-  // Read card storage of a given card index
-  function getCard(uint256 index) external view returns (address) {
-    return cardStorage[index];
   }
 }
