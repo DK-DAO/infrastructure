@@ -6,29 +6,12 @@ import crypto from 'crypto';
 import { BigNumber } from 'ethers';
 import { NFT } from '../typechain';
 import { getContractFactory } from '@nomiclabs/hardhat-ethers/types';
-const card2: any = {};
 let ctx: IInitialResult;
 let digests: { s: Buffer[]; h: Buffer[]; v: Buffer };
 const cards = [];
 
 describe('DuelistKingDistributor', function () {
   this.timeout(5000000);
-
-  it('OracleProxy should able to forward issueCard() from oracle to DuelistKingDistributor', async () => {
-    ctx = await init();
-    const {
-      duelistKing: { contractOracleProxy, contractDuelistKingDistributor, oracle },
-    } = ctx;
-    for (let i = 1; i <= 20; i++) {
-      await contractOracleProxy
-        .connect(oracle)
-        .safeCall(
-          contractDuelistKingDistributor.address,
-          0,
-          contractDuelistKingDistributor.interface.encodeFunctionData('issueCard', [`Card ${i}`, `DKC ${i}`]),
-        );
-    }
-  });
 
   it('OracleProxy should able to forward newCampaign() call from oracle to DuelistKingDistributor', async () => {
     ctx = await init();
@@ -40,21 +23,20 @@ describe('DuelistKingDistributor', function () {
       0,
       contractDuelistKingDistributor.interface.encodeFunctionData('newCampaign', [
         {
-          distribution: [
-            '0x000000000000000000000000000000010000000000001fff0000000000ffffff',
-            '0x00000000000000010000000000000002000000000000ffff0000000000ffffff',
-            '0x00000000000000030000000000000003000000000007ffff0000000000ffffff',
-            '0x0000000000000006000000000000000400000000000fffff0000000000ffffff',
-            '0x000000000000000a000000000000000500000000003fffff0000000000ffffff',
-            '0x000000000000000f000000000000000500000000ffffffff0000000000ffffff',
-          ],
           opened: 0,
           softCap: 1000000,
           deadline: 0,
           generation: 0,
-          start: 1,
-          end: 21,
-          designs: 20,
+          start: 0,
+          end: 19,
+          distribution: [
+            '0x00000000000000000000000000000001000000000000000600000000000009c4',
+            '0x000000000000000000000000000000020000000100000005000009c400006b6c',
+            '0x00000000000000000000000000000003000000030000000400006b6c00043bfc',
+            '0x00000000000000000000000000000004000000060000000300043bfc000fadac',
+            '0x000000000000000000000000000000050000000a00000002000fadac0026910c',
+            '0x000000000000000000000000000000050000000f000000010026910c004c4b40',
+          ],
         },
       ]),
     );
@@ -72,9 +54,6 @@ describe('DuelistKingDistributor', function () {
         contractDuelistKingDistributor.address,
         0,
         contractDuelistKingDistributor.interface.encodeFunctionData('openBox', [1, addressOwner, 10]),
-        {
-          gasLimit: 3000000,
-        },
       );
     const txReceipt = await result.wait();
     console.log('\tGas used:', BigNumber.from(txReceipt.gasUsed).toString(), 'Gas');
@@ -87,11 +66,10 @@ describe('DuelistKingDistributor', function () {
         args: { to, tokenId },
         name,
       } = contractNFT.interface.parseLog(l);
-      const cNft = <NFT>await contractAt('NFT', l.address);
-      const n = await cNft.name();
-      card2[n] = typeof card2[n] === 'undefined' ? 1 : card2[n] + 1;
       console.log(
-        `\t [${l.address}]\t${await cNft.name()}::${name}(${[to, BigNumber.from(tokenId).toHexString()].join(',')})`,
+        `\t [${l.address}]\t${await contractNFT.name()}::${name}(${[to, BigNumber.from(tokenId).toHexString()].join(
+          ',',
+        )})`,
       );
     }
   });
@@ -107,15 +85,23 @@ describe('DuelistKingDistributor', function () {
       .safeCall(
         contractDuelistKingDistributor.address,
         0,
-        contractDuelistKingDistributor.interface.encodeFunctionData('issueGenesisEdittion', [1, addressOwner]),
-        {
-          gasLimit: 3000000,
-        },
+        contractDuelistKingDistributor.interface.encodeFunctionData('issueGenesisEdittion', [addressOwner, 0]),
       );
-    await tx.wait();
-    const cNft = <NFT>await contractAt('NFT', await contractDuelistKingDistributor.getCard(1));
-    expect(await cNft.ownerOf('0xffffffffffffffffffffffffffffffff00000000000000000000000000000001')).to.eq(
-      addressOwner,
+    const txReceipt = await tx.wait();
+    const logs = txReceipt.logs.filter(
+      (l) => ['0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'].indexOf(l.topics[0]) >= 0,
     );
+    for (let i = 0; i < logs.length; i += 1) {
+      const l = logs[i];
+      const {
+        args: { to, tokenId },
+        name,
+      } = contractNFT.interface.parseLog(l);
+      console.log(
+        `\t [${l.address}]\t${await contractNFT.name()}::${name}(${[to, BigNumber.from(tokenId).toHexString()].join(
+          ',',
+        )})`,
+      );
+    }
   });
 });

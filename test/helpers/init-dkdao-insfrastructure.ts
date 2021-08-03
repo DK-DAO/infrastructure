@@ -35,7 +35,9 @@ export async function initDKDAOInfrastructure() {
     registryRecords.domain.infrastructure,
   );
 
-  const contractNFT = <NFT>await contractDeploy(owner, 'DKDAO Infrastructure/NFT');
+  const contractNFT = <NFT>(
+    await contractDeploy(owner, 'DKDAO Infrastructure/NFT', contractRegistry.address, registryRecords.domain.infrastructure)
+  );
 
   const contractRNG = await contractDeploy(
     owner,
@@ -46,7 +48,7 @@ export async function initDKDAOInfrastructure() {
 
   // Init() is only able to be called once
   if (!(await contractRegistry.isExistRecord(registryRecords.domain.infrastructure, registryRecords.name.oracle))) {
-    await contractNFT.init('DKDAO NFT', 'DKN', contractRegistry.address, registryRecords.domain.infrastructure);
+    // await contractNFT.init('DKDAO NFT', 'DKN', contractRegistry.address, registryRecords.domain.infrastructure);
     const tx = await contractRegistry.batchSet(
       [
         registryRecords.domain.infrastructure,

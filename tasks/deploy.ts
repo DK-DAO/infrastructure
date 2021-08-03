@@ -228,23 +228,24 @@ export async function initDuelistKing(hre: HardhatRuntimeEnvironment) {
     await contractDuelistKingDistributor.connect(oracle).issueCard(cardList[i], cardToSymbol(i));
   }
 
-  await contractDuelistKingDistributor.connect(oracle).newCampaign({
-    distribution: [
-      '0x000000000000000000000000000000010000000000001fff0000000000ffffff',
-      '0x00000000000000010000000000000002000000000000ffff0000000000ffffff',
-      '0x00000000000000030000000000000003000000000007ffff0000000000ffffff',
-      '0x0000000000000006000000000000000400000000000fffff0000000000ffffff',
-      '0x000000000000000a000000000000000500000000003fffff0000000000ffffff',
-      '0x000000000000000f000000000000000500000000ffffffff0000000000ffffff',
-    ],
-    opened: 0,
-    softCap: 1000000,
-    deadline: 0,
-    generation: 0,
-    start: 1,
-    end: 21,
-    designs: 20,
-  });
+  await contractDuelistKingDistributor
+    .connect(oracle)
+    .newCampaign({
+      opened: 0,
+      softCap: 1000000,
+      deadline: 0,
+      generation: 0,
+      start: 0,
+      end: 19,
+      distribution: [
+        '0x00000000000000000000000000000001000000000000000600000000000009c4',
+        '0x000000000000000000000000000000020000000100000005000009c400006b6c',
+        '0x00000000000000000000000000000003000000030000000400006b6c00043bfc',
+        '0x00000000000000000000000000000004000000060000000300043bfc000fadac',
+        '0x000000000000000000000000000000050000000a00000002000fadac0026910c',
+        '0x000000000000000000000000000000050000000f000000010026910c004c4b40',
+      ],
+    });
 
   return <IInitialDuelistKingResult>{
     ...result,
