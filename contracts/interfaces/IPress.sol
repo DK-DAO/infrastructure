@@ -7,4 +7,10 @@ interface IPress {
     string calldata name,
     string calldata symbol
   ) external returns (address);
+
+  function createItem(
+    bytes32 _domain,
+    address _owner,
+    uint256 _itemId
+  ) external returns (bool);
 }

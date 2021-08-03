@@ -5,9 +5,10 @@ pragma abicoder v2;
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/proxy/Clones.sol';
+import '../interfaces/INFT.sol';
 import '../libraries/User.sol';
 import '../libraries/Bytes.sol';
-import '../interfaces/INFT.sol';
+import '../libraries/Item.sol';
 
 /**
  * Item manufacture
@@ -15,10 +16,18 @@ import '../interfaces/INFT.sol';
  * Domain: DKDAO Infrastructure
  */
 contract Press is User {
-  // Using clones for address
-  using Clones for address;
+  // Using Item library for uint256
+  using Item for uint256;
 
-  event NewNFT(bytes32 indexed nftDomain, string indexed name, address indexed nftAddress);
+  // Application index, it will be used as application's ID
+  // Maximum is 2^64-1
+  uint256 private applicationIndex = 0;
+
+  // Registed distributors
+  mapping(bytes32 => mapping(bytes32 => uint256)) private registedDistributors;
+
+  // Registy new application
+  event NewApplication(bytes32 indexed domain, uint256 indexed applicationId);
 
   // We only allow call from registed distributor on Registry
   modifier onlyAllowExistedDistributor(bytes32 _domain) {
@@ -32,15 +41,26 @@ contract Press is User {
   }
 
   // Allow another distributor of other domain to trigger item creation
-  function newNFT(
+  function createItem(
     bytes32 _domain,
-    string calldata _name,
-    string calldata _symbol
-  ) external onlyAllowExistedDistributor(_domain) returns (address) {
-    address nft = registry.getAddress('DKDAO Infrastructure', 'NFT');
-    address cloned = nft.clone();
-    INFT(cloned).init(_name, _symbol, address(registry), _domain);
-    emit NewNFT(_domain, _name, cloned);
-    return cloned;
+    address _owner,
+    uint256 _itemId
+  ) external onlyAllowExistedDistributor(_domain) returns (bool) {
+    uint256 appId = registedDistributors[_domain]['Distributor'];
+    // If application id wasn't assigned
+    if (appId == 0) {
+      applicationIndex += 1;
+      appId = applicationIndex;
+      // Each domain will be assign with an 64 bits application id
+      registedDistributors[_domain]['Distributor'] = appId;
+      emit NewApplication(_domain, appId);
+    }
+    // Item application's id will be overwrited no matter what
+    return INFT(getAddressSameDomain('NFT')).mint(_owner, _itemId.setApplicationId(appId));
+  }
+
+  // Get application id of domain
+  function getApplicationId(bytes32 _domain) external view returns (uint256) {
+    return registedDistributors[_domain]['Distributor'];
   }
 }
