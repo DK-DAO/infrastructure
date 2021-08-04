@@ -108,7 +108,15 @@ export async function initDKDAOInfrastructure(
     )
   );
 
-  const contractNFT = <NFT>await contractDeploy(hre, owner, 'DKDAO Infrastructure/NFT');
+  const contractNFT = <NFT>(
+    await contractDeploy(
+      hre,
+      owner,
+      'DKDAO Infrastructure/NFT',
+      contractRegistry.address,
+      registryRecords.domain.infrastructure,
+    )
+  );
 
   const contractRNG = <RNG>(
     await contractDeploy(
@@ -122,7 +130,6 @@ export async function initDKDAOInfrastructure(
 
   // Init() is only able to be called once
   if (!(await contractRegistry.isExistRecord(registryRecords.domain.infrastructure, registryRecords.name.oracle))) {
-    await contractNFT.init('DKDAO NFT', 'DKN', contractRegistry.address, registryRecords.domain.infrastructure);
 
     await contractRegistry.batchSet(
       [
@@ -223,29 +230,22 @@ export async function initDuelistKing(hre: HardhatRuntimeEnvironment) {
       );
   }
 
-  for (let i = 0; i < 20; i += 1) {
-    console.log(`Issue card: ${cardToSymbol(i).padEnd(32, ' ')}Name: ${cardList[i]}`);
-    await contractDuelistKingDistributor.connect(oracle).issueCard(cardList[i], cardToSymbol(i));
-  }
-
-  await contractDuelistKingDistributor
-    .connect(oracle)
-    .newCampaign({
-      opened: 0,
-      softCap: 1000000,
-      deadline: 0,
-      generation: 0,
-      start: 0,
-      end: 19,
-      distribution: [
-        '0x00000000000000000000000000000001000000000000000600000000000009c4',
-        '0x000000000000000000000000000000020000000100000005000009c400006b6c',
-        '0x00000000000000000000000000000003000000030000000400006b6c00043bfc',
-        '0x00000000000000000000000000000004000000060000000300043bfc000fadac',
-        '0x000000000000000000000000000000050000000a00000002000fadac0026910c',
-        '0x000000000000000000000000000000050000000f000000010026910c004c4b40',
-      ],
-    });
+  await contractDuelistKingDistributor.connect(oracle).newCampaign({
+    opened: 0,
+    softCap: 1000000,
+    deadline: 0,
+    generation: 0,
+    start: 0,
+    end: 19,
+    distribution: [
+      '0x00000000000000000000000000000001000000000000000600000000000009c4',
+      '0x000000000000000000000000000000020000000100000005000009c400006b6c',
+      '0x00000000000000000000000000000003000000030000000400006b6c00043bfc',
+      '0x00000000000000000000000000000004000000060000000300043bfc000fadac',
+      '0x000000000000000000000000000000050000000a00000002000fadac0026910c',
+      '0x000000000000000000000000000000050000000f000000010026910c004c4b40',
+    ],
+  });
 
   return <IInitialDuelistKingResult>{
     ...result,
