@@ -55,7 +55,7 @@ contract DAO is User, IDAO {
     uint256 votePower = IDAOToken(getAddressSameDomain('DAOToken')).votePower(msg.sender);
     require(block.timestamp < proposalStorage[proposalId].expired, 'DAO: Voting period was over');
     require(votePower > 0, 'DAO: Only allow stakeholder to vote');
-    require(votedStorage[proposalId][msg.sender] == false, 'DAO: You have voted this proposal');
+    require(votedStorage[proposalId][msg.sender] == false, 'DAO: You had voted this proposal');
     if (positive) {
       proposalStorage[proposalId].vote += int256(votePower);
       emit PositiveVote(proposalId, msg.sender, votePower);
@@ -63,7 +63,7 @@ contract DAO is User, IDAO {
       proposalStorage[proposalId].vote -= int256(votePower);
       emit NegativeVote(proposalId, msg.sender, votePower);
     }
-    votedStorage[proposalId][msg.sender] = false;
+    votedStorage[proposalId][msg.sender] = true;
     return true;
   }
 
