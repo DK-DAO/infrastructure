@@ -467,14 +467,6 @@ contract MultiSig {
   }
 
   // Create a new proposal
-  function transferOwnership(address newOwner) external onlyOwner returns (bool) {
-    _owners[msg.sender] = false;
-    _owners[newOwner] = true;
-    emit TransferOwnership(msg.sender, newOwner);
-    return true;
-  }
-
-  // Create a new proposal
   function createProposal(Proposal memory newProposal) external onlyOwner returns (uint256) {
     _proposalIndex += 1;
     newProposal.expired = uint64(block.timestamp + 1 days);

@@ -52,7 +52,7 @@ describe('MultiSig', function () {
   it('Random guy should not able to create a proposal', async () => {
     let error = false;
     try {
-      await contractMultiSig.connect(owners[4]).createProposal({
+      await contractMultiSig.connect(owners[8]).createProposal({
         delegate: false,
         expired: 0,
         target: await owners[9].getAddress(),
@@ -75,24 +75,16 @@ describe('MultiSig', function () {
     }
   });
 
-  it('Owners should able to transfer ownership', async () => {
-    expect(await contractMultiSig.isOwner(addressOwners[3])).to.eq(true);
-    expect(await contractMultiSig.isOwner(addressOwners[4])).to.eq(false);
-    await contractMultiSig.connect(owners[3]).transferOwnership(addressOwners[4]);
-    expect(await contractMultiSig.isOwner(addressOwners[3])).to.eq(false);
-    expect(await contractMultiSig.isOwner(addressOwners[4])).to.eq(true);
-  });
-
   it('Owners should able to execute a proposal', async () => {
     await timeTravel();
-    await contractMultiSig.connect(owners[4]).execute(1);
+    await contractMultiSig.connect(owners[3]).execute(1);
     console.log('\t', (await hre.ethers.provider.getBalance(addressOwners[9])).toString());
   });
 
   it('Owner should not able to execute the executed proposal', async () => {
     let error = false;
     try {
-      await contractMultiSig.connect(owners[4]).execute(1);
+      await contractMultiSig.connect(owners[3]).execute(1);
     } catch (e) {
       console.log(e.message);
       error = true;
@@ -121,7 +113,7 @@ describe('MultiSig', function () {
 
   it('Owners should able to execute ERC20 transfer proposal', async () => {
     await timeTravel();
-    await contractMultiSig.connect(owners[4]).execute(2);
+    await contractMultiSig.connect(owners[3]).execute(2);
     console.log('\t', (await contractTestToken.balanceOf(addressOwners[9])).toString());
   });
 
@@ -140,17 +132,31 @@ describe('MultiSig', function () {
   it('Owners should able to vote a proposal', async () => {
     await contractMultiSig.connect(owners[0]).voteProposal(3, true);
     expect(await contractMultiSig.isVoted(3, addressOwners[0])).to.eq(true);
+
     await contractMultiSig.connect(owners[1]).voteProposal(3, true);
     expect(await contractMultiSig.isVoted(3, addressOwners[1])).to.eq(true);
+
     await contractMultiSig.connect(owners[2]).voteProposal(3, false);
     expect(await contractMultiSig.isVoted(3, addressOwners[2])).to.eq(true);
+  });
+
+  it('Random guy should not able to vote a proposal', async () => {
+    let error = false;
+    try {
+      await contractMultiSig.connect(owners[7]).voteProposal(3, false);
+    } catch (e) {
+      console.log(e.message);
+      error = true;
+    }
+    expect(error).to.eq(true);
+    expect(await contractMultiSig.isVoted(3, addressOwners[7])).to.eq(false);
   });
 
   it('Owners should not able to execute proposal since not enough vote', async () => {
     await timeTravel();
     let error = false;
     try {
-      await contractMultiSig.connect(owners[4]).execute(3);
+      await contractMultiSig.connect(owners[3]).execute(3);
     } catch (e) {
       console.log(e.message);
       error = true;
@@ -159,7 +165,7 @@ describe('MultiSig', function () {
   });
 
   it('Owner should able to create another proposal', async () => {
-    await contractMultiSig.connect(owners[4]).createProposal({
+    await contractMultiSig.connect(owners[3]).createProposal({
       delegate: false,
       expired: 0,
       target: contractTestToken.address,
@@ -206,15 +212,15 @@ describe('MultiSig', function () {
     await contractMultiSig.connect(owners[2]).voteProposal(5, false);
     expect(await contractMultiSig.isVoted(5, addressOwners[2])).to.eq(true);
 
-    await contractMultiSig.connect(owners[4]).voteProposal(5, false);
-    expect(await contractMultiSig.isVoted(5, addressOwners[4])).to.eq(true);
+    await contractMultiSig.connect(owners[3]).voteProposal(5, false);
+    expect(await contractMultiSig.isVoted(5, addressOwners[3])).to.eq(true);
   });
 
   it('Owners should not able to execute proposal since not enough vote', async () => {
     await timeTravel();
     let error = false;
     try {
-      await contractMultiSig.connect(owners[4]).execute(5);
+      await contractMultiSig.connect(owners[3]).execute(5);
     } catch (e) {
       console.log(e.message);
       error = true;
