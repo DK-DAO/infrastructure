@@ -79,7 +79,7 @@ contract MultiSig {
   // Create a new proposal
   function createProposal(Proposal memory newProposal) external onlyOwner returns (uint256) {
     _proposalIndex += 1;
-    newProposal.expired = uint64(block.timestamp + 3 days);
+    newProposal.expired = uint64(block.timestamp + 1 days);
     newProposal.vote = 0;
     _proposalStorage[_proposalIndex] = newProposal;
     emit CreateProposal(_proposalIndex, newProposal.expired);
@@ -128,5 +128,13 @@ contract MultiSig {
 
   function proposalDetail(uint256 index) external view returns (Proposal memory) {
     return _proposalStorage[index];
+  }
+
+  function isOwner(address owner) external view returns (bool) {
+    return _owners[owner];
+  }
+
+  function isVoted(uint256 proposalId, address owner) external view returns (bool) {
+    return _votedStorage[proposalId][owner];
   }
 }
