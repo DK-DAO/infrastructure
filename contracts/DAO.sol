@@ -46,6 +46,7 @@ contract DAO is User, IDAO {
     require(votePower > 0, 'DAO: Only allow locked token to vote');
     proposalIndex += 1;
     newProposal.expired = uint64(block.timestamp + 7 days);
+    newProposal.vote = 0;
     proposalStorage[proposalIndex] = newProposal;
     return proposalIndex;
   }

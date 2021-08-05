@@ -48,7 +48,7 @@ const config: HardhatUserConfig = {
       },
       mining: {
         // This is cause of unexpected issue
-        interval: 1000,
+        // interval: 1000,
       },
     },
   },

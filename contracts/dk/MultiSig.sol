@@ -15,6 +15,7 @@ contract MultiSig {
   // Address lib providing safe {call} and {delegatecall}
   using Address for address;
 
+  // Structure of proposal
   struct Proposal {
     int256 vote;
     uint64 expired;
@@ -40,6 +41,7 @@ contract MultiSig {
   // Voted storage
   mapping(uint256 => mapping(address => bool)) private _votedStorage;
 
+  // Only allow owner to call this smart contract
   modifier onlyOwner() {
     require(_owners[msg.sender], 'MultiSig: Sender was not owner');
     _;
@@ -53,7 +55,6 @@ contract MultiSig {
   event PositiveVote(uint256 indexed proposalId, address indexed owner);
   // Negative vote
   event NegativeVote(uint256 indexed proposalId, address indexed owner);
-
   // Transfer ownership
   event TransferOwnership(address indexed from, address indexed to);
 
@@ -64,6 +65,7 @@ contract MultiSig {
       _owners[owners_[i]] = true;
       emit TransferOwnership(address(0), owners_[i]);
     }
+    _ownerCount = owners_.length;
   }
 
   // Create a new proposal
@@ -78,6 +80,7 @@ contract MultiSig {
   function createProposal(Proposal memory newProposal) external onlyOwner returns (uint256) {
     _proposalIndex += 1;
     newProposal.expired = uint64(block.timestamp + 3 days);
+    newProposal.vote = 0;
     _proposalStorage[_proposalIndex] = newProposal;
     emit CreateProposal(_proposalIndex, newProposal.expired);
     return _proposalIndex;
@@ -107,11 +110,23 @@ contract MultiSig {
     if (currentProposal.delegate) {
       currentProposal.target.functionDelegateCall(currentProposal.data);
     } else {
-      currentProposal.target.functionCallWithValue(currentProposal.data, currentProposal.value);
+      if (currentProposal.target.isContract()) {
+        currentProposal.target.functionCallWithValue(currentProposal.data, currentProposal.value);
+      } else {
+        payable(address(currentProposal.target)).transfer(currentProposal.value);
+      }
     }
     currentProposal.executed = true;
     _proposalStorage[proposalId] = currentProposal;
     emit ExecuteProposal(proposalId, msg.sender, currentProposal.vote);
     return true;
+  }
+
+  function proposalIndex() external view returns (uint256) {
+    return _proposalIndex;
+  }
+
+  function proposalDetail(uint256 index) external view returns (Proposal memory) {
+    return _proposalStorage[index];
   }
 }

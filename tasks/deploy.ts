@@ -7,43 +7,7 @@ import { registryRecords, zeroAddress } from '../test/helpers/const';
 // @ts-ignore
 import { NFT, Press, Registry, RNG, DAO, DAOToken, DuelistKingDistributor, Pool, TestToken } from '../typechain';
 
-const cardList = [
-  'Verdict of God',
-  'Banished Fairy',
-  'Wrath of The Sea',
-  'Eternal Storm',
-  'Skadi',
-  'Unforgiven Creatures',
-  'Deadly Pool',
-  'Euphemia',
-  'Sayyida',
-  'Shadowmare',
-  "Deepsea's Hunger",
-  'Krakenetics',
-  'Death Knight',
-  'Mighty Fist',
-  'Aoife',
-  'Corock',
-  'Little Johnny',
-  'Nix',
-  'Regalia of the Sea',
-  'Undying Sailor',
-];
-
 const contractCache: any = {};
-
-function cardToSymbol(cardId: number) {
-  const rarenessMap = [6, 5, 5, 4, 4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1];
-  const mapSym = new Map<number, string>();
-  mapSym.set(6, 'L');
-  mapSym.set(5, 'SSR');
-  mapSym.set(4, 'SR');
-  mapSym.set(3, 'R');
-  mapSym.set(2, 'U');
-  mapSym.set(1, 'C');
-  const rareness = mapSym.get(rarenessMap[cardId]);
-  return `${rareness}>${cardList[cardId].replace(/[\s']/g, '').toUpperCase()}`;
-}
 
 export async function contractDeploy(
   hre: HardhatRuntimeEnvironment,
@@ -130,7 +94,6 @@ export async function initDKDAOInfrastructure(
 
   // Init() is only able to be called once
   if (!(await contractRegistry.isExistRecord(registryRecords.domain.infrastructure, registryRecords.name.oracle))) {
-
     await contractRegistry.batchSet(
       [
         registryRecords.domain.infrastructure,
