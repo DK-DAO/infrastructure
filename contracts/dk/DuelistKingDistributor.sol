@@ -3,7 +3,7 @@
 pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
-import './DuelistKingCard.sol';
+import './DuelistKingItem.sol';
 import '../interfaces/IRNGConsumer.sol';
 import '../libraries/User.sol';
 import '../libraries/Bytes.sol';
@@ -21,7 +21,7 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   using Bytes for bytes;
 
   // Using Duelist King Card for uint256
-  using DuelistKingCard for uint256;
+  using DuelistKingItem for uint256;
 
   // Number of seiral
   uint256 private serial;

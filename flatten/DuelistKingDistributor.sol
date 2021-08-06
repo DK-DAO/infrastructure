@@ -1,15 +1,15 @@
-// Dependency file: contracts/dk/DuelistKingCard.sol
+// Dependency file: contracts/dk/DuelistKingItem.sol
 
 // SPDX-License-Identifier: Apache-2.0
 
 // pragma solidity >=0.8.4 <0.9.0;
 
 /**
- * Card of Duelist King
- * Name: Card
+ * Item of Duelist King
+ * Name: Item
  * Domain: Duelist King
  */
-library DuelistKingCard {
+library DuelistKingItem {
   // We have 256 bits to store an item's id so we dicide to contain as much as posible data
   // Application      64  bits    We can't control this, it will be assigned by DKDAO
 
@@ -303,7 +303,7 @@ interface IPress {
 
 pragma solidity >=0.8.4 <0.9.0;
 
-// import 'contracts/dk/DuelistKingCard.sol';
+// import 'contracts/dk/DuelistKingItem.sol';
 // import 'contracts/interfaces/IRNGConsumer.sol';
 // import 'contracts/libraries/User.sol';
 // import 'contracts/libraries/Bytes.sol';
@@ -321,7 +321,7 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   using Bytes for bytes;
 
   // Using Duelist King Card for uint256
-  using DuelistKingCard for uint256;
+  using DuelistKingItem for uint256;
 
   // Number of seiral
   uint256 private serial;

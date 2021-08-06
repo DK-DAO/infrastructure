@@ -4,11 +4,11 @@ pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
 /**
- * Card of Duelist King
- * Name: Card
+ * Item of Duelist King
+ * Name: Item
  * Domain: Duelist King
  */
-library DuelistKingCard {
+library DuelistKingItem {
   // We have 256 bits to store an item's id so we dicide to contain as much as posible data
   // Application      64  bits    We can't control this, it will be assigned by DKDAO
 
