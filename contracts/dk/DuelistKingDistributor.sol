@@ -122,7 +122,7 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     uint256 numberOfBoxes
   ) external onlyAllowSameDomain('Oracle') returns (bool) {
     require(
-      numberOfBoxes == 1 || numberOfBoxes == 5 || numberOfBoxes == 10,
+      numberOfBoxes <= 10,
       'Distributor: Invalid number of loot boxes'
     );
     IPress infrastructurePress = IPress(registry.getAddress('DKDAO Infrastructure', 'Press'));
