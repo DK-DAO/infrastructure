@@ -193,10 +193,7 @@ task('deploy', 'Deploy all contract')
     const ctxInfrastructure = await initDKDAOInfrastructure(hre, owner, dkDaoOracleList);
     const ctxDuelistKing = await initDuelistKing(hre, owner, dkOracleList, ctxInfrastructure);
 
-    const contractTestToken = <TestToken>await contractDeploy(hre, owner, 'DKDAO Infrastructure/TestToken');
-
-    console.log('DK DAO Oracle:', contractTestToken.address);
-    console.log('Test token:', contractTestToken.address);
+    console.log('DK DAO Oracle:', await dkDaoOracle.getAddress());
     console.log('Duelist King Oracle:', dkOracleList.join(','));
 
     printDeployed(ctxInfrastructure);
@@ -225,6 +222,8 @@ task('deploy', 'Deploy all contract')
       ]),
     );
     if (hre.network.name === 'local') {
+      const contractTestToken = <TestToken>await contractDeploy(hre, owner, 'DKDAO Infrastructure/TestToken');
+      console.log('Test token:', contractTestToken.address);
       // Buy first 40 loot boxes
       await contractTestToken
         .connect(owner)
