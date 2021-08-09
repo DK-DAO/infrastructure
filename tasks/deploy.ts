@@ -2,12 +2,21 @@
 import '@nomiclabs/hardhat-ethers';
 import { task } from 'hardhat/config';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { Signer, Contract } from 'ethers';
-import { registryRecords, zeroAddress } from '../test/helpers/const';
+import { Signer, Contract, ethers } from 'ethers';
+import { registryRecords } from '../test/helpers/const';
 // @ts-ignore
-import { NFT, Press, Registry, RNG, DAO, DAOToken, DuelistKingDistributor, Pool, TestToken } from '../typechain';
+import { NFT, Press, Registry, RNG, DuelistKingDistributor, TestToken, OracleProxy } from '../typechain';
 
 const contractCache: any = {};
+
+interface IResultOfDKDAOInit {
+  owner: ethers.Signer;
+  contractRNG: RNG;
+  contractPress: Press;
+  contractNFT: NFT;
+  contractRegistry: Registry;
+  contractOracleProxy: OracleProxy;
+}
 
 export async function contractDeploy(
   hre: HardhatRuntimeEnvironment,
@@ -24,43 +33,13 @@ export async function contractDeploy(
   return contractCache[contractPath];
 }
 
-export interface IInitialDKDAOInfrastructureResult {
-  infrastructure: {
-    contractRNG: RNG;
-    contractRegistry: Registry;
-    contractTestToken: TestToken;
-    contractPress: Press;
-    contractNFT: NFT;
-    oracle: Signer;
-    owner: Signer;
-    addressOracle: string;
-    addressOwner: string;
-  };
-}
-
-export interface IInitialDuelistKingResult extends IInitialDKDAOInfrastructureResult {
-  duelistKing: {
-    contractDuelistKingDistributor: DuelistKingDistributor;
-    contractDAO: DAO;
-    contractDAOToken: DAOToken;
-    contractPool: Pool;
-    oracle: Signer;
-    owner: Signer;
-    addressOracle: string;
-    addressOwner: string;
-  };
-}
-
 export async function initDKDAOInfrastructure(
   hre: HardhatRuntimeEnvironment,
-): Promise<IInitialDKDAOInfrastructureResult> {
-  const [owner, oracle] = await hre.ethers.getSigners();
-  const addressOwner = await owner.getAddress();
-  const addressOracle = await oracle.getAddress();
-
+  owner: ethers.Signer,
+  oracle: string[],
+): Promise<IResultOfDKDAOInit> {
   const contractRegistry = <Registry>await contractDeploy(hre, owner, 'DKDAO Infrastructure/Registry');
-
-  const contractTestToken = <TestToken>await contractDeploy(hre, owner, 'DKDAO Infrastructure/TestToken');
+  const contractOracleProxy = <OracleProxy>await contractDeploy(hre, owner, 'DKDAO Infrastructure/OracleProxy');
 
   const contractPress = <Press>(
     await contractDeploy(
@@ -94,6 +73,9 @@ export async function initDKDAOInfrastructure(
 
   // Init() is only able to be called once
   if (!(await contractRegistry.isExistRecord(registryRecords.domain.infrastructure, registryRecords.name.oracle))) {
+    for (let i = 0; i < oracle.length; i += 1) {
+      await contractOracleProxy.addController(oracle[i]);
+    }
     await contractRegistry.batchSet(
       [
         registryRecords.domain.infrastructure,
@@ -102,35 +84,26 @@ export async function initDKDAOInfrastructure(
         registryRecords.domain.infrastructure,
       ],
       [registryRecords.name.rng, registryRecords.name.nft, registryRecords.name.press, registryRecords.name.oracle],
-      [contractRNG.address, contractNFT.address, contractPress.address, addressOracle],
+      [contractRNG.address, contractNFT.address, contractPress.address, contractOracleProxy.address],
     );
   }
   return {
-    infrastructure: {
-      contractRNG,
-      contractPress,
-      contractNFT,
-      contractTestToken,
-      contractRegistry,
-      oracle,
-      owner,
-      addressOracle,
-      addressOwner,
-    },
+    owner,
+    contractRNG,
+    contractPress,
+    contractNFT,
+    contractRegistry,
+    contractOracleProxy,
   };
 }
 
-export async function initDuelistKing(hre: HardhatRuntimeEnvironment) {
-  const [, , owner, oracle] = await hre.ethers.getSigners();
-  const result = await initDKDAOInfrastructure(hre);
-  const addressOwner = await owner.getAddress();
-  const addressOracle = await oracle.getAddress();
-
-  const contractDAO = <DAO>await contractDeploy(hre, owner, 'Duelist King/DAO');
-
-  const contractDAOToken = <DAOToken>await contractDeploy(hre, owner, 'Duelist King/DAOToken');
-
-  const contractPool = <Pool>await contractDeploy(hre, owner, 'Duelist King/Pool');
+export async function initDuelistKing(
+  hre: HardhatRuntimeEnvironment,
+  owner: ethers.Signer,
+  oracle: string[],
+  result: IResultOfDKDAOInit,
+) {
+  // const contractDAOToken = <DAOToken>await contractDeploy(hre, owner, 'Duelist King/DAOToken');
 
   // The Divine Contract https://github.com/chiro-hiro/thedivine
   const tx = await owner.sendTransaction({
@@ -144,84 +117,47 @@ export async function initDuelistKing(hre: HardhatRuntimeEnvironment) {
       hre,
       owner,
       'Duelist King/DuelistKingDistributor',
-      result.infrastructure.contractRegistry.address,
+      result.contractRegistry.address,
       registryRecords.domain.duelistKing,
       theDivine,
     )
   );
 
-  // Init() is only able to be called once
-  if (
-    !(await result.infrastructure.contractRegistry.isExistRecord(
-      registryRecords.domain.duelistKing,
-      registryRecords.name.dao,
-    ))
-  ) {
-    await contractDAO.init(result.infrastructure.contractRegistry.address, registryRecords.domain.duelistKing);
+  const contractOracleProxy = <OracleProxy>await contractDeploy(hre, owner, 'Duelist King/OracleProxy');
 
+  // Init() is only able to be called once
+  if (!(await result.contractRegistry.isExistRecord(registryRecords.domain.duelistKing, registryRecords.name.oracle))) {
+    /*
     await contractDAOToken.init({
       symbol: 'DKT',
       name: 'Duelist King Token',
       grandDAO: zeroAddress,
       genesis: addressOwner,
     });
+    */
 
-    await result.infrastructure.contractRegistry
-      .connect(result.infrastructure.owner)
+    for (let i = 0; i < oracle.length; i += 1) {
+      await contractOracleProxy.addController(oracle[i]);
+    }
+
+    await result.contractRegistry
+      .connect(result.owner)
       .batchSet(
         [
-          registryRecords.domain.duelistKing,
-          registryRecords.domain.duelistKing,
-          registryRecords.domain.duelistKing,
-          registryRecords.domain.duelistKing,
+          /* registryRecords.domain.duelistKing, */ registryRecords.domain.duelistKing,
           registryRecords.domain.duelistKing,
         ],
-        [
-          registryRecords.name.dao,
-          registryRecords.name.daoToken,
-          registryRecords.name.pool,
-          registryRecords.name.distributor,
-          registryRecords.name.oracle,
-        ],
-        [
-          contractDAO.address,
-          contractDAOToken.address,
-          contractPool.address,
-          contractDuelistKingDistributor.address,
-          addressOracle,
-        ],
+        [/* registryRecords.name.daoToken, */ registryRecords.name.distributor, registryRecords.name.oracle],
+        [/* contractDAOToken.address, */ contractDuelistKingDistributor.address, contractOracleProxy.address],
       );
   }
 
-  await contractDuelistKingDistributor.connect(oracle).newCampaign({
-    opened: 0,
-    softCap: 1000000,
-    deadline: 0,
-    generation: 0,
-    start: 0,
-    end: 19,
-    distribution: [
-      '0x00000000000000000000000000000001000000000000000600000000000009c4',
-      '0x000000000000000000000000000000020000000100000005000009c400006b6c',
-      '0x00000000000000000000000000000003000000030000000400006b6c00043bfc',
-      '0x00000000000000000000000000000004000000060000000300043bfc000fadac',
-      '0x000000000000000000000000000000050000000a00000002000fadac0026910c',
-      '0x000000000000000000000000000000050000000f000000010026910c004c4b40',
-    ],
-  });
-
-  return <IInitialDuelistKingResult>{
-    ...result,
-    duelistKing: {
-      owner,
-      oracle,
-      addressOracle,
-      addressOwner,
-      contractDAO,
-      contractDAOToken,
-      contractPool,
-      contractDuelistKingDistributor,
-    },
+  return {
+    owner,
+    // contractDAOToken,
+    theDivine,
+    contractDuelistKingDistributor,
+    contractOracleProxy,
   };
 }
 
@@ -238,22 +174,71 @@ function printDeployed(obj: any) {
 task('deploy', 'Deploy all contract')
   // .addParam('account', "The account's address")
   .setAction(async (_taskArgs: any, hre: HardhatRuntimeEnvironment) => {
-    const ctx = await initDuelistKing(hre);
-    printDeployed(ctx.infrastructure);
-    printDeployed(ctx.duelistKing);
+    const owner = hre.ethers.Wallet.fromMnemonic(process.env.DUELIST_KING_DEPLOY_MNEMONIC || '').connect(
+      hre.ethers.provider,
+    );
 
-    // Buy first 40 loot boxes
-    await ctx.infrastructure.contractTestToken
-      .connect(ctx.infrastructure.owner)
-      .transfer('0x9ccc80a5beD6f15AdFcB9096109500B3c96a8e52', '40000000000000000000');
-    // Buy first 40 loot boxes
-    await ctx.infrastructure.contractTestToken
-      .connect(ctx.infrastructure.owner)
-      .transfer('0x9ccc80a5beD6f15AdFcB9096109500B3c96a8e52', '10000000000000000000');
-    // Buy first 40 loot boxes
-    await ctx.infrastructure.contractTestToken
-      .connect(ctx.infrastructure.owner)
-      .transfer('0x9ccc80a5beD6f15AdFcB9096109500B3c96a8e52', '5000000000000000000');
+    const [dkDaoOracle, dkOracle1, dkOracle2, dkOracle3, tmp] = await hre.ethers.getSigners();
+    if (hre.network.name === 'local') {
+      await (
+        await tmp.sendTransaction({
+          to: owner.address,
+          value: `0x8ac7230489e80000`,
+        })
+      ).wait();
+    }
+
+    const dkDaoOracleList = [await dkDaoOracle.getAddress()];
+    const dkOracleList = [await dkOracle1.getAddress(), await dkOracle2.getAddress(), await dkOracle3.getAddress()];
+    const ctxInfrastructure = await initDKDAOInfrastructure(hre, owner, dkDaoOracleList);
+    const ctxDuelistKing = await initDuelistKing(hre, owner, dkOracleList, ctxInfrastructure);
+
+    const contractTestToken = <TestToken>await contractDeploy(hre, owner, 'DKDAO Infrastructure/TestToken');
+
+    console.log('DK DAO Oracle:', contractTestToken.address);
+    console.log('Test token:', contractTestToken.address);
+    console.log('Duelist King Oracle:', dkOracleList.join(','));
+
+    printDeployed(ctxInfrastructure);
+    printDeployed(ctxDuelistKing);
+
+    ctxDuelistKing.contractOracleProxy.connect(dkOracle1).safeCall(
+      ctxDuelistKing.contractDuelistKingDistributor.address,
+      0,
+      ctxDuelistKing.contractDuelistKingDistributor.interface.encodeFunctionData('newCampaign', [
+        {
+          opened: 0,
+          softCap: 1000000,
+          deadline: 0,
+          generation: 0,
+          start: 0,
+          end: 19,
+          distribution: [
+            '0x00000000000000000000000000000001000000000000000600000000000009c4',
+            '0x000000000000000000000000000000020000000100000005000009c400006b6c',
+            '0x00000000000000000000000000000003000000030000000400006b6c00043bfc',
+            '0x00000000000000000000000000000004000000060000000300043bfc000fadac',
+            '0x000000000000000000000000000000050000000a00000002000fadac0026910c',
+            '0x000000000000000000000000000000050000000f000000010026910c004c4b40',
+          ],
+        },
+      ]),
+    );
+    if (hre.network.name === 'local') {
+      // Buy first 40 loot boxes
+      await contractTestToken
+        .connect(owner)
+        .transfer('0x9ccc80a5beD6f15AdFcB9096109500B3c96a8e52', '40000000000000000000');
+
+      // Buy first 40 loot boxes
+      await contractTestToken
+        .connect(owner)
+        .transfer('0x9ccc80a5beD6f15AdFcB9096109500B3c96a8e52', '10000000000000000000');
+      // Buy first 40 loot boxes
+      await contractTestToken
+        .connect(owner)
+        .transfer('0x9ccc80a5beD6f15AdFcB9096109500B3c96a8e52', '5000000000000000000');
+    }
   });
 
 export default {};
