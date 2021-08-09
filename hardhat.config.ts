@@ -20,18 +20,37 @@ const compilers = ['0.8.6'].map((item: string) => ({
 const env: any = fs.existsSync(`${__dirname}/.env`)
   ? parse(fs.readFileSync(`${__dirname}/.env`))
   : {
-      DUELIST_KING_MNEMONIC: 'baby nose young alone sport inside grain rather undo donor void exotic',
+      DUELIST_KING_LOCAL_MNEMONIC: 'baby nose young alone sport inside grain rather undo donor void exotic',
+      DUELIST_KING_LOCAL_RPC: 'http://localhost:8545',
+      DUELIST_KING_RINKEBY_MNEMONIC: '',
+      DUELIST_KING_RINKEBY_RPC: '',
+      DUELIST_KING_DEPLOY_MNEMONIC: '',
     };
+
+const entries = Object.entries(env);
+
+for (let i = 0; i < entries.length; i += 1) {
+  const [k, v] = <[string, string]>entries[i];
+  env[k] = v.trim();
+  process.env[k] = v;
+}
 
 const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
-
   networks: {
+    rinkeby: {
+      url: env.DUELIST_KING_RINKEBY_RPC,
+      chainId: 4,
+      accounts: {
+        mnemonic: env.DUELIST_KING_RINKEBY_MNEMONIC,
+        path: "m/44'/60'/0'/0",
+      },
+    },
     local: {
-      url: 'http://127.0.0.1:8545/',
+      url: env.DUELIST_KING_LOCAL_RPC,
       chainId: 911,
       accounts: {
-        mnemonic: env.DUELIST_KING_MNEMONIC.trim(),
+        mnemonic: env.DUELIST_KING_LOCAL_MNEMONIC,
         path: "m/44'/60'/0'/0",
       },
     },
@@ -39,11 +58,8 @@ const config: HardhatUserConfig = {
     hardhat: {
       chainId: 911,
       hardfork: 'berlin',
-      // forking: {
-      //  url: 'https://bsc-dataseed.binance.org/',
-      // },
       accounts: {
-        mnemonic: env.DUELIST_KING_MNEMONIC.trim(),
+        mnemonic: env.DUELIST_KING_LOCAL_MNEMONIC,
         path: "m/44'/60'/0'/0",
       },
       mining: {
