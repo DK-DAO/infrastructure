@@ -982,6 +982,80 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
 }
 
 
+// Dependency file: @openzeppelin/contracts/access/Ownable.sol
+
+
+// pragma solidity ^0.8.0;
+
+// import "@openzeppelin/contracts/utils/Context.sol";
+
+/**
+ * @dev Contract module which provides a basic access control mechanism, where
+ * there is an account (an owner) that can be granted exclusive access to
+ * specific functions.
+ *
+ * By default, the owner account will be the one that deploys the contract. This
+ * can later be changed with {transferOwnership}.
+ *
+ * This module is used through inheritance. It will make available the modifier
+ * `onlyOwner`, which can be applied to your functions to restrict their use to
+ * the owner.
+ */
+abstract contract Ownable is Context {
+    address private _owner;
+
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    /**
+     * @dev Initializes the contract setting the deployer as the initial owner.
+     */
+    constructor() {
+        _setOwner(_msgSender());
+    }
+
+    /**
+     * @dev Returns the address of the current owner.
+     */
+    function owner() public view virtual returns (address) {
+        return _owner;
+    }
+
+    /**
+     * @dev Throws if called by any account other than the owner.
+     */
+    modifier onlyOwner() {
+        require(owner() == _msgSender(), "Ownable: caller is not the owner");
+        _;
+    }
+
+    /**
+     * @dev Leaves the contract without owner. It will not be possible to call
+     * `onlyOwner` functions anymore. Can only be called by the current owner.
+     *
+     * NOTE: Renouncing ownership will leave the contract without an owner,
+     * thereby removing any functionality that is only available to the owner.
+     */
+    function renounceOwnership() public virtual onlyOwner {
+        _setOwner(address(0));
+    }
+
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     * Can only be called by the current owner.
+     */
+    function transferOwnership(address newOwner) public virtual onlyOwner {
+        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        _setOwner(newOwner);
+    }
+
+    function _setOwner(address newOwner) private {
+        address oldOwner = _owner;
+        _owner = newOwner;
+        emit OwnershipTransferred(oldOwner, newOwner);
+    }
+}
+
+
 // Dependency file: contracts/interfaces/IRegistry.sol
 
 // pragma solidity >=0.8.4 <0.9.0;
@@ -1064,6 +1138,7 @@ abstract contract User {
 pragma solidity >=0.8.4 <0.9.0;
 
 // import '/home/chiro/gits/infrastructure/node_modules/@openzeppelin/contracts/token/ERC721/ERC721.sol';
+// import '/home/chiro/gits/infrastructure/node_modules/@openzeppelin/contracts/access/Ownable.sol';
 // import 'contracts/libraries/User.sol';
 
 /**
@@ -1072,14 +1147,19 @@ pragma solidity >=0.8.4 <0.9.0;
  * Name: NFT
  * Domain: DKDAO Infrastructure
  */
-contract NFT is User, ERC721('DKDAO Items', 'DKDAOI') {
+contract NFT is User, ERC721('DKDAO Items', 'DKDAOI'), Ownable {
+  string private _uri;
+  uint256 private _supply;
+
   // Pass constructor parameter to User
   constructor(address _registry, bytes32 _domain) {
+    _uri = 'https://metadata.dkdao.network/token/';
     _init(_registry, _domain);
   }
 
   // Only press able to mint new item
   function mint(address to, uint256 tokenId) external onlyAllowSameDomain('Press') returns (bool) {
+    _supply += 1;
     _mint(to, tokenId);
     return _exists(tokenId);
   }
@@ -1092,5 +1172,28 @@ contract NFT is User, ERC721('DKDAO Items', 'DKDAOI') {
   ) external onlyAllowSameDomain('Swap') returns (bool) {
     _transfer(from, to, tokenId);
     return true;
+  }
+
+  // Migrate from the old contract to this contract
+  function migrate(uint256 tokenId) external onlyOwner returns (bool) {
+    address owner = ERC721(0x6ef3C1aA349D621d495BE98C7678Ee49107b7Ec2).ownerOf(tokenId);
+    _mint(owner, tokenId);
+    return true;
+  }
+
+  // Change the base URI
+  function changeBaseURI(string memory uri_) public onlyOwner returns (bool) {
+    _uri = uri_;
+    return true;
+  }
+
+  // Get the base URI
+  function _baseURI() internal view override returns (string memory) {
+    return _uri;
+  }
+
+  // Get total supply
+  function totalSupply() external view returns (uint256) {
+    return _supply;
   }
 }

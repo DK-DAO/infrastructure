@@ -91,6 +91,13 @@ describe('DuelistKingDistributor', function () {
     const logs = txReceipt.logs.filter(
       (l) => ['0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'].indexOf(l.topics[0]) >= 0,
     );
+    const {
+      args: { tokenId },
+    } = contractNFT.interface.parseLog(logs[0]);
+
+    console.log('\tTotal supply:', (await contractNFT.totalSupply()).toString());
+    console.log('\tToken URI:', await contractNFT.tokenURI(tokenId));
+
     for (let i = 0; i < logs.length; i += 1) {
       const l = logs[i];
       const {
