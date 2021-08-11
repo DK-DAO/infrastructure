@@ -1083,4 +1083,14 @@ contract NFT is User, ERC721('DKDAO Items', 'DKDAOI') {
     _mint(to, tokenId);
     return _exists(tokenId);
   }
+
+  // Allow swap to perform transfer
+  function safeTransfer(
+    address from,
+    address to,
+    uint256 tokenId
+  ) external onlyAllowSameDomain('Swap') returns (bool) {
+    _transfer(from, to, tokenId);
+    return true;
+  }
 }

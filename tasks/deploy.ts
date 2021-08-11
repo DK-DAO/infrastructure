@@ -199,7 +199,7 @@ task('deploy', 'Deploy all contract')
     printDeployed(ctxInfrastructure);
     printDeployed(ctxDuelistKing);
 
-    ctxDuelistKing.contractOracleProxy.connect(dkOracle1).safeCall(
+    await ctxDuelistKing.contractOracleProxy.connect(dkOracle1).safeCall(
       ctxDuelistKing.contractDuelistKingDistributor.address,
       0,
       ctxDuelistKing.contractDuelistKingDistributor.interface.encodeFunctionData('newCampaign', [

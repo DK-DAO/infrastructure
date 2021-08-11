@@ -6,6 +6,8 @@ import '@nomiclabs/hardhat-ethers';
 import 'hardhat-gas-reporter';
 import 'solidity-coverage';
 import './tasks/deploy';
+import './tasks/create-campaign';
+import './tasks/change-nft';
 
 const compilers = ['0.8.6'].map((item: string) => ({
   version: item,
@@ -25,6 +27,8 @@ const env: any = fs.existsSync(`${__dirname}/.env`)
       DUELIST_KING_RINKEBY_MNEMONIC: '',
       DUELIST_KING_RINKEBY_RPC: '',
       DUELIST_KING_DEPLOY_MNEMONIC: '',
+      DUELIST_KING_POLYGON_RPC: '',
+      DUELIST_KING_POLYGON_MNEMONIC: '',
     };
 
 const entries = Object.entries(env);
@@ -38,6 +42,14 @@ for (let i = 0; i < entries.length; i += 1) {
 const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
   networks: {
+    polygon: {
+      url: env.DUELIST_KING_POLYGON_RPC,
+      chainId: 137,
+      accounts: {
+        mnemonic: env.DUELIST_KING_POLYGON_MNEMONIC,
+        path: "m/44'/60'/0'/0",
+      },
+    },
     rinkeby: {
       url: env.DUELIST_KING_RINKEBY_RPC,
       chainId: 4,
