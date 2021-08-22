@@ -8,6 +8,7 @@ import 'solidity-coverage';
 import './tasks/deploy';
 import './tasks/create-campaign';
 import './tasks/change-nft';
+import './tasks/live-test-contract';
 
 const compilers = ['0.8.6'].map((item: string) => ({
   version: item,
@@ -29,6 +30,7 @@ const env: any = fs.existsSync(`${__dirname}/.env`)
       DUELIST_KING_DEPLOY_MNEMONIC: '',
       DUELIST_KING_POLYGON_RPC: '',
       DUELIST_KING_POLYGON_MNEMONIC: '',
+      DUELIST_KING_MAINNET_RPC: '',
     };
 
 const entries = Object.entries(env);
@@ -76,8 +78,24 @@ const config: HardhatUserConfig = {
       },
       mining: {
         // This is cause of unexpected issue
-        // interval: 1000,
+        interval: 1000,
       },
+      /*
+      chainId: 1,
+      // hardfork: 'berlin',
+      accounts: {
+        mnemonic: env.DUELIST_KING_LOCAL_MNEMONIC,
+        path: "m/44'/60'/0'/0",
+      },
+      // mining: {
+        // This is cause of unexpected issue
+        // interval: 1000,
+      // },
+      forking: {
+        url: env.DUELIST_KING_MAINNET_RPC,
+        enabled: true,
+      },
+      */
     },
   },
   solidity: {

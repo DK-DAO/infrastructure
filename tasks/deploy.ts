@@ -174,9 +174,9 @@ function printDeployed(obj: any) {
 task('deploy', 'Deploy all contract')
   // .addParam('account', "The account's address")
   .setAction(async (_taskArgs: any, hre: HardhatRuntimeEnvironment) => {
-    const owner = hre.ethers.Wallet.fromMnemonic(process.env.DUELIST_KING_DEPLOY_MNEMONIC || '').connect(
-      hre.ethers.provider,
-    );
+    const deployKey =
+      hre.network.name === 'local' ? process.env.DUELIST_KING_LOCAL_MNEMONIC : process.env.DUELIST_KING_DEPLOY_MNEMONIC;
+    const owner = hre.ethers.Wallet.fromMnemonic((deployKey || '').trim()).connect(hre.ethers.provider);
 
     const [dkDaoOracle, dkOracle1, dkOracle2, dkOracle3, tmp] = await hre.ethers.getSigners();
     if (hre.network.name === 'local') {
@@ -227,7 +227,7 @@ task('deploy', 'Deploy all contract')
       // Buy first 40 loot boxes
       await contractTestToken
         .connect(owner)
-        .transfer('0x9ccc80a5beD6f15AdFcB9096109500B3c96a8e52', '40000000000000000000');
+        .transfer('0x9ccc80a5beD6f15AdFcB9096109500B3c96a8e52', '400000000000000000000');
 
       // Buy first 40 loot boxes
       await contractTestToken
