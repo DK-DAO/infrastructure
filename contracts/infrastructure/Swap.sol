@@ -72,6 +72,6 @@ contract Swap is User, Ownable {
 
   // Get nonce of an address
   function getNonce(address owner) external view returns (uint256) {
-    return nonceStorage[owner];
+    return nonceStorage[owner] + 1;
   }
 }
