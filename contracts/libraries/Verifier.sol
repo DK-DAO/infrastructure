@@ -56,7 +56,7 @@ library Verifier {
       switch value
       case 0 {
         // In case of 0, we just return "0"
-        result := mload(0x20)
+        result := mload(0x40)
         // result.length = 1
         mstore(result, 0x01)
         // result = "0"
@@ -65,7 +65,7 @@ library Verifier {
       default {
         let length := 0x0
         // let result = new bytes(32)
-        result := mload(0x20)
+        result := mload(0x40)
 
         // Get length of render number
         // for (let v := value; v > 0; v = v / 10)
