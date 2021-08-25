@@ -71,7 +71,7 @@ const config: HardhatUserConfig = {
     // Hard hat network
     hardhat: {
       chainId: 911,
-      hardfork: 'london',
+      hardfork: 'berlin',
       accounts: {
         mnemonic: env.DUELIST_KING_LOCAL_MNEMONIC,
         path: "m/44'/60'/0'/0",
