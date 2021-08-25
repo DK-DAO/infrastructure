@@ -44,37 +44,16 @@ for (let i = 0; i < entries.length; i += 1) {
 const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
   networks: {
-    polygon: {
-      url: env.DUELIST_KING_POLYGON_RPC,
-      chainId: 137,
-      accounts: {
-        mnemonic: env.DUELIST_KING_POLYGON_MNEMONIC,
-        path: "m/44'/60'/0'/0",
-      },
-    },
-    rinkeby: {
-      url: env.DUELIST_KING_RINKEBY_RPC,
-      chainId: 4,
-      accounts: {
-        mnemonic: env.DUELIST_KING_RINKEBY_MNEMONIC,
-        path: "m/44'/60'/0'/0",
-      },
-    },
-    local: {
-      url: env.DUELIST_KING_LOCAL_RPC,
-      chainId: 911,
-      accounts: {
-        mnemonic: env.DUELIST_KING_LOCAL_MNEMONIC,
-        path: "m/44'/60'/0'/0",
-      },
-    },
-    // Hard hat network
     hardhat: {
-      chainId: 911,
+      chainId: 1,
       hardfork: 'london',
       accounts: {
         mnemonic: env.DUELIST_KING_LOCAL_MNEMONIC,
         path: "m/44'/60'/0'/0",
+      },
+      forking: {
+        url: env.DUELIST_KING_MAINNET_RPC,
+        enabled: true,
       },
     },
   },
