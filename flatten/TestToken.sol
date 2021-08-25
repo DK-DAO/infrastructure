@@ -500,7 +500,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
 pragma solidity >=0.8.4 <0.9.0;
 
-// import '/home/chiro/gits/infrastructure/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol';
+// import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
 contract TestToken is ERC20("Test Token", "TEST") {
   constructor(){

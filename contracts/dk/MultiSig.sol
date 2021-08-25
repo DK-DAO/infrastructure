@@ -2,8 +2,6 @@
 pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
-import '@openzeppelin/contracts/access/Ownable.sol';
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
 
 /**

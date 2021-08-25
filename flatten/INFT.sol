@@ -11,5 +11,11 @@ interface INFT {
     bytes32 domain
   ) external returns (bool);
 
+  function safeTransfer(
+    address from,
+    address to,
+    uint256 tokenId
+  ) external returns (bool);
+
   function mint(address to, uint256 tokenId) external returns (bool);
 }

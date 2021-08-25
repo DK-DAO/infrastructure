@@ -1154,6 +1154,12 @@ interface INFT {
     bytes32 domain
   ) external returns (bool);
 
+  function safeTransfer(
+    address from,
+    address to,
+    uint256 tokenId
+  ) external returns (bool);
+
   function mint(address to, uint256 tokenId) external returns (bool);
 }
 
@@ -1356,9 +1362,9 @@ library Item {
 
 pragma solidity >=0.8.4 <0.9.0;
 
-// import '/home/chiro/gits/infrastructure/node_modules/@openzeppelin/contracts/token/ERC721/ERC721.sol';
-// import '/home/chiro/gits/infrastructure/node_modules/@openzeppelin/contracts/access/Ownable.sol';
-// import '/home/chiro/gits/infrastructure/node_modules/@openzeppelin/contracts/proxy/Clones.sol';
+// import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/token/ERC721/ERC721.sol';
+// import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/access/Ownable.sol';
+// import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/proxy/Clones.sol';
 // import 'contracts/interfaces/INFT.sol';
 // import 'contracts/libraries/User.sol';
 // import 'contracts/libraries/Bytes.sol';

@@ -440,7 +440,7 @@ abstract contract TokenMetadata {
 
 // pragma solidity >=0.8.4 <0.9.0;
 
-// import '/home/chiro/gits/infrastructure/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol';
+// import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol';
 // import 'contracts/libraries/TokenMetadata.sol';
 
 interface IDAOToken is IERC20 {
@@ -532,9 +532,9 @@ abstract contract User {
 
 pragma solidity >=0.8.4 <0.9.0;
 
-// import '/home/chiro/gits/infrastructure/node_modules/@openzeppelin/contracts/access/Ownable.sol';
-// import '/home/chiro/gits/infrastructure/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol';
-// import '/home/chiro/gits/infrastructure/node_modules/@openzeppelin/contracts/utils/Address.sol';
+// import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/access/Ownable.sol';
+// import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol';
+// import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/utils/Address.sol';
 // import 'contracts/interfaces/IDAO.sol';
 // import 'contracts/interfaces/IDAOToken.sol';
 // import 'contracts/libraries/User.sol';

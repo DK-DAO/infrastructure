@@ -102,7 +102,7 @@ abstract contract TokenMetadata {
 
 pragma solidity >=0.8.4 <0.9.0;
 
-// import '/home/chiro/gits/infrastructure/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol';
+// import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol';
 // import 'contracts/libraries/TokenMetadata.sol';
 
 interface IDAOToken is IERC20 {
