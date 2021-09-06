@@ -13,7 +13,8 @@
     "node": "hardhat node",
     "deploy": "hardhat --network local deploy",
     "flatten": "waffle flatten && node ./clean.js",
-    "fork": "hardhat --config hardhat-ethfork.config.ts node",
+    "fork-node": "hardhat --config hardhat-ethfork.config.ts node",
+    "fork-deploy": "hardhat --config hardhat-ethfork.config.ts --network local deploy",
     "live-test": "hardhat --config hardhat-ethfork.config.ts live-test --wallet 0xcC527eb38F459882f0efFbAB8fe79B47716DE72F"
   },
   "devDependencies": {
