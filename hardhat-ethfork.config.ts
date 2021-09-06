@@ -45,8 +45,11 @@ const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
   networks: {
     hardhat: {
-      chainId: 1,
+      chainId: 1337,
       hardfork: 'london',
+      mining: {
+        interval: 10000,
+      },
       accounts: {
         mnemonic: env.DUELIST_KING_LOCAL_MNEMONIC,
         path: "m/44'/60'/0'/0",
