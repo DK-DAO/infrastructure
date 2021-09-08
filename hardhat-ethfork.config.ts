@@ -64,7 +64,6 @@ const config: HardhatUserConfig = {
       },
       forking: {
         url: env.DUELIST_KING_MAINNET_RPC,
-        blockNumber: 10626500,
         enabled: true,
       },
     },
