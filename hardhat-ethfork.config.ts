@@ -46,15 +46,15 @@ const config: HardhatUserConfig = {
   networks: {
     local: {
       url: 'http://127.0.0.1:8545',
-      chainId: 7749,
+      chainId: 1,
       accounts: {
         mnemonic: env.DUELIST_KING_LOCAL_MNEMONIC,
         path: "m/44'/60'/0'/0",
       },
     },
     hardhat: {
-      chainId: 7749,
-      hardfork: 'london',
+      chainId: 1,
+      hardfork: 'berlin',
       mining: {
         interval: 10000,
       },
