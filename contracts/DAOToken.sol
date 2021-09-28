@@ -43,7 +43,7 @@ contract DAOToken is ERC20 {
   function init(TokenMetadata.Metadata memory metadata) external returns (bool) {
     require(totalSupply() == 0, "DAOToken: It's only allowed to called once");
     // Set name and symbol to DAO Token
-    _init(metadata.name, metadata.symbol);
+    _erc20Init(metadata.name, metadata.symbol);
     // Setup balance and genesis token distribution
     uint256 unit = 10**decimals();
     // This is child DAO

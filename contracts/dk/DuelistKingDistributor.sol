@@ -67,7 +67,7 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     bytes32 _domain,
     address divine
   ) {
-    _init(_registry, _domain);
+    _registryUserInit(_registry, _domain);
     theDivine = ITheDivine(divine);
   }
 
@@ -121,10 +121,7 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     address owner,
     uint256 numberOfBoxes
   ) external onlyAllowSameDomain('Oracle') returns (bool) {
-    require(
-      numberOfBoxes <= 10,
-      'Distributor: Invalid number of loot boxes'
-    );
+    require(numberOfBoxes <= 10, 'Distributor: Invalid number of loot boxes');
     IPress infrastructurePress = IPress(registry.getAddress('DKDAO Infrastructure', 'Press'));
     require(campaignId > 0 && campaignId <= campaignIndex, 'Distributor: Invalid campaign Id');
     Campaign memory currentCampaign = campaignStorage[campaignId];

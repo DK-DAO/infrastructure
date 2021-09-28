@@ -26,14 +26,10 @@ contract Factory is User {
 
   // Pass constructor parameter to User
   constructor(address _registry, bytes32 _domain) {
-    _init(_registry, _domain);
+    _registryUserInit(_registry, _domain);
   }
 
-  function cloneNewDAO(NewDAO calldata creatingDAO)
-    external
-    onlyAllowCrossDomain('DKDAO', 'DAO')
-    returns (bool)
-  {
+  function cloneNewDAO(NewDAO calldata creatingDAO) external onlyAllowCrossDomain('DKDAO', 'DAO') returns (bool) {
     // New DAO will be cloned from KDDAO
     address newDAO = registry.getAddress('DKDAO', 'DAO').clone();
     IDAO(newDAO).init(address(registry), creatingDAO.domain);

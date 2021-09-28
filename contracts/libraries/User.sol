@@ -24,7 +24,7 @@ abstract contract User {
   }
 
   // Constructing with registry address and its active domain
-  function _init(address _registry, bytes32 _domain) internal returns (bool) {
+  function _registryUserInit(address _registry, bytes32 _domain) internal returns (bool) {
     require(domain == bytes32(0) && address(registry) == address(0), "User: It's only able to set once");
     registry = IRegistry(_registry);
     domain = _domain;

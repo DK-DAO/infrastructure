@@ -17,6 +17,9 @@ contract Swap is User, Ownable {
   using Verifier for bytes;
   using Bytes for bytes;
 
+  mapping(uint256 => mapping(address => uint256)) lendingStorage;
+  mapping(uint256 => address) lendingState;
+
   // Partner of duelistking
   mapping(address => bool) private partners;
 
@@ -46,7 +49,7 @@ contract Swap is User, Ownable {
 
   // Pass constructor parameter to User
   constructor(address _registry, bytes32 _domain) {
-    _init(_registry, _domain);
+    _registryUserInit(_registry, _domain);
   }
 
   // User able to delegate transfer right with a cyrptographic proof

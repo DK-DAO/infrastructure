@@ -19,7 +19,7 @@ contract NFT is User, ERC721('DKDAO Items', 'DKDAOI'), Ownable {
   // Pass constructor parameter to User
   constructor(address _registry, bytes32 _domain) {
     _uri = 'https://metadata.dkdao.network/token/';
-    _init(_registry, _domain);
+    _registryUserInit(_registry, _domain);
   }
 
   // Only press able to mint new item
