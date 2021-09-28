@@ -62,7 +62,7 @@ describe('MultiSig', function () {
         vote: 0,
       });
     } catch (e) {
-      console.log(e.message);
+      console.log(e);
       error = true;
     }
     expect(error).to.eq(true);
@@ -86,7 +86,7 @@ describe('MultiSig', function () {
     try {
       await contractMultiSig.connect(owners[3]).execute(1);
     } catch (e) {
-      console.log(e.message);
+      console.log(e);
       error = true;
     }
     expect(error).to.eq(true);
@@ -145,7 +145,7 @@ describe('MultiSig', function () {
     try {
       await contractMultiSig.connect(owners[7]).voteProposal(3, false);
     } catch (e) {
-      console.log(e.message);
+      console.log(e);
       error = true;
     }
     expect(error).to.eq(true);
@@ -158,7 +158,7 @@ describe('MultiSig', function () {
     try {
       await contractMultiSig.connect(owners[3]).execute(3);
     } catch (e) {
-      console.log(e.message);
+      console.log(e);
       error = true;
     }
     expect(error).to.eq(true);
@@ -182,13 +182,11 @@ describe('MultiSig', function () {
     try {
       await contractMultiSig.connect(owners[2]).voteProposal(4, true);
     } catch (e) {
-      console.log(e.message);
+      console.log(e);
       error = true;
     }
     expect(error).to.eq(true);
   });
-
-
 
   it('Owner should able to create another proposal', async () => {
     await contractMultiSig.createProposal({
@@ -222,7 +220,7 @@ describe('MultiSig', function () {
     try {
       await contractMultiSig.connect(owners[3]).execute(5);
     } catch (e) {
-      console.log(e.message);
+      console.log(e);
       error = true;
     }
     expect(error).to.eq(true);
