@@ -19,6 +19,9 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
   using Address for address;
   using Strings for uint256;
 
+  // Token base URI
+  string internal _uri;
+
   // Token name
   string private _name;
 
@@ -40,9 +43,18 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
   /**
    * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
    */
-  constructor(string memory name_, string memory symbol_) {
+  function _erc721Init(
+    string memory name_,
+    string memory symbol_,
+    string memory uri_
+  ) internal {
+    require(
+      bytes(_name)[0] == 0 && bytes(_symbol)[0] == 0 && bytes(_uri)[0] == 0,
+      'ERC721: This token has been initialized'
+    );
     _name = name_;
     _symbol = symbol_;
+    _uri = uri_;
   }
 
   /**
@@ -102,7 +114,7 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
    * by default, can be overriden in child contracts.
    */
   function _baseURI() internal view virtual returns (string memory) {
-    return '';
+    return _uri;
   }
 
   /**
