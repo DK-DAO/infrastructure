@@ -2,14 +2,14 @@
 pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
-import '@openzeppelin/contracts/access/Ownable.sol';
+import '../libraries/User.sol';
 
 /**
  * DKDAO domain name system
  * Name: Registry
- * Domain: DKDAO Infrastructure
+ * Domain: DKDAO
  */
-contract Registry is Ownable {
+contract Registry is User {
   // Mapping bytes32 -> address
   mapping(bytes32 => mapping(bytes32 => address)) private registered;
 
@@ -22,12 +22,19 @@ contract Registry is Ownable {
   // Event when new address registered
   event RecordSet(bytes32 domain, bytes32 indexed name, address indexed addr);
 
+  constructor() {
+    // Set the operator
+    _set('DKDAO', 'Operator', msg.sender);
+    _set('DKDAO', 'Registry', address(this));
+    _registryUserInit(address(this), 'DKDAO');
+  }
+
   // Set a record
   function set(
     bytes32 domain,
     bytes32 name,
     address addr
-  ) external onlyOwner returns (bool) {
+  ) external onlyAllowSameDomain('Operator') returns (bool) {
     return _set(domain, name, addr);
   }
 
@@ -36,7 +43,7 @@ contract Registry is Ownable {
     bytes32[] calldata domains,
     bytes32[] calldata names,
     address[] calldata addrs
-  ) external onlyOwner returns (bool) {
+  ) external onlyAllowSameDomain('Operator') returns (bool) {
     require(
       domains.length == names.length && names.length == addrs.length,
       'Registry: Number of records and addreses must be matched'
