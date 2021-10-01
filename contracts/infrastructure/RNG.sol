@@ -10,7 +10,7 @@ import '../interfaces/IRNGConsumer.sol';
 /**
  * Random Number Generator
  * Name: RNG
- * Domain: DKDAO Infrastructure
+ * Domain: DKDAO
  */
 contract RNG is User {
   // Use bytes lib for bytes
@@ -43,13 +43,15 @@ contract RNG is User {
   // Secret storage
   mapping(uint256 => bytes32) private secretValues;
 
-  // Events
+  // Commit event
   event Committed(uint256 indexed index, bytes32 indexed digest);
+
+  // Reveal event
   event Revealed(uint256 indexed index, uint256 indexed s, uint256 indexed t);
 
   // Pass constructor parameter to User
-  constructor(address _registry, bytes32 _domain) {
-    _registryUserInit(_registry, _domain);
+  constructor(address registry_, bytes32 domain_) {
+    _registryUserInit(registry_, domain_);
   }
 
   // DKDAO Oracle will commit H(S||t) to blockchain
