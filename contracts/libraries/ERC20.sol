@@ -38,8 +38,14 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
   uint256 private _totalSupply;
 
+  // Token name
   string private _name;
+
+  // Token symbol
   string private _symbol;
+
+  // Initialized
+  bool private _initialized = false;
 
   /**
    * @dev Sets the values for {name} and {symbol}.
@@ -50,9 +56,11 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
    * All two of these values are immutable: they can only be set once during
    * construction.
    */
-  constructor(string memory name_, string memory symbol_) {
+  function _erc20Init(string memory name_, string memory symbol_) internal returns (bool) {
+    require(!_initialized, "ERC20: It's only able to initialize once");
     _name = name_;
     _symbol = symbol_;
+    return true;
   }
 
   /**

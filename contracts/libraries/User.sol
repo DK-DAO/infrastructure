@@ -11,6 +11,9 @@ abstract contract User {
   // Active domain
   bytes32 internal _domain;
 
+  // Initialized
+  bool private _initialized = false;
+
   // Allow same domain calls
   modifier onlyAllowSameDomain(bytes32 name) {
     require(msg.sender == _registry.getAddress(_domain, name), 'User: Only allow call from same domain');
@@ -25,9 +28,10 @@ abstract contract User {
 
   // Constructing with registry address and its active domain
   function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
-    require(_domain == bytes32(0) && address(_registry) == address(0), "User: It's only able to set once");
+    require(!_initialized, "User: It's only able to initialize once");
     _registry = IRegistry(registry_);
     _domain = domain_;
+    _initialized = true;
     return true;
   }
 

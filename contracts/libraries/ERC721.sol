@@ -28,6 +28,9 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
   // Token symbol
   string private _symbol;
 
+  // Initialized
+  bool private _initialized = false;
+
   // Mapping from token ID to owner address
   mapping(uint256 => address) private _owners;
 
@@ -47,14 +50,12 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
     string memory name_,
     string memory symbol_,
     string memory uri_
-  ) internal {
-    require(
-      bytes(_name)[0] == 0 && bytes(_symbol)[0] == 0 && bytes(_uri)[0] == 0,
-      'ERC721: This token has been initialized'
-    );
+  ) internal returns (bool) {
+    require(!_initialized, "ERC721: It's only able to initialize once");
     _name = name_;
     _symbol = symbol_;
     _uri = uri_;
+    return true;
   }
 
   /**
