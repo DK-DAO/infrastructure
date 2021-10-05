@@ -272,44 +272,48 @@ interface IRegistry {
 
 abstract contract User {
   // Registry contract
-  IRegistry internal registry;
+  IRegistry internal _registry;
 
   // Active domain
-  bytes32 internal domain;
+  bytes32 internal _domain;
+
+  // Initialized
+  bool private _initialized = false;
 
   // Allow same domain calls
   modifier onlyAllowSameDomain(bytes32 name) {
-    require(msg.sender == registry.getAddress(domain, name), 'User: Only allow call from same domain');
+    require(msg.sender == _registry.getAddress(_domain, name), 'User: Only allow call from same domain');
     _;
   }
 
   // Allow cross domain call
   modifier onlyAllowCrossDomain(bytes32 fromDomain, bytes32 name) {
-    require(msg.sender == registry.getAddress(fromDomain, name), 'User: Only allow call from allowed cross domain');
+    require(msg.sender == _registry.getAddress(fromDomain, name), 'User: Only allow call from allowed cross domain');
     _;
   }
 
   // Constructing with registry address and its active domain
-  function _init(address _registry, bytes32 _domain) internal returns (bool) {
-    require(domain == bytes32(0) && address(registry) == address(0), "User: It's only able to set once");
-    registry = IRegistry(_registry);
-    domain = _domain;
+  function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
+    require(!_initialized, "User: It's only able to initialize once");
+    _registry = IRegistry(registry_);
+    _domain = domain_;
+    _initialized = true;
     return true;
   }
 
   // Get address in the same domain
   function getAddressSameDomain(bytes32 name) internal view returns (address) {
-    return registry.getAddress(domain, name);
+    return _registry.getAddress(_domain, name);
   }
 
   // Return active domain
   function getDomain() external view returns (bytes32) {
-    return domain;
+    return _domain;
   }
 
   // Return registry address
   function getRegistry() external view returns (address) {
-    return address(registry);
+    return address(_registry);
   }
 }
 
@@ -328,7 +332,7 @@ pragma solidity >=0.8.4 <0.9.0;
 /**
  * Item manufacture
  * Name: Factory
- * Domain: DKDAO Infrastructure
+ * Domain: DKDAO
  */
 contract Factory is User {
   // Use clone lib for address
@@ -341,26 +345,22 @@ contract Factory is User {
   }
 
   // Pass constructor parameter to User
-  constructor(address _registry, bytes32 _domain) {
-    _init(_registry, _domain);
+  constructor(address registry_, bytes32 domain_) {
+    _registryUserInit(registry_, domain_);
   }
 
-  function cloneNewDAO(NewDAO calldata creatingDAO)
-    external
-    onlyAllowCrossDomain('DKDAO', 'DAO')
-    returns (bool)
-  {
+  function cloneNewDAO(NewDAO calldata creatingDAO) external onlyAllowCrossDomain('DKDAO', 'DAO') returns (bool) {
     // New DAO will be cloned from KDDAO
-    address newDAO = registry.getAddress('DKDAO', 'DAO').clone();
-    IDAO(newDAO).init(address(registry), creatingDAO.domain);
+    address newDAO = _registry.getAddress('DKDAO', 'DAO').clone();
+    IDAO(newDAO).init(address(_registry), creatingDAO.domain);
 
     // New DAO Token will be cloned from DKDAOToken
-    address newDAOToken = registry.getAddress('DKDAO', 'DAOToken').clone();
+    address newDAOToken = _registry.getAddress('DKDAO', 'DAOToken').clone();
     IDAOToken(newDAOToken).init(creatingDAO.tokenMetadata);
 
     // New Pool will be clone from
-    address newPool = registry.getAddress('DKDAO', 'Pool').clone();
-    IPool(newPool).init(address(registry), creatingDAO.domain);
+    address newPool = _registry.getAddress('DKDAO', 'Pool').clone();
+    IPool(newPool).init(address(_registry), creatingDAO.domain);
 
     return true;
   }

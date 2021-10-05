@@ -4,7 +4,7 @@
 
 // pragma solidity ^0.8.0;
 
-/*
+/**
  * @dev Provides information about the current execution context, including the
  * sender of the transaction and its data. While these are generally available
  * via msg.sender and msg.data, they should not be accessed in such a direct
@@ -315,7 +315,7 @@ library Address {
         require(isContract(target), "Address: call to non-contract");
 
         (bool success, bytes memory returndata) = target.call{value: value}(data);
-        return _verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResult(success, returndata, errorMessage);
     }
 
     /**
@@ -342,7 +342,7 @@ library Address {
         require(isContract(target), "Address: static call to non-contract");
 
         (bool success, bytes memory returndata) = target.staticcall(data);
-        return _verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResult(success, returndata, errorMessage);
     }
 
     /**
@@ -369,14 +369,20 @@ library Address {
         require(isContract(target), "Address: delegate call to non-contract");
 
         (bool success, bytes memory returndata) = target.delegatecall(data);
-        return _verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResult(success, returndata, errorMessage);
     }
 
-    function _verifyCallResult(
+    /**
+     * @dev Tool to verifies that a low level call was successful, and revert if it wasn't, either by bubbling the
+     * revert reason using the provided one.
+     *
+     * _Available since v4.3._
+     */
+    function verifyCallResult(
         bool success,
         bytes memory returndata,
         string memory errorMessage
-    ) private pure returns (bytes memory) {
+    ) internal pure returns (bytes memory) {
         if (success) {
             return returndata;
         } else {
@@ -486,44 +492,48 @@ interface IRegistry {
 
 abstract contract User {
   // Registry contract
-  IRegistry internal registry;
+  IRegistry internal _registry;
 
   // Active domain
-  bytes32 internal domain;
+  bytes32 internal _domain;
+
+  // Initialized
+  bool private _initialized = false;
 
   // Allow same domain calls
   modifier onlyAllowSameDomain(bytes32 name) {
-    require(msg.sender == registry.getAddress(domain, name), 'User: Only allow call from same domain');
+    require(msg.sender == _registry.getAddress(_domain, name), 'User: Only allow call from same domain');
     _;
   }
 
   // Allow cross domain call
   modifier onlyAllowCrossDomain(bytes32 fromDomain, bytes32 name) {
-    require(msg.sender == registry.getAddress(fromDomain, name), 'User: Only allow call from allowed cross domain');
+    require(msg.sender == _registry.getAddress(fromDomain, name), 'User: Only allow call from allowed cross domain');
     _;
   }
 
   // Constructing with registry address and its active domain
-  function _init(address _registry, bytes32 _domain) internal returns (bool) {
-    require(domain == bytes32(0) && address(registry) == address(0), "User: It's only able to set once");
-    registry = IRegistry(_registry);
-    domain = _domain;
+  function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
+    require(!_initialized, "User: It's only able to initialize once");
+    _registry = IRegistry(registry_);
+    _domain = domain_;
+    _initialized = true;
     return true;
   }
 
   // Get address in the same domain
   function getAddressSameDomain(bytes32 name) internal view returns (address) {
-    return registry.getAddress(domain, name);
+    return _registry.getAddress(_domain, name);
   }
 
   // Return active domain
   function getDomain() external view returns (bytes32) {
-    return domain;
+    return _domain;
   }
 
   // Return registry address
   function getRegistry() external view returns (address) {
-    return address(registry);
+    return address(_registry);
   }
 }
 
@@ -566,8 +576,8 @@ contract DAO is User, IDAO {
   // Negative vote
   event NegativeVote(uint256 indexed proposalId, address indexed stakeholder, uint256 indexed power);
 
-  function init(address _registry, bytes32 _domain) external override returns(bool) {
-    return _init(_registry, _domain);
+  function init(address registry_, bytes32 domain_) external override returns (bool) {
+    return _registryUserInit(registry_, domain_);
   }
 
   // Create a new proposal

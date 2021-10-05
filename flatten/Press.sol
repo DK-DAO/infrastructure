@@ -361,7 +361,7 @@ library Address {
         require(isContract(target), "Address: call to non-contract");
 
         (bool success, bytes memory returndata) = target.call{value: value}(data);
-        return _verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResult(success, returndata, errorMessage);
     }
 
     /**
@@ -388,7 +388,7 @@ library Address {
         require(isContract(target), "Address: static call to non-contract");
 
         (bool success, bytes memory returndata) = target.staticcall(data);
-        return _verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResult(success, returndata, errorMessage);
     }
 
     /**
@@ -415,14 +415,20 @@ library Address {
         require(isContract(target), "Address: delegate call to non-contract");
 
         (bool success, bytes memory returndata) = target.delegatecall(data);
-        return _verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResult(success, returndata, errorMessage);
     }
 
-    function _verifyCallResult(
+    /**
+     * @dev Tool to verifies that a low level call was successful, and revert if it wasn't, either by bubbling the
+     * revert reason using the provided one.
+     *
+     * _Available since v4.3._
+     */
+    function verifyCallResult(
         bool success,
         bytes memory returndata,
         string memory errorMessage
-    ) private pure returns (bytes memory) {
+    ) internal pure returns (bytes memory) {
         if (success) {
             return returndata;
         } else {
@@ -447,7 +453,7 @@ library Address {
 
 // pragma solidity ^0.8.0;
 
-/*
+/**
  * @dev Provides information about the current execution context, including the
  * sender of the transaction and its data. While these are generally available
  * via msg.sender and msg.data, they should not be accessed in such a direct
@@ -945,7 +951,7 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
     ) private returns (bool) {
         if (to.isContract()) {
             try IERC721Receiver(to).onERC721Received(_msgSender(), from, tokenId, _data) returns (bytes4 retval) {
-                return retval == IERC721Receiver(to).onERC721Received.selector;
+                return retval == IERC721Receiver.onERC721Received.selector;
             } catch (bytes memory reason) {
                 if (reason.length == 0) {
                     revert("ERC721: transfer to non ERC721Receiver implementer");
@@ -1148,10 +1154,11 @@ library Clones {
 
 interface INFT {
   function init(
+    address registry_,
+    bytes32 domain_,
     string memory name_,
     string memory symbol_,
-    address registry,
-    bytes32 domain
+    string memory uri_
   ) external returns (bool);
 
   function safeTransfer(
@@ -1160,7 +1167,13 @@ interface INFT {
     uint256 tokenId
   ) external returns (bool);
 
+  function ownerOf(uint256 tokenId) external view returns (address);
+
   function mint(address to, uint256 tokenId) external returns (bool);
+
+  function burn(uint256 tokenId) external returns (bool);
+
+  function changeBaseURI(string memory uri_) external returns (bool);
 }
 
 
@@ -1199,44 +1212,48 @@ interface IRegistry {
 
 abstract contract User {
   // Registry contract
-  IRegistry internal registry;
+  IRegistry internal _registry;
 
   // Active domain
-  bytes32 internal domain;
+  bytes32 internal _domain;
+
+  // Initialized
+  bool private _initialized = false;
 
   // Allow same domain calls
   modifier onlyAllowSameDomain(bytes32 name) {
-    require(msg.sender == registry.getAddress(domain, name), 'User: Only allow call from same domain');
+    require(msg.sender == _registry.getAddress(_domain, name), 'User: Only allow call from same domain');
     _;
   }
 
   // Allow cross domain call
   modifier onlyAllowCrossDomain(bytes32 fromDomain, bytes32 name) {
-    require(msg.sender == registry.getAddress(fromDomain, name), 'User: Only allow call from allowed cross domain');
+    require(msg.sender == _registry.getAddress(fromDomain, name), 'User: Only allow call from allowed cross domain');
     _;
   }
 
   // Constructing with registry address and its active domain
-  function _init(address _registry, bytes32 _domain) internal returns (bool) {
-    require(domain == bytes32(0) && address(registry) == address(0), "User: It's only able to set once");
-    registry = IRegistry(_registry);
-    domain = _domain;
+  function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
+    require(!_initialized, "User: It's only able to initialize once");
+    _registry = IRegistry(registry_);
+    _domain = domain_;
+    _initialized = true;
     return true;
   }
 
   // Get address in the same domain
   function getAddressSameDomain(bytes32 name) internal view returns (address) {
-    return registry.getAddress(domain, name);
+    return _registry.getAddress(_domain, name);
   }
 
   // Return active domain
   function getDomain() external view returns (bytes32) {
-    return domain;
+    return _domain;
   }
 
   // Return registry address
   function getRegistry() external view returns (address) {
-    return address(registry);
+    return address(_registry);
   }
 }
 
@@ -1373,54 +1390,27 @@ pragma solidity >=0.8.4 <0.9.0;
 /**
  * Item manufacture
  * Name: Press
- * Domain: DKDAO Infrastructure
+ * Domain: DKDAO
  */
 contract Press is User {
-  // Using Item library for uint256
-  using Item for uint256;
+  // Allow to clone NFT
+  using Clones for address;
 
-  // Application index, it will be used as application's ID
-  // Maximum is 2^64-1
-  uint256 private applicationIndex = 0;
-
-  // Registed distributors
-  mapping(bytes32 => mapping(bytes32 => uint256)) private registedDistributors;
-
-  // Registy new application
-  event NewApplication(bytes32 indexed domain, uint256 indexed applicationId);
-
-  // We only allow call from registed distributor on Registry
-  modifier onlyAllowExistedDistributor(bytes32 _domain) {
-    require(registry.isExistRecord(_domain, 'Distributor'), 'Press: Distributor was not existed');
-    _;
-  }
+  event CreateNewNFT(bytes32 indexed domain, address indexed nftContract, bytes32 indexed name);
 
   // Pass constructor parameter to User
-  constructor(address _registry, bytes32 _domain) {
-    _init(_registry, _domain);
+  constructor(address registry_, bytes32 domain_) {
+    _registryUserInit(registry_, domain_);
   }
 
-  // Allow another distributor of other domain to trigger item creation
-  function createItem(
-    bytes32 _domain,
-    address _owner,
-    uint256 _itemId
-  ) external onlyAllowExistedDistributor(_domain) returns (bool) {
-    uint256 appId = registedDistributors[_domain]['Distributor'];
-    // If application id wasn't assigned
-    if (appId == 0) {
-      applicationIndex += 1;
-      appId = applicationIndex;
-      // Each domain will be assign with an 64 bits application id
-      registedDistributors[_domain]['Distributor'] = appId;
-      emit NewApplication(_domain, appId);
-    }
-    // Item application's id will be overwrited no matter what
-    return INFT(getAddressSameDomain('NFT')).mint(_owner, _itemId.setApplicationId(appId));
-  }
-
-  // Get application id of domain
-  function getApplicationId(bytes32 _domain) external view returns (uint256) {
-    return registedDistributors[_domain]['Distributor'];
+  // We allowed
+  function createNewNFT(
+    string memory name_,
+    string memory symbol_,
+    string memory uri_
+  ) external onlyAllowSameDomain('Operator') returns (address) {
+    address newNft = _registry.getAddress(_domain, 'NFT').clone();
+    INFT(newNft).init(address(_registry), _domain, name_, symbol_, uri_);
+    return newNft;
   }
 }

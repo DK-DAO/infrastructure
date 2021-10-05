@@ -1,101 +1,82 @@
-// Dependency file: @openzeppelin/contracts/utils/Context.sol
+// Dependency file: contracts/interfaces/IRegistry.sol
 
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache-2.0
+// pragma solidity >=0.8.4 <0.9.0;
 
-// pragma solidity ^0.8.0;
+interface IRegistry {
+  event Registered(bytes32 domain, bytes32 indexed name, address indexed addr);
 
-/*
- * @dev Provides information about the current execution context, including the
- * sender of the transaction and its data. While these are generally available
- * via msg.sender and msg.data, they should not be accessed in such a direct
- * manner, since when dealing with meta-transactions the account sending and
- * paying for execution may not be the actual sender (as far as an application
- * is concerned).
- *
- * This contract is only required for intermediate, library-like contracts.
- */
-abstract contract Context {
-    function _msgSender() internal view virtual returns (address) {
-        return msg.sender;
-    }
+  function isExistRecord(bytes32 domain, bytes32 name) external view returns (bool);
 
-    function _msgData() internal view virtual returns (bytes calldata) {
-        return msg.data;
-    }
+  function set(
+    bytes32 domain,
+    bytes32 name,
+    address addr
+  ) external returns (bool);
+
+  function batchSet(
+    bytes32[] calldata domains,
+    bytes32[] calldata names,
+    address[] calldata addrs
+  ) external returns (bool);
+
+  function getAddress(bytes32 domain, bytes32 name) external view returns (address);
+
+  function getDomainAndName(address addr) external view returns (bytes32, bytes32);
 }
 
 
-// Dependency file: @openzeppelin/contracts/access/Ownable.sol
+// Dependency file: contracts/libraries/User.sol
 
+// pragma solidity >=0.8.4 <0.9.0;
 
-// pragma solidity ^0.8.0;
+// import 'contracts/interfaces/IRegistry.sol';
 
-// import "@openzeppelin/contracts/utils/Context.sol";
+abstract contract User {
+  // Registry contract
+  IRegistry internal _registry;
 
-/**
- * @dev Contract module which provides a basic access control mechanism, where
- * there is an account (an owner) that can be granted exclusive access to
- * specific functions.
- *
- * By default, the owner account will be the one that deploys the contract. This
- * can later be changed with {transferOwnership}.
- *
- * This module is used through inheritance. It will make available the modifier
- * `onlyOwner`, which can be applied to your functions to restrict their use to
- * the owner.
- */
-abstract contract Ownable is Context {
-    address private _owner;
+  // Active domain
+  bytes32 internal _domain;
 
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+  // Initialized
+  bool private _initialized = false;
 
-    /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
-     */
-    constructor() {
-        _setOwner(_msgSender());
-    }
+  // Allow same domain calls
+  modifier onlyAllowSameDomain(bytes32 name) {
+    require(msg.sender == _registry.getAddress(_domain, name), 'User: Only allow call from same domain');
+    _;
+  }
 
-    /**
-     * @dev Returns the address of the current owner.
-     */
-    function owner() public view virtual returns (address) {
-        return _owner;
-    }
+  // Allow cross domain call
+  modifier onlyAllowCrossDomain(bytes32 fromDomain, bytes32 name) {
+    require(msg.sender == _registry.getAddress(fromDomain, name), 'User: Only allow call from allowed cross domain');
+    _;
+  }
 
-    /**
-     * @dev Throws if called by any account other than the owner.
-     */
-    modifier onlyOwner() {
-        require(owner() == _msgSender(), "Ownable: caller is not the owner");
-        _;
-    }
+  // Constructing with registry address and its active domain
+  function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
+    require(!_initialized, "User: It's only able to initialize once");
+    _registry = IRegistry(registry_);
+    _domain = domain_;
+    _initialized = true;
+    return true;
+  }
 
-    /**
-     * @dev Leaves the contract without owner. It will not be possible to call
-     * `onlyOwner` functions anymore. Can only be called by the current owner.
-     *
-     * NOTE: Renouncing ownership will leave the contract without an owner,
-     * thereby removing any functionality that is only available to the owner.
-     */
-    function renounceOwnership() public virtual onlyOwner {
-        _setOwner(address(0));
-    }
+  // Get address in the same domain
+  function getAddressSameDomain(bytes32 name) internal view returns (address) {
+    return _registry.getAddress(_domain, name);
+  }
 
-    /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
-     * Can only be called by the current owner.
-     */
-    function transferOwnership(address newOwner) public virtual onlyOwner {
-        require(newOwner != address(0), "Ownable: new owner is the zero address");
-        _setOwner(newOwner);
-    }
+  // Return active domain
+  function getDomain() external view returns (bytes32) {
+    return _domain;
+  }
 
-    function _setOwner(address newOwner) private {
-        address oldOwner = _owner;
-        _owner = newOwner;
-        emit OwnershipTransferred(oldOwner, newOwner);
-    }
+  // Return registry address
+  function getRegistry() external view returns (address) {
+    return address(_registry);
+  }
 }
 
 
@@ -103,14 +84,14 @@ abstract contract Ownable is Context {
 
 pragma solidity >=0.8.4 <0.9.0;
 
-// import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/access/Ownable.sol';
+// import 'contracts/libraries/User.sol';
 
 /**
  * DKDAO domain name system
  * Name: Registry
- * Domain: DKDAO Infrastructure
+ * Domain: DKDAO
  */
-contract Registry is Ownable {
+contract Registry is User {
   // Mapping bytes32 -> address
   mapping(bytes32 => mapping(bytes32 => address)) private registered;
 
@@ -123,12 +104,19 @@ contract Registry is Ownable {
   // Event when new address registered
   event RecordSet(bytes32 domain, bytes32 indexed name, address indexed addr);
 
+  constructor() {
+    // Set the operator
+    _set('DKDAO', 'Operator', msg.sender);
+    _set('DKDAO', 'Registry', address(this));
+    _registryUserInit(address(this), 'DKDAO');
+  }
+
   // Set a record
   function set(
     bytes32 domain,
     bytes32 name,
     address addr
-  ) external onlyOwner returns (bool) {
+  ) external onlyAllowSameDomain('Operator') returns (bool) {
     return _set(domain, name, addr);
   }
 
@@ -137,7 +125,7 @@ contract Registry is Ownable {
     bytes32[] calldata domains,
     bytes32[] calldata names,
     address[] calldata addrs
-  ) external onlyOwner returns (bool) {
+  ) external onlyAllowSameDomain('Operator') returns (bool) {
     require(
       domains.length == names.length && names.length == addrs.length,
       'Registry: Number of records and addreses must be matched'
