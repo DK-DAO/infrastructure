@@ -9,8 +9,6 @@ import '../libraries/User.sol';
 import '../libraries/Bytes.sol';
 import '../interfaces/ITheDivine.sol';
 import '../interfaces/INFT.sol';
-import '../interfaces/IPress.sol';
-import '../libraries/Verifier.sol';
 
 /**
  * Card distributor
@@ -21,19 +19,17 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   // Using Bytes for bytes
   using Bytes for bytes;
 
-  // Using Duelist King Card for uint256
+  // Using Duelist King Item for uint256
   using DuelistKingItem for uint256;
 
-  // Box's serial
+  // Item's serial
   uint256 private _itemSerial;
 
   // Card's serial
   uint256 private _cardSerial;
 
+  // Default capped is 1,000,000 boxes
   uint256 private _capped = 1000000;
-
-  // Campaign index
-  uint256 private _campaignIndex;
 
   // The Divine
   ITheDivine private immutable _theDivine;
@@ -59,7 +55,7 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     _theDivine = ITheDivine(divine);
   }
 
-  // Compute random value from RNG
+  // Adding entropy to the pool
   function compute(bytes memory data) external override onlyAllowCrossDomain('DKDAO', 'RNG') returns (bool) {
     require(data.length == 32, 'Distributor: Data must be 32 in length');
     // We combine random value with The Divine's result to prevent manipulation
@@ -98,15 +94,18 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     uint256 j = 0;
     for (uint256 i = 0; i < nftIds.length; i += 32) {
       uint256 nftId = nftIds.readUint256(i);
-      require(nftId.getType() == 1, 'Distributor: Only able to open boxes');
+      require(nftId.getType() == 1 && nftId.getEntropy() == 0, 'Distributor: Only able to open unopened boxes');
       if (j >= 256) {
         rand = uint256(keccak256(abi.encodePacked(_entropy)));
         j = 0;
       }
-      require(nft.ownerOf(nftId) == owner && nft.burn(nftId), 'Distributor: Unable to burn old box');
-      uint256 openedBoxId = nftId.setEntropy((rand >> j) & 0xffffffffffffffff);
+      require(
+        nft.ownerOf(nftId) == owner &&
+          nft.burn(nftId) &&
+          nft.mint(owner, nftId.setEntropy((rand >> j) & 0xffffffffffffffff)),
+        'Distributor: Unable to burn old box and issue opened box'
+      );
       j += 64;
-      nft.mint(owner, openedBoxId);
     }
   }
 
@@ -130,16 +129,6 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     require(isSuccess, 'Distributor: We were not able to mint boxes');
     _mintedBoxes[boxId] += numberOfBoxes;
     return isSuccess;
-  }
-
-  // Issue genesis edition for card creator
-  function issueItem(
-    address owner,
-    uint256 itemType,
-    uint256 itemId
-  ) external onlyAllowSameDomain('Oracle') returns (uint256) {
-    require(itemType != 0, 'Distributor: You can not issue card directly');
-    return _issueItem(owner, uint256(0).setType(itemType).setId(itemId));
   }
 
   // Issue genesis edition for card creator
@@ -192,30 +181,36 @@ contract DuelistKingDistributor is User, IRNGConsumer {
 
   // Open loot boxes
   function _claimCardsInBox(address owner, uint256 boxNftTokenId) private returns (bool) {
+    INFT nft = INFT(_registry.getAddress(_domain, 'NFT'));
     // Read entropy from openned card
     uint256 rand = uint256(keccak256(abi.encodePacked(boxNftTokenId.getEntropy())));
-    uint256 luckyNumber;
     // Box Id is equal to phase of card
     uint256 boxId = boxNftTokenId.getId();
     // 20 phases = 1 gen
     uint256 generation = boxId / 20;
-    // Set card generation
-    uint256 card = uint256(0).setGeneration(generation);
     // Start point
     uint256 startPoint = boxId * 20 - 20;
+    // Serial of card
+    uint256 serial = _cardSerial;
     for (uint256 i = 0; i < 5; ) {
       // Repeat hash on its selft
       rand = uint256(keccak256(abi.encodePacked(rand)));
       for (uint256 j = 0; j < 256 && i < 5; j += 32) {
-        luckyNumber = (rand >> j) & 0xffffffff;
+        uint256 luckyNumber = (rand >> j) & 0xffffffff;
         // Draw card by lucky number
-        card = _caculateCard(startPoint, luckyNumber);
+        uint256 card = _caculateCard(startPoint, luckyNumber);
         if (card > 0) {
-          _issueCard(owner, generation);
+          serial += 1;
+          require(
+            nft.mint(owner, card.setGeneration(generation).setSerial(serial)),
+            'Distributor: Can not mint NFT card'
+          );
           i += 1;
         }
       }
     }
+    // Update card's serial
+    _cardSerial = serial;
     // Update old random with new one
     _entropy = rand;
     return true;
