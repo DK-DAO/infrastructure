@@ -16,8 +16,8 @@ contract Pool is User, Ownable {
   // Use address lib for address
   using Address for address;
 
-  function init(address _registry, bytes32 _domain) external returns (bool) {
-    return _registryUserInit(_registry, _domain);
+  function init(address registry_, bytes32 domain_) external returns (bool) {
+    return _registryUserInit(registry_, domain_);
   }
 
   // Safe call to a target address with given payload

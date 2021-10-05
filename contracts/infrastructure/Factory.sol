@@ -12,7 +12,7 @@ import '../libraries/TokenMetadata.sol';
 /**
  * Item manufacture
  * Name: Factory
- * Domain: DKDAO Infrastructure
+ * Domain: DKDAO
  */
 contract Factory is User {
   // Use clone lib for address
@@ -25,22 +25,22 @@ contract Factory is User {
   }
 
   // Pass constructor parameter to User
-  constructor(address _registry, bytes32 _domain) {
-    _registryUserInit(_registry, _domain);
+  constructor(address registry_, bytes32 domain_) {
+    _registryUserInit(registry_, domain_);
   }
 
   function cloneNewDAO(NewDAO calldata creatingDAO) external onlyAllowCrossDomain('DKDAO', 'DAO') returns (bool) {
     // New DAO will be cloned from KDDAO
-    address newDAO = registry.getAddress('DKDAO', 'DAO').clone();
-    IDAO(newDAO).init(address(registry), creatingDAO.domain);
+    address newDAO = _registry.getAddress('DKDAO', 'DAO').clone();
+    IDAO(newDAO).init(address(_registry), creatingDAO.domain);
 
     // New DAO Token will be cloned from DKDAOToken
-    address newDAOToken = registry.getAddress('DKDAO', 'DAOToken').clone();
+    address newDAOToken = _registry.getAddress('DKDAO', 'DAOToken').clone();
     IDAOToken(newDAOToken).init(creatingDAO.tokenMetadata);
 
     // New Pool will be clone from
-    address newPool = registry.getAddress('DKDAO', 'Pool').clone();
-    IPool(newPool).init(address(registry), creatingDAO.domain);
+    address newPool = _registry.getAddress('DKDAO', 'Pool').clone();
+    IPool(newPool).init(address(_registry), creatingDAO.domain);
 
     return true;
   }

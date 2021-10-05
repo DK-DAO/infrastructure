@@ -16,6 +16,8 @@ interface INFT {
     uint256 tokenId
   ) external returns (bool);
 
+  function ownerOf(uint256 tokenId) external view returns (address);
+
   function mint(address to, uint256 tokenId) external returns (bool);
 
   function burn(uint256 tokenId) external returns (bool);

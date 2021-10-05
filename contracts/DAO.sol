@@ -36,8 +36,8 @@ contract DAO is User, IDAO {
   // Negative vote
   event NegativeVote(uint256 indexed proposalId, address indexed stakeholder, uint256 indexed power);
 
-  function init(address _registry, bytes32 _domain) external override returns (bool) {
-    return _registryUserInit(_registry, _domain);
+  function init(address registry_, bytes32 domain_) external override returns (bool) {
+    return _registryUserInit(registry_, domain_);
   }
 
   // Create a new proposal
