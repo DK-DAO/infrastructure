@@ -48,7 +48,7 @@ contract DAOToken is ERC20 {
     // Set name and symbol to DAO Token
     _erc20Init(name, symbol);
     // Mint token to genesis address
-    _mint(genesis, supply * 10**decimals());
+    _mint(genesis, supply * (10**decimals()));
     return true;
   }
 

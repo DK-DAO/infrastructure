@@ -29,10 +29,13 @@ contract DAO is User, IDAO {
 
   // Create a new proposal
   event CreateProposal(uint256 indexed proposalId, bytes32 indexed proposalDigest, uint256 indexed expired);
+
   // Execute proposal
   event ExecuteProposal(uint256 indexed proposalId, address indexed trigger, int256 indexed vote);
+
   // Positive vote
   event PositiveVote(uint256 indexed proposalId, address indexed stakeholder, uint256 indexed power);
+
   // Negative vote
   event NegativeVote(uint256 indexed proposalId, address indexed stakeholder, uint256 indexed power);
 
