@@ -3,15 +3,24 @@ pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
 import '@openzeppelin/contracts/utils/Address.sol';
+import '../libraries/Verifier.sol';
+import '../libraries/Bytes.sol';
+import '../libraries/MultiOwner.sol';
 
 /**
  * Multi Signature Wallet
  * Name: MultiSig
  * Domain: Duelist King
  */
-contract MultiSig {
+contract MultiSig is MultiOwner {
   // Address lib providing safe {call} and {delegatecall}
   using Address for address;
+
+  // Byte manipulation
+  using Bytes for bytes;
+
+  // Verifiy digital signature
+  using Verifier for bytes;
 
   // Structure of proposal
   struct Proposal {
@@ -24,12 +33,6 @@ contract MultiSig {
     bytes data;
   }
 
-  // Total number of owner
-  uint256 private _ownerCount;
-
-  // Proposal storage
-  mapping(address => bool) private _owners;
-
   // Proposal index, begin from 1
   uint256 private _proposalIndex;
 
@@ -39,11 +42,8 @@ contract MultiSig {
   // Voted storage
   mapping(uint256 => mapping(address => bool)) private _votedStorage;
 
-  // Only allow owner to call this smart contract
-  modifier onlyOwner() {
-    require(_owners[msg.sender], 'MultiSig: Sender was not owner');
-    _;
-  }
+  // Quick transaction nonce
+  uint256 private _nonce;
 
   // Create a new proposal
   event CreateProposal(uint256 indexed proposalId, uint256 indexed expired);
@@ -53,21 +53,44 @@ contract MultiSig {
   event PositiveVote(uint256 indexed proposalId, address indexed owner);
   // Negative vote
   event NegativeVote(uint256 indexed proposalId, address indexed owner);
-  // Transfer ownership
-  event TransferOwnership(address indexed from, address indexed to);
 
   receive() external payable {}
 
-  constructor(address[] memory owners_) {
-    for (uint256 i = 0; i < owners_.length; i += 1) {
-      _owners[owners_[i]] = true;
-      emit TransferOwnership(address(0), owners_[i]);
+  constructor(address[] memory owners_) MultiOwner(owners_) {}
+
+  /*******************************************************
+   * Owner section
+   ********************************************************/
+  // Transfer ownership to new owner
+  function transferOwnership(address newOwner) external onlyListedOwner {
+    // New owner will be activated after 3 days
+    _transferOwnership(newOwner, 3 days);
+  }
+
+  // Transfer with signed proofs instead of onchain voting
+  function quickTransfer(bytes[] memory proofs, bytes memory txData) external onlyListedOwner returns (bool) {
+    uint256 totalSigned = 0;
+    address[] memory signedAddresses = new address[](proofs.length);
+    for (uint256 i = 0; i < proofs.length; i += 1) {
+      address signer = txData.verifySerialized(proofs[i]);
+      // Each signer only able to be counted once
+      if (isOwner(signer) && !_isInclude(signedAddresses, signer)) {
+        signedAddresses[totalSigned] = signer;
+        totalSigned += 1;
+      }
     }
-    _ownerCount = owners_.length;
+    require(_calculatePercent(int256(totalSigned)) > 70, 'MultiSig: Total accept was not greater than 70%');
+    address target = txData.readAddress(0);
+    uint256 nonce = txData.readUint256(20);
+    bytes memory data = txData.readBytes(52, txData.length - 52);
+    require(nonce - _nonce == 1, 'MultiSign: Invalid nonce value');
+    _nonce = nonce;
+    target.functionCallWithValue(data, 0);
+    return true;
   }
 
   // Create a new proposal
-  function createProposal(Proposal memory newProposal) external onlyOwner returns (uint256) {
+  function createProposal(Proposal memory newProposal) external onlyListedOwner returns (uint256) {
     _proposalIndex += 1;
     newProposal.expired = uint64(block.timestamp + 1 days);
     newProposal.vote = 0;
@@ -76,26 +99,25 @@ contract MultiSig {
     return _proposalIndex;
   }
 
-  // Vote a proposal
-  function voteProposal(uint256 proposalId, bool positive) external onlyOwner returns (bool) {
-    require(block.timestamp < _proposalStorage[proposalId].expired, 'MultiSig: Voting period was over');
-    require(_votedStorage[proposalId][msg.sender] == false, 'MultiSig: You had voted this proposal');
-    if (positive) {
-      _proposalStorage[proposalId].vote += 1;
-      emit PositiveVote(proposalId, msg.sender);
-    } else {
-      _proposalStorage[proposalId].vote -= 1;
-      emit NegativeVote(proposalId, msg.sender);
-    }
-    _votedStorage[proposalId][msg.sender] = true;
-    return true;
+  // Positive vote
+  function votePositive(uint256 proposalId) external onlyListedOwner returns (bool) {
+    return _voteProposal(proposalId, true);
+  }
+
+  // Negative vote
+  function voteNegative(uint256 proposalId) external onlyListedOwner returns (bool) {
+    return _voteProposal(proposalId, false);
   }
 
   // Execute a voted proposal
-  function execute(uint256 proposalId) external onlyOwner returns (bool) {
+  function execute(uint256 proposalId) external onlyListedOwner returns (bool) {
     Proposal memory currentProposal = _proposalStorage[proposalId];
-    require(block.timestamp > _proposalStorage[proposalId].expired, "MultiSig: Voting period wasn't over");
-    require(currentProposal.vote >= int256(_ownerCount / 2), 'MultiSig: Vote was not pass threshold');
+    int256 positiveVoted = _calculatePercent(currentProposal.vote);
+    // If positiveVoted < 70%, It need to pass 50% and expired
+    if (positiveVoted < 70) {
+      require(block.timestamp > _proposalStorage[proposalId].expired, "MultiSig: Voting period wasn't over");
+      require(positiveVoted >= 50, 'MultiSig: Vote was not pass 50%');
+    }
     require(currentProposal.executed == false, 'MultiSig: Proposal was executed');
     if (currentProposal.delegate) {
       currentProposal.target.functionDelegateCall(currentProposal.data);
@@ -112,6 +134,45 @@ contract MultiSig {
     return true;
   }
 
+  /*******************************************************
+   * Private section
+   ********************************************************/
+  // Vote a proposal
+  function _voteProposal(uint256 proposalId, bool positive) private returns (bool) {
+    require(block.timestamp < _proposalStorage[proposalId].expired, 'MultiSig: Voting period was over');
+    require(_votedStorage[proposalId][msg.sender] == false, 'MultiSig: You had voted this proposal');
+    if (positive) {
+      _proposalStorage[proposalId].vote += 1;
+      emit PositiveVote(proposalId, msg.sender);
+    } else {
+      _proposalStorage[proposalId].vote -= 1;
+      emit NegativeVote(proposalId, msg.sender);
+    }
+    _votedStorage[proposalId][msg.sender] = true;
+    return true;
+  }
+
+  /*******************************************************
+   * Pure section
+   ********************************************************/
+
+  function _isInclude(address[] memory addressList, address checkAddress) private pure returns (bool) {
+    for (uint256 i = 0; i < addressList.length; i += 1) {
+      if (addressList[i] == checkAddress) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function _calculatePercent(int256 votedOwner) private view returns (int256) {
+    return (votedOwner * 100) / (int256(totalOwner()) * 100);
+  }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
+
   function proposalIndex() external view returns (uint256) {
     return _proposalIndex;
   }
@@ -120,11 +181,11 @@ contract MultiSig {
     return _proposalStorage[index];
   }
 
-  function isOwner(address owner) external view returns (bool) {
-    return _owners[owner];
-  }
-
   function isVoted(uint256 proposalId, address owner) external view returns (bool) {
     return _votedStorage[proposalId][owner];
+  }
+
+  function getNextValidNonce() external view returns (uint256) {
+    return _nonce + 1;
   }
 }
