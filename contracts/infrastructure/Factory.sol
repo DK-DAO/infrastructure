@@ -7,10 +7,9 @@ import '../interfaces/IPool.sol';
 import '../interfaces/IDAO.sol';
 import '../interfaces/IDAOToken.sol';
 import '../libraries/User.sol';
-import '../libraries/TokenMetadata.sol';
 
 /**
- * Item manufacture
+ * Factory
  * Name: Factory
  * Domain: DKDAO
  */
@@ -21,7 +20,10 @@ contract Factory is User {
   // New DAO data
   struct NewDAO {
     bytes32 domain;
-    TokenMetadata.Metadata tokenMetadata;
+    address genesis;
+    uint256 supply;
+    string name;
+    string symbol;
   }
 
   // Pass constructor parameter to User
@@ -29,14 +31,18 @@ contract Factory is User {
     _registryUserInit(registry_, domain_);
   }
 
-  function cloneNewDAO(NewDAO calldata creatingDAO) external onlyAllowCrossDomain('DKDAO', 'DAO') returns (bool) {
-    // New DAO will be cloned from KDDAO
+  /*******************************************************
+   * Same domain section
+   ********************************************************/
+
+  function cloneNewDAO(NewDAO calldata creatingDAO) external onlyAllowSameDomain('DAO') returns (bool) {
+    // New DAO will be cloned from DKDAO
     address newDAO = _registry.getAddress('DKDAO', 'DAO').clone();
     IDAO(newDAO).init(address(_registry), creatingDAO.domain);
 
     // New DAO Token will be cloned from DKDAOToken
     address newDAOToken = _registry.getAddress('DKDAO', 'DAOToken').clone();
-    IDAOToken(newDAOToken).init(creatingDAO.tokenMetadata);
+    IDAOToken(newDAOToken).init(creatingDAO.name, creatingDAO.symbol, creatingDAO.genesis, creatingDAO.supply);
 
     // New Pool will be clone from
     address newPool = _registry.getAddress('DKDAO', 'Pool').clone();
