@@ -54,6 +54,10 @@ abstract contract User {
     _;
   }
 
+  /*******************************************************
+   * Internal section
+   ********************************************************/
+
   // Constructing with registry address and its active domain
   function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
     require(!_initialized, "User: It's only able to initialize once");
@@ -64,9 +68,13 @@ abstract contract User {
   }
 
   // Get address in the same domain
-  function getAddressSameDomain(bytes32 name) internal view returns (address) {
+  function _getAddressSameDomain(bytes32 name) internal view returns (address) {
     return _registry.getAddress(_domain, name);
   }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
 
   // Return active domain
   function getDomain() external view returns (bytes32) {
@@ -84,6 +92,7 @@ abstract contract User {
 
 pragma solidity >=0.8.4 <0.9.0;
 
+// import 'contracts/interfaces/IRegistry.sol';
 // import 'contracts/libraries/User.sol';
 
 /**
@@ -91,8 +100,8 @@ pragma solidity >=0.8.4 <0.9.0;
  * Name: Registry
  * Domain: DKDAO
  */
-contract Registry is User {
-  // Mapping bytes32 -> address
+contract Registry is User, IRegistry {
+  // Mapping domain -> name -> address
   mapping(bytes32 => mapping(bytes32 => address)) private registered;
 
   // Mapping address -> bytes32 name
@@ -111,12 +120,16 @@ contract Registry is User {
     _registryUserInit(address(this), 'DKDAO');
   }
 
+  /*******************************************************
+   * Operator section
+   ********************************************************/
+
   // Set a record
   function set(
     bytes32 domain,
     bytes32 name,
     address addr
-  ) external onlyAllowSameDomain('Operator') returns (bool) {
+  ) external override onlyAllowSameDomain('Operator') returns (bool) {
     return _set(domain, name, addr);
   }
 
@@ -125,7 +138,7 @@ contract Registry is User {
     bytes32[] calldata domains,
     bytes32[] calldata names,
     address[] calldata addrs
-  ) external onlyAllowSameDomain('Operator') returns (bool) {
+  ) external override onlyAllowSameDomain('Operator') returns (bool) {
     require(
       domains.length == names.length && names.length == addrs.length,
       'Registry: Number of records and addreses must be matched'
@@ -136,20 +149,9 @@ contract Registry is User {
     return true;
   }
 
-  // Check is record existed
-  function isExistRecord(bytes32 domain, bytes32 name) external view returns (bool) {
-    return registered[domain][name] != address(0);
-  }
-
-  // Get address by name
-  function getAddress(bytes32 domain, bytes32 name) external view returns (address) {
-    return registered[domain][name];
-  }
-
-  // Get name by address
-  function getDomainAndName(address addr) external view returns (bytes32, bytes32) {
-    return (revertedDomain[addr], revertedName[addr]);
-  }
+  /*******************************************************
+   * Private section
+   ********************************************************/
 
   // Set record internally
   function _set(
@@ -163,5 +165,24 @@ contract Registry is User {
     revertedDomain[addr] = domain;
     emit RecordSet(domain, name, addr);
     return true;
+  }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
+
+  // Check is record existed
+  function isExistRecord(bytes32 domain, bytes32 name) external view override returns (bool) {
+    return registered[domain][name] != address(0);
+  }
+
+  // Get address by name
+  function getAddress(bytes32 domain, bytes32 name) external view override returns (address) {
+    return registered[domain][name];
+  }
+
+  // Get name by address
+  function getDomainAndName(address addr) external view override returns (bytes32, bytes32) {
+    return (revertedDomain[addr], revertedName[addr]);
   }
 }

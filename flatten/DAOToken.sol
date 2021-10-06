@@ -505,27 +505,11 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 }
 
 
-// Dependency file: contracts/libraries/TokenMetadata.sol
-
-// pragma solidity >=0.8.4 <0.9.0;
-
-abstract contract TokenMetadata {
-  // Metadata for DAO token initialization
-  struct Metadata {
-    string symbol;
-    string name;
-    address genesis;
-    address grandDAO;
-  }
-}
-
-
 // Root file: contracts/DAOToken.sol
 
 pragma solidity >=0.8.4 <0.9.0;
 
 // import 'contracts/libraries/ERC20.sol';
-// import 'contracts/libraries/TokenMetadata.sol';
 
 /**
  * DAO Token
@@ -562,24 +546,22 @@ contract DAOToken is ERC20 {
   event StopDelegate(address indexed owner, address indexed delegate, uint256 indexed amount);
 
   // Constructing with token Metadata
-  function init(TokenMetadata.Metadata memory metadata) external returns (bool) {
-    require(totalSupply() == 0, "DAOToken: It's only allowed to called once");
+  function init(
+    string memory name,
+    string memory symbol,
+    address genesis,
+    uint256 supply
+  ) external returns (bool) {
     // Set name and symbol to DAO Token
-    _erc20Init(metadata.name, metadata.symbol);
-    // Setup balance and genesis token distribution
-    uint256 unit = 10**decimals();
-    // This is child DAO
-    if (metadata.grandDAO != address(0)) {
-      // Grand DAO will control 10%
-      _mint(metadata.grandDAO, 1000000 * unit);
-      // Mint 9,000,000 for genesis
-      _mint(metadata.genesis, 9000000 * unit);
-    } else {
-      // Mint 10,000,000 for genesis
-      _mint(metadata.genesis, 10000000 * unit);
-    }
+    _erc20Init(name, symbol);
+    // Mint token to genesis address
+    _mint(genesis, supply * (10**decimals()));
     return true;
   }
+
+  /*******************************************************
+   * Same domain section
+   ********************************************************/
 
   // Override {transferFrom} method
   function transferFrom(
@@ -641,7 +623,7 @@ contract DAOToken is ERC20 {
     StakingData memory stakingData = stakingStorage[owner];
     require(stakingData.amount > 0, 'DAOToken: Unstaking amount must greater than 0');
     // Set unlock time to next 15 days
-    stakingData.unlockAt = uint128(block.timestamp + 15 days);
+    stakingData.unlockAt = uint128(block.timestamp + 7 days);
     // Set lock time to 0
     stakingData.lockAt = 0;
     // Update back data to staking storage
@@ -676,6 +658,10 @@ contract DAOToken is ERC20 {
     stakingStorage[owner] = stakingData;
     return true;
   }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
 
   // Check transferable balance
   function _available(address owner) private view returns (uint256) {

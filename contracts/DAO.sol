@@ -49,7 +49,7 @@ contract DAO is User, IDAO {
 
   // Create a new proposal
   function createProposal(Proposal memory newProposal) external override returns (uint256) {
-    uint256 votePower = IDAOToken(_getAddressSameDomain('DAOToken')).votePower(msg.sender);
+    uint256 votePower = IDAOToken(_getAddressSameDomain('DAOToken')).calculatePower(msg.sender);
     require(votePower > 0, 'DAO: Only allow stakeholder to vote');
     _proposalIndex += 1;
     newProposal.expired = uint64(block.timestamp + 3 days);
@@ -60,7 +60,7 @@ contract DAO is User, IDAO {
 
   // Vote a proposal
   function voteProposal(uint256 proposalId, bool positive) external override returns (bool) {
-    uint256 votePower = IDAOToken(_getAddressSameDomain('DAOToken')).votePower(msg.sender);
+    uint256 votePower = IDAOToken(_getAddressSameDomain('DAOToken')).calculatePower(msg.sender);
     require(block.timestamp < _proposalStorage[proposalId].expired, 'DAO: Voting period was over');
     require(votePower > 0, 'DAO: Only allow stakeholder to vote');
     require(_votedStorage[proposalId][msg.sender] == false, 'DAO: You had voted this proposal');

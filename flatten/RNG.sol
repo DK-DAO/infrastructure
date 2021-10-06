@@ -54,6 +54,10 @@ abstract contract User {
     _;
   }
 
+  /*******************************************************
+   * Internal section
+   ********************************************************/
+
   // Constructing with registry address and its active domain
   function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
     require(!_initialized, "User: It's only able to initialize once");
@@ -64,9 +68,13 @@ abstract contract User {
   }
 
   // Get address in the same domain
-  function getAddressSameDomain(bytes32 name) internal view returns (address) {
+  function _getAddressSameDomain(bytes32 name) internal view returns (address) {
     return _registry.getAddress(_domain, name);
   }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
 
   // Return active domain
   function getDomain() external view returns (bytes32) {
@@ -220,6 +228,10 @@ contract RNG is User {
     _registryUserInit(registry_, domain_);
   }
 
+  /*******************************************************
+   * Oracle section
+   ********************************************************/
+
   // DKDAO Oracle will commit H(S||t) to blockchain
   function commit(bytes32 digest) external onlyAllowSameDomain('Oracle') returns (uint256) {
     return _commit(digest);
@@ -261,8 +273,12 @@ contract RNG is User {
     return index;
   }
 
+  /*******************************************************
+   * Private section
+   ********************************************************/
+
   // Commit digest to blockchain state
-  function _commit(bytes32 digest) internal returns (uint256) {
+  function _commit(bytes32 digest) private returns (uint256) {
     // We begin from 1 instead of 0 to prevent error
     totalDigest += 1;
     remainingDigest += 1;
@@ -271,6 +287,10 @@ contract RNG is User {
     emit Committed(totalDigest, digest);
     return totalDigest;
   }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
 
   // Get progress of commit scheme
   function getDataByIndex(uint256 index) external view returns (CommitSchemeData memory) {

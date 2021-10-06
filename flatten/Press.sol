@@ -988,80 +988,6 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
 }
 
 
-// Dependency file: @openzeppelin/contracts/access/Ownable.sol
-
-
-// pragma solidity ^0.8.0;
-
-// import "@openzeppelin/contracts/utils/Context.sol";
-
-/**
- * @dev Contract module which provides a basic access control mechanism, where
- * there is an account (an owner) that can be granted exclusive access to
- * specific functions.
- *
- * By default, the owner account will be the one that deploys the contract. This
- * can later be changed with {transferOwnership}.
- *
- * This module is used through inheritance. It will make available the modifier
- * `onlyOwner`, which can be applied to your functions to restrict their use to
- * the owner.
- */
-abstract contract Ownable is Context {
-    address private _owner;
-
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-    /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
-     */
-    constructor() {
-        _setOwner(_msgSender());
-    }
-
-    /**
-     * @dev Returns the address of the current owner.
-     */
-    function owner() public view virtual returns (address) {
-        return _owner;
-    }
-
-    /**
-     * @dev Throws if called by any account other than the owner.
-     */
-    modifier onlyOwner() {
-        require(owner() == _msgSender(), "Ownable: caller is not the owner");
-        _;
-    }
-
-    /**
-     * @dev Leaves the contract without owner. It will not be possible to call
-     * `onlyOwner` functions anymore. Can only be called by the current owner.
-     *
-     * NOTE: Renouncing ownership will leave the contract without an owner,
-     * thereby removing any functionality that is only available to the owner.
-     */
-    function renounceOwnership() public virtual onlyOwner {
-        _setOwner(address(0));
-    }
-
-    /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
-     * Can only be called by the current owner.
-     */
-    function transferOwnership(address newOwner) public virtual onlyOwner {
-        require(newOwner != address(0), "Ownable: new owner is the zero address");
-        _setOwner(newOwner);
-    }
-
-    function _setOwner(address newOwner) private {
-        address oldOwner = _owner;
-        _owner = newOwner;
-        emit OwnershipTransferred(oldOwner, newOwner);
-    }
-}
-
-
 // Dependency file: @openzeppelin/contracts/proxy/Clones.sol
 
 
@@ -1232,6 +1158,10 @@ abstract contract User {
     _;
   }
 
+  /*******************************************************
+   * Internal section
+   ********************************************************/
+
   // Constructing with registry address and its active domain
   function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
     require(!_initialized, "User: It's only able to initialize once");
@@ -1242,9 +1172,13 @@ abstract contract User {
   }
 
   // Get address in the same domain
-  function getAddressSameDomain(bytes32 name) internal view returns (address) {
+  function _getAddressSameDomain(bytes32 name) internal view returns (address) {
     return _registry.getAddress(_domain, name);
   }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
 
   // Return active domain
   function getDomain() external view returns (bytes32) {
@@ -1333,62 +1267,18 @@ library Bytes {
 }
 
 
-// Dependency file: contracts/libraries/Item.sol
-
-// pragma solidity >=0.8.4 <0.9.0;
-
-library Item {
-  // We have 256 bits to store a Item id so we dicide to contain as much as posible data
-  // Application ID:      64 bits
-  function set(
-    uint256 value,
-    uint256 shift,
-    uint256 mask,
-    uint256 newValue
-  ) internal pure returns (uint256 result) {
-    require((mask | newValue) ^ mask == 0, 'Item: New value is out range');
-    assembly {
-      result := and(value, not(shl(shift, mask)))
-      result := or(shl(shift, newValue), result)
-    }
-  }
-
-  function get(
-    uint256 value,
-    uint256 shift,
-    uint256 mask
-  ) internal pure returns (uint256 result) {
-    assembly {
-      result := shr(shift, and(value, shl(shift, mask)))
-    }
-  }
-
-  // 256                    192                0
-  //  |<-- Application ID -->|<-- Item data -->|
-  function setApplicationId(uint256 a, uint256 b) internal pure returns (uint256 c) {
-    return set(a, 192, 0xffffffffffffffff, b);
-  }
-
-  function getApplicationId(uint256 a) internal pure returns (uint256 c) {
-    return get(a, 192, 0xffffffffffffffff);
-  }
-}
-
-
 // Root file: contracts/infrastructure/Press.sol
 
 pragma solidity >=0.8.4 <0.9.0;
 
 // import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/token/ERC721/ERC721.sol';
-// import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/access/Ownable.sol';
 // import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/proxy/Clones.sol';
 // import 'contracts/interfaces/INFT.sol';
 // import 'contracts/libraries/User.sol';
 // import 'contracts/libraries/Bytes.sol';
-// import 'contracts/libraries/Item.sol';
 
 /**
- * Item manufacture
+ * NFT Press
  * Name: Press
  * Domain: DKDAO
  */
@@ -1396,6 +1286,7 @@ contract Press is User {
   // Allow to clone NFT
   using Clones for address;
 
+  // Create new NFT
   event CreateNewNFT(bytes32 indexed domain, address indexed nftContract, bytes32 indexed name);
 
   // Pass constructor parameter to User
@@ -1403,7 +1294,11 @@ contract Press is User {
     _registryUserInit(registry_, domain_);
   }
 
-  // We allowed
+  /*******************************************************
+   * Operator section
+   ********************************************************/
+
+  // Clone new NFT
   function createNewNFT(
     string memory name_,
     string memory symbol_,

@@ -453,6 +453,10 @@ abstract contract User {
     _;
   }
 
+  /*******************************************************
+   * Internal section
+   ********************************************************/
+
   // Constructing with registry address and its active domain
   function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
     require(!_initialized, "User: It's only able to initialize once");
@@ -463,9 +467,13 @@ abstract contract User {
   }
 
   // Get address in the same domain
-  function getAddressSameDomain(bytes32 name) internal view returns (address) {
+  function _getAddressSameDomain(bytes32 name) internal view returns (address) {
     return _registry.getAddress(_domain, name);
   }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
 
   // Return active domain
   function getDomain() external view returns (bytes32) {
@@ -491,7 +499,7 @@ pragma solidity >=0.8.4 <0.9.0;
 /**
  * Oracle Proxy
  * Name: Oracle
- * Domain: *
+ * Domain: DKDAO, *
  */
 contract OracleProxy is User {
   // Verify signature
@@ -586,6 +594,11 @@ contract OracleProxy is User {
   // Get valid nonce of next transaction
   function getValidNonce(address inputAddress) external view returns (uint256) {
     return _nonceStorage[inputAddress] + 1;
+  }
+
+  // Get valid nonce of next transaction
+  function getValidTimeNonce(address inputAddress, uint256 durationInSec) external view returns (uint256) {
+    return ((block.timestamp + durationInSec) << 128) | (_nonceStorage[inputAddress] + 1);
   }
 
   // Check a address is controller

@@ -166,6 +166,10 @@ abstract contract User {
     _;
   }
 
+  /*******************************************************
+   * Internal section
+   ********************************************************/
+
   // Constructing with registry address and its active domain
   function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
     require(!_initialized, "User: It's only able to initialize once");
@@ -176,9 +180,13 @@ abstract contract User {
   }
 
   // Get address in the same domain
-  function getAddressSameDomain(bytes32 name) internal view returns (address) {
+  function _getAddressSameDomain(bytes32 name) internal view returns (address) {
     return _registry.getAddress(_domain, name);
   }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
 
   // Return active domain
   function getDomain() external view returns (bytes32) {
@@ -305,130 +313,6 @@ interface INFT {
 }
 
 
-// Dependency file: contracts/interfaces/IPress.sol
-
-// pragma solidity >=0.8.4 <0.9.0;
-
-interface IPress {
-  function newNFT(
-    bytes32 _domain,
-    string calldata name,
-    string calldata symbol
-  ) external returns (address);
-
-  function createItem(
-    bytes32 _domain,
-    address _owner,
-    uint256 _itemId
-  ) external returns (bool);
-}
-
-
-// Dependency file: contracts/libraries/Verifier.sol
-
-// pragma solidity >=0.8.4 <0.9.0;
-
-library Verifier {
-  function verifySerialized(bytes memory message, bytes memory signature) public pure returns (address) {
-    bytes32 r;
-    bytes32 s;
-    uint8 v;
-    assembly {
-      // Singature need to be 65 in length
-      // if (signature.length !== 65) revert();
-      if iszero(eq(mload(signature), 65)) {
-        revert(0, 0)
-      }
-      // r = signature[:32]
-      // s = signature[32:64]
-      // v = signature[64]
-      r := mload(add(signature, 0x20))
-      s := mload(add(signature, 0x40))
-      v := byte(0, mload(add(signature, 0x60)))
-      // Invalid v value, for Ethereum it's only possible to be 27, 28 and 0, 1 in legacy code
-      if lt(v, 27) {
-        v := add(v, 27)
-      }
-      if iszero(or(eq(v, 27), eq(v, 28))) {
-        revert(0, 0)
-      }
-    }
-
-    // Get hashes of message with Ethereum proof prefix
-    bytes32 hashes = keccak256(abi.encodePacked('\x19Ethereum Signed Message:\n', uintToStr(message.length), message));
-
-    return ecrecover(hashes, v, r, s);
-  }
-
-  function verify(
-    bytes memory message,
-    bytes32 r,
-    bytes32 s,
-    uint8 v
-  ) public pure returns (address) {
-    if (v < 27) {
-      v += 27;
-    }
-    // V must be 27 or 28
-    require(v == 27 || v == 28, 'Invalid v value');
-    // Get hashes of message with Ethereum proof prefix
-    bytes32 hashes = keccak256(abi.encodePacked('\x19Ethereum Signed Message:\n', uintToStr(message.length), message));
-
-    return ecrecover(hashes, v, r, s);
-  }
-
-  function uintToStr(uint256 value) public pure returns (bytes memory result) {
-    assembly {
-      switch value
-      case 0 {
-        // In case of 0, we just return "0"
-        result := mload(0x40)
-        // result.length = 1
-        mstore(result, 0x01)
-        // result = "0"
-        mstore(add(result, 0x20), 0x30)
-      }
-      default {
-        let length := 0x0
-        // let result = new bytes(32)
-        result := mload(0x40)
-
-        // Get length of render number
-        // for (let v := value; v > 0; v = v / 10)
-        for {
-          let v := value
-        } gt(v, 0x00) {
-          v := div(v, 0x0a)
-        } {
-          length := add(length, 0x01)
-        }
-
-        // We're only support number with 32 digits
-        // if (length > 32) revert();
-        if gt(length, 0x20) {
-          revert(0, 0)
-        }
-
-        // Set length of result
-        mstore(result, length)
-
-        // Start render result
-        // for (let v := value; length > 0; v = v / 10)
-        for {
-          let v := value
-        } gt(length, 0x00) {
-          v := div(v, 0x0a)
-        } {
-          // result[--length] = 48 + (v % 10)
-          length := sub(length, 0x01)
-          mstore8(add(add(result, 0x20), length), add(0x30, mod(v, 0x0a)))
-        }
-      }
-    }
-  }
-}
-
-
 // Root file: contracts/dk/DuelistKingDistributor.sol
 
 
@@ -440,8 +324,6 @@ pragma solidity >=0.8.4 <0.9.0;
 // import 'contracts/libraries/Bytes.sol';
 // import 'contracts/interfaces/ITheDivine.sol';
 // import 'contracts/interfaces/INFT.sol';
-// import 'contracts/interfaces/IPress.sol';
-// import 'contracts/libraries/Verifier.sol';
 
 /**
  * Card distributor
@@ -452,19 +334,17 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   // Using Bytes for bytes
   using Bytes for bytes;
 
-  // Using Duelist King Card for uint256
+  // Using Duelist King Item for uint256
   using DuelistKingItem for uint256;
 
-  // Box's serial
+  // Item's serial
   uint256 private _itemSerial;
 
   // Card's serial
   uint256 private _cardSerial;
 
+  // Default capped is 1,000,000 boxes
   uint256 private _capped = 1000000;
-
-  // Campaign index
-  uint256 private _campaignIndex;
 
   // The Divine
   ITheDivine private immutable _theDivine;
@@ -490,7 +370,7 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     _theDivine = ITheDivine(divine);
   }
 
-  // Compute random value from RNG
+  // Adding entropy to the pool
   function compute(bytes memory data) external override onlyAllowCrossDomain('DKDAO', 'RNG') returns (bool) {
     require(data.length == 32, 'Distributor: Data must be 32 in length');
     // We combine random value with The Divine's result to prevent manipulation
@@ -529,15 +409,18 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     uint256 j = 0;
     for (uint256 i = 0; i < nftIds.length; i += 32) {
       uint256 nftId = nftIds.readUint256(i);
-      require(nftId.getType() == 1, 'Distributor: Only able to open boxes');
+      require(nftId.getType() == 1 && nftId.getEntropy() == 0, 'Distributor: Only able to open unopened boxes');
       if (j >= 256) {
         rand = uint256(keccak256(abi.encodePacked(_entropy)));
         j = 0;
       }
-      require(nft.ownerOf(nftId) == owner && nft.burn(nftId), 'Distributor: Unable to burn old box');
-      uint256 openedBoxId = nftId.setEntropy((rand >> j) & 0xffffffffffffffff);
+      require(
+        nft.ownerOf(nftId) == owner &&
+          nft.burn(nftId) &&
+          nft.mint(owner, nftId.setEntropy((rand >> j) & 0xffffffffffffffff)),
+        'Distributor: Unable to burn old box and issue opened box'
+      );
       j += 64;
-      nft.mint(owner, openedBoxId);
     }
   }
 
@@ -564,16 +447,6 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   }
 
   // Issue genesis edition for card creator
-  function issueItem(
-    address owner,
-    uint256 itemType,
-    uint256 itemId
-  ) external onlyAllowSameDomain('Oracle') returns (uint256) {
-    require(itemType != 0, 'Distributor: You can not issue card directly');
-    return _issueItem(owner, uint256(0).setType(itemType).setId(itemId));
-  }
-
-  // Issue genesis edition for card creator
   function issueGenesisCard(
     address owner,
     uint256 generation,
@@ -592,6 +465,64 @@ contract DuelistKingDistributor is User, IRNGConsumer {
   /*******************************************************
    * Private section
    ********************************************************/
+
+  // Open loot boxes
+  function _claimCardsInBox(address owner, uint256 boxNftTokenId) private returns (bool) {
+    INFT nft = INFT(_registry.getAddress(_domain, 'NFT'));
+    // Read entropy from openned card
+    uint256 rand = uint256(keccak256(abi.encodePacked(boxNftTokenId.getEntropy())));
+    // Box Id is equal to phase of card
+    uint256 boxId = boxNftTokenId.getId();
+    // 20 phases = 1 gen
+    uint256 generation = boxId / 20;
+    // Start point
+    uint256 startPoint = boxId * 20 - 20;
+    // Serial of card
+    uint256 serial = _cardSerial;
+    for (uint256 i = 0; i < 5; ) {
+      // Repeat hash on its selft
+      rand = uint256(keccak256(abi.encodePacked(rand)));
+      for (uint256 j = 0; j < 256 && i < 5; j += 32) {
+        uint256 luckyNumber = (rand >> j) & 0xffffffff;
+        // Draw card by lucky number
+        uint256 card = _caculateCard(startPoint, luckyNumber);
+        if (card > 0) {
+          serial += 1;
+          require(
+            nft.mint(owner, card.setGeneration(generation).setSerial(serial)),
+            'Distributor: Can not mint NFT card'
+          );
+          i += 1;
+        }
+      }
+    }
+    // Update card's serial
+    _cardSerial = serial;
+    // Update old random with new one
+    _entropy = rand;
+    return true;
+  }
+
+  // Issue card
+  function _issueCard(address owner, uint256 baseCardId) private returns (uint256) {
+    _cardSerial += 1;
+    // Overwrite item type with 0
+    return _mint(owner, baseCardId.setType(0).setSerial(_cardSerial));
+  }
+
+  // Issue other item
+  function _issueItem(address owner, uint256 baseItemId) private returns (uint256) {
+    _itemSerial += 1;
+    // Overite item's serial
+    return _mint(owner, baseItemId.setSerial(_itemSerial));
+  }
+
+  function _mint(address owner, uint256 nftTokenId) private returns (uint256) {
+    if (INFT(_registry.getAddress(_domain, 'NFT')).mint(owner, nftTokenId)) {
+      return nftTokenId;
+    }
+    return 0;
+  }
 
   // Calcualte card
   function _caculateCard(uint256 startPoint, uint256 luckyNumber) private view returns (uint256) {
@@ -621,61 +552,10 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     return 0;
   }
 
-  // Open loot boxes
-  function _claimCardsInBox(address owner, uint256 boxNftTokenId) private returns (bool) {
-    // Read entropy from openned card
-    uint256 rand = uint256(keccak256(abi.encodePacked(boxNftTokenId.getEntropy())));
-    uint256 luckyNumber;
-    // Box Id is equal to phase of card
-    uint256 boxId = boxNftTokenId.getId();
-    // 20 phases = 1 gen
-    uint256 generation = boxId / 20;
-    // Set card generation
-    uint256 card = uint256(0).setGeneration(generation);
-    // Start point
-    uint256 startPoint = boxId * 20 - 20;
-    for (uint256 i = 0; i < 5; ) {
-      // Repeat hash on its selft
-      rand = uint256(keccak256(abi.encodePacked(rand)));
-      for (uint256 j = 0; j < 256 && i < 5; j += 32) {
-        luckyNumber = (rand >> j) & 0xffffffff;
-        // Draw card by lucky number
-        card = _caculateCard(startPoint, luckyNumber);
-        if (card > 0) {
-          _issueCard(owner, generation);
-          i += 1;
-        }
-      }
-    }
-    // Update old random with new one
-    _entropy = rand;
-    return true;
-  }
-
-  // Issue card
-  function _issueCard(address owner, uint256 baseCardId) private returns (uint256) {
-    _cardSerial += 1;
-    // Overwrite item type with 0
-    return _mint(owner, baseCardId.setType(0).setSerial(_cardSerial));
-  }
-
-  // Issue other item
-  function _issueItem(address owner, uint256 baseItemId) private returns (uint256) {
-    _itemSerial += 1;
-    // Overite item's serial
-    return _mint(owner, baseItemId.setSerial(_itemSerial));
-  }
-
-  function _mint(address owner, uint256 nftTokenId) private returns (uint256) {
-    if (INFT(_registry.getAddress(_domain, 'NFT')).mint(owner, nftTokenId)) {
-      return nftTokenId;
-    }
-    return 0;
-  }
-
   /*******************************************************
    * View section
    ********************************************************/
+
   // Get remaining box of a phase
   function getRemainingBox(uint256 boxId) external view returns (uint256) {
     return _capped - _mintedBoxes[boxId];

@@ -427,33 +427,21 @@ interface IDAO {
 }
 
 
-// Dependency file: contracts/libraries/TokenMetadata.sol
-
-// pragma solidity >=0.8.4 <0.9.0;
-
-abstract contract TokenMetadata {
-  // Metadata for DAO token initialization
-  struct Metadata {
-    string symbol;
-    string name;
-    address genesis;
-    address grandDAO;
-  }
-}
-
-
 // Dependency file: contracts/interfaces/IDAOToken.sol
 
 // pragma solidity >=0.8.4 <0.9.0;
 
-// import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol';
-// import 'contracts/libraries/TokenMetadata.sol';
+interface IDAOToken {
+  function init(
+    string memory name,
+    string memory symbol,
+    address genesis,
+    uint256 supply
+  ) external;
 
-interface IDAOToken is IERC20 {
-  function init(TokenMetadata.Metadata memory metadata) external;
+  function totalSupply() external view returns (uint256);
 
-  function votePower(address owner) external view returns (uint256);
-
+  function calculatePower(address owner) external view returns (uint256);
 }
 
 
@@ -512,6 +500,10 @@ abstract contract User {
     _;
   }
 
+  /*******************************************************
+   * Internal section
+   ********************************************************/
+
   // Constructing with registry address and its active domain
   function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
     require(!_initialized, "User: It's only able to initialize once");
@@ -522,9 +514,13 @@ abstract contract User {
   }
 
   // Get address in the same domain
-  function getAddressSameDomain(bytes32 name) internal view returns (address) {
+  function _getAddressSameDomain(bytes32 name) internal view returns (address) {
     return _registry.getAddress(_domain, name);
   }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
 
   // Return active domain
   function getDomain() external view returns (bytes32) {
@@ -559,20 +555,23 @@ contract DAO is User, IDAO {
   using Address for address;
 
   // Proposal index, begin from 1
-  uint256 proposalIndex;
+  uint256 private _proposalIndex;
 
   // Proposal storage
-  mapping(uint256 => Proposal) proposalStorage;
+  mapping(uint256 => Proposal) private _proposalStorage;
 
   // Voted storage
-  mapping(uint256 => mapping(address => bool)) votedStorage;
+  mapping(uint256 => mapping(address => bool)) private _votedStorage;
 
   // Create a new proposal
   event CreateProposal(uint256 indexed proposalId, bytes32 indexed proposalDigest, uint256 indexed expired);
+
   // Execute proposal
   event ExecuteProposal(uint256 indexed proposalId, address indexed trigger, int256 indexed vote);
+
   // Positive vote
   event PositiveVote(uint256 indexed proposalId, address indexed stakeholder, uint256 indexed power);
+
   // Negative vote
   event NegativeVote(uint256 indexed proposalId, address indexed stakeholder, uint256 indexed power);
 
@@ -580,39 +579,47 @@ contract DAO is User, IDAO {
     return _registryUserInit(registry_, domain_);
   }
 
+  /*******************************************************
+   * Stakeholder section
+   ********************************************************/
+
   // Create a new proposal
   function createProposal(Proposal memory newProposal) external override returns (uint256) {
-    uint256 votePower = IDAOToken(getAddressSameDomain('DAOToken')).votePower(msg.sender);
-    require(votePower > 0, 'DAO: Only allow locked token to vote');
-    proposalIndex += 1;
-    newProposal.expired = uint64(block.timestamp + 7 days);
+    uint256 votePower = IDAOToken(_getAddressSameDomain('DAOToken')).calculatePower(msg.sender);
+    require(votePower > 0, 'DAO: Only allow stakeholder to vote');
+    _proposalIndex += 1;
+    newProposal.expired = uint64(block.timestamp + 3 days);
     newProposal.vote = 0;
-    proposalStorage[proposalIndex] = newProposal;
-    return proposalIndex;
+    _proposalStorage[_proposalIndex] = newProposal;
+    return _proposalIndex;
   }
 
   // Vote a proposal
   function voteProposal(uint256 proposalId, bool positive) external override returns (bool) {
-    uint256 votePower = IDAOToken(getAddressSameDomain('DAOToken')).votePower(msg.sender);
-    require(block.timestamp < proposalStorage[proposalId].expired, 'DAO: Voting period was over');
+    uint256 votePower = IDAOToken(_getAddressSameDomain('DAOToken')).calculatePower(msg.sender);
+    require(block.timestamp < _proposalStorage[proposalId].expired, 'DAO: Voting period was over');
     require(votePower > 0, 'DAO: Only allow stakeholder to vote');
-    require(votedStorage[proposalId][msg.sender] == false, 'DAO: You had voted this proposal');
+    require(_votedStorage[proposalId][msg.sender] == false, 'DAO: You had voted this proposal');
     if (positive) {
-      proposalStorage[proposalId].vote += int256(votePower);
+      _proposalStorage[proposalId].vote += int256(votePower);
       emit PositiveVote(proposalId, msg.sender, votePower);
     } else {
-      proposalStorage[proposalId].vote -= int256(votePower);
+      _proposalStorage[proposalId].vote -= int256(votePower);
       emit NegativeVote(proposalId, msg.sender, votePower);
     }
-    votedStorage[proposalId][msg.sender] = true;
+    _votedStorage[proposalId][msg.sender] = true;
     return true;
   }
 
+  /*******************************************************
+   * Public section
+   ********************************************************/
+
   // Execute a voted proposal
   function execute(uint256 proposalId) external override returns (bool) {
-    Proposal memory currentProposal = proposalStorage[proposalId];
-    int256 threshold = int256(IDAOToken(getAddressSameDomain('DAOToken')).totalSupply() / 2);
-    require(block.timestamp > proposalStorage[proposalId].expired, "DAO: Voting period wasn't over");
+    Proposal memory currentProposal = _proposalStorage[proposalId];
+    int256 threshold = int256(IDAOToken(_getAddressSameDomain('DAOToken')).totalSupply() / 2);
+    require(block.timestamp > _proposalStorage[proposalId].expired, "DAO: Voting period wasn't over");
     require(currentProposal.vote > threshold, 'DAO: Vote was not pass threshold');
     require(currentProposal.executed == false, 'DAO: Proposal was executed');
     if (currentProposal.delegate) {
@@ -621,8 +628,24 @@ contract DAO is User, IDAO {
       currentProposal.target.functionCall(currentProposal.data);
     }
     currentProposal.executed = true;
-    proposalStorage[proposalId] = currentProposal;
+    _proposalStorage[proposalId] = currentProposal;
     emit ExecuteProposal(proposalId, msg.sender, currentProposal.vote);
     return true;
+  }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
+
+  function getProposalIndex() external view returns (uint256) {
+    return _proposalIndex;
+  }
+
+  function getProposalDetail(uint256 proposalId) external view returns (Proposal memory) {
+    return _proposalStorage[proposalId];
+  }
+
+  function isVoted(address stakeholder, uint256 proposalId) external view returns (bool) {
+    return _votedStorage[proposalId][stakeholder];
   }
 }

@@ -1117,6 +1117,10 @@ abstract contract User {
     _;
   }
 
+  /*******************************************************
+   * Internal section
+   ********************************************************/
+
   // Constructing with registry address and its active domain
   function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
     require(!_initialized, "User: It's only able to initialize once");
@@ -1127,9 +1131,13 @@ abstract contract User {
   }
 
   // Get address in the same domain
-  function getAddressSameDomain(bytes32 name) internal view returns (address) {
+  function _getAddressSameDomain(bytes32 name) internal view returns (address) {
     return _registry.getAddress(_domain, name);
   }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
 
   // Return active domain
   function getDomain() external view returns (bytes32) {
@@ -1165,7 +1173,17 @@ contract Pool is User, Ownable {
     return _registryUserInit(registry_, domain_);
   }
 
-  // Safe call to a target address with given payload
+  /*******************************************************
+   * Same domain section
+   ********************************************************/
+
+  // Transfer native token to target address
+  function transferValue(address payable target, uint256 value) external onlyAllowSameDomain('DAO') returns (bool) {
+    target.transfer(value);
+    return true;
+  }
+
+  // Safe call to a target address with a given payload
   function safeCall(
     address target,
     uint256 value,
