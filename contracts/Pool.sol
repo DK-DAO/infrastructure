@@ -20,7 +20,17 @@ contract Pool is User, Ownable {
     return _registryUserInit(registry_, domain_);
   }
 
-  // Safe call to a target address with given payload
+  /*******************************************************
+   * Same domain section
+   ********************************************************/
+
+  // Transfer native token to target address
+  function transferValue(address payable target, uint256 value) external onlyAllowSameDomain('DAO') returns (bool) {
+    target.transfer(value);
+    return true;
+  }
+
+  // Safe call to a target address with a given payload
   function safeCall(
     address target,
     uint256 value,
