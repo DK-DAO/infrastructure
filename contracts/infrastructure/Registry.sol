@@ -2,6 +2,7 @@
 pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
+import '../interfaces/IRegistry.sol';
 import '../libraries/User.sol';
 
 /**
@@ -9,8 +10,8 @@ import '../libraries/User.sol';
  * Name: Registry
  * Domain: DKDAO
  */
-contract Registry is User {
-  // Mapping bytes32 -> address
+contract Registry is User, IRegistry {
+  // Mapping domain -> name -> address
   mapping(bytes32 => mapping(bytes32 => address)) private registered;
 
   // Mapping address -> bytes32 name
@@ -29,12 +30,16 @@ contract Registry is User {
     _registryUserInit(address(this), 'DKDAO');
   }
 
+  /*******************************************************
+   * Operator section
+   ********************************************************/
+
   // Set a record
   function set(
     bytes32 domain,
     bytes32 name,
     address addr
-  ) external onlyAllowSameDomain('Operator') returns (bool) {
+  ) external override onlyAllowSameDomain('Operator') returns (bool) {
     return _set(domain, name, addr);
   }
 
@@ -43,7 +48,7 @@ contract Registry is User {
     bytes32[] calldata domains,
     bytes32[] calldata names,
     address[] calldata addrs
-  ) external onlyAllowSameDomain('Operator') returns (bool) {
+  ) external override onlyAllowSameDomain('Operator') returns (bool) {
     require(
       domains.length == names.length && names.length == addrs.length,
       'Registry: Number of records and addreses must be matched'
@@ -54,20 +59,9 @@ contract Registry is User {
     return true;
   }
 
-  // Check is record existed
-  function isExistRecord(bytes32 domain, bytes32 name) external view returns (bool) {
-    return registered[domain][name] != address(0);
-  }
-
-  // Get address by name
-  function getAddress(bytes32 domain, bytes32 name) external view returns (address) {
-    return registered[domain][name];
-  }
-
-  // Get name by address
-  function getDomainAndName(address addr) external view returns (bytes32, bytes32) {
-    return (revertedDomain[addr], revertedName[addr]);
-  }
+  /*******************************************************
+   * Private section
+   ********************************************************/
 
   // Set record internally
   function _set(
@@ -81,5 +75,24 @@ contract Registry is User {
     revertedDomain[addr] = domain;
     emit RecordSet(domain, name, addr);
     return true;
+  }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
+
+  // Check is record existed
+  function isExistRecord(bytes32 domain, bytes32 name) external view override returns (bool) {
+    return registered[domain][name] != address(0);
+  }
+
+  // Get address by name
+  function getAddress(bytes32 domain, bytes32 name) external view override returns (address) {
+    return registered[domain][name];
+  }
+
+  // Get name by address
+  function getDomainAndName(address addr) external view override returns (bytes32, bytes32) {
+    return (revertedDomain[addr], revertedName[addr]);
   }
 }

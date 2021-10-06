@@ -151,34 +151,6 @@ contract DuelistKingDistributor is User, IRNGConsumer {
    * Private section
    ********************************************************/
 
-  // Calcualte card
-  function _caculateCard(uint256 startPoint, uint256 luckyNumber) private view returns (uint256) {
-    // Draw value from luckey number
-    uint256 luckyDraw = luckyNumber % (_capped * 5);
-    // Card distribution
-    uint256[6] memory distribution = [
-      uint256(0x00000000000000000000000000000001000000000000000600000000000009c4),
-      uint256(0x000000000000000000000000000000020000000100000005000009c400006b6c),
-      uint256(0x00000000000000000000000000000003000000030000000400006b6c00043bfc),
-      uint256(0x00000000000000000000000000000004000000060000000300043bfc000fadac),
-      uint256(0x000000000000000000000000000000050000000a00000002000fadac0026910c),
-      uint256(0x000000000000000000000000000000050000000f000000010026910c004c4b40)
-    ];
-    for (uint256 i = 0; i < distribution.length; i += 1) {
-      uint256 t = distribution[i];
-      uint256 rEnd = t & 0xffffffff;
-      uint256 rStart = (t >> 32) & 0xffffffff;
-      uint256 rareness = (t >> 64) & 0xffffffff;
-      uint256 cardStart = (t >> 96) & 0xffffffff;
-      uint256 cardFactor = (t >> 128) & 0xffffffff;
-      if (luckyDraw >= rStart && luckyDraw <= rEnd) {
-        // Return card Id
-        return uint256(0).setRareness(rareness).setId(startPoint + cardStart + (luckyNumber % cardFactor));
-      }
-    }
-    return 0;
-  }
-
   // Open loot boxes
   function _claimCardsInBox(address owner, uint256 boxNftTokenId) private returns (bool) {
     INFT nft = INFT(_registry.getAddress(_domain, 'NFT'));
@@ -237,9 +209,38 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     return 0;
   }
 
+  // Calcualte card
+  function _caculateCard(uint256 startPoint, uint256 luckyNumber) private view returns (uint256) {
+    // Draw value from luckey number
+    uint256 luckyDraw = luckyNumber % (_capped * 5);
+    // Card distribution
+    uint256[6] memory distribution = [
+      uint256(0x00000000000000000000000000000001000000000000000600000000000009c4),
+      uint256(0x000000000000000000000000000000020000000100000005000009c400006b6c),
+      uint256(0x00000000000000000000000000000003000000030000000400006b6c00043bfc),
+      uint256(0x00000000000000000000000000000004000000060000000300043bfc000fadac),
+      uint256(0x000000000000000000000000000000050000000a00000002000fadac0026910c),
+      uint256(0x000000000000000000000000000000050000000f000000010026910c004c4b40)
+    ];
+    for (uint256 i = 0; i < distribution.length; i += 1) {
+      uint256 t = distribution[i];
+      uint256 rEnd = t & 0xffffffff;
+      uint256 rStart = (t >> 32) & 0xffffffff;
+      uint256 rareness = (t >> 64) & 0xffffffff;
+      uint256 cardStart = (t >> 96) & 0xffffffff;
+      uint256 cardFactor = (t >> 128) & 0xffffffff;
+      if (luckyDraw >= rStart && luckyDraw <= rEnd) {
+        // Return card Id
+        return uint256(0).setRareness(rareness).setId(startPoint + cardStart + (luckyNumber % cardFactor));
+      }
+    }
+    return 0;
+  }
+
   /*******************************************************
    * View section
    ********************************************************/
+
   // Get remaining box of a phase
   function getRemainingBox(uint256 boxId) external view returns (uint256) {
     return _capped - _mintedBoxes[boxId];

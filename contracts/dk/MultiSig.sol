@@ -73,11 +73,11 @@ contract MultiSig is MultiOwner {
   }
 
   // Transfer with signed proofs instead of onchain voting
-  function quickTransfer(bytes[] memory proofs, bytes memory txData) external onlyListedOwner returns (bool) {
+  function quickTransfer(bytes[] memory signatures, bytes memory txData) external onlyListedOwner returns (bool) {
     uint256 totalSigned = 0;
-    address[] memory signedAddresses = new address[](proofs.length);
-    for (uint256 i = 0; i < proofs.length; i += 1) {
-      address signer = txData.verifySerialized(proofs[i]);
+    address[] memory signedAddresses = new address[](signatures.length);
+    for (uint256 i = 0; i < signatures.length; i += 1) {
+      address signer = txData.verifySerialized(signatures[i]);
       // Each signer only able to be counted once
       if (isOwner(signer) && _isNotInclude(signedAddresses, signer)) {
         signedAddresses[totalSigned] = signer;

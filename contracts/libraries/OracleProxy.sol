@@ -10,7 +10,7 @@ import './User.sol';
 /**
  * Oracle Proxy
  * Name: Oracle
- * Domain: *
+ * Domain: DKDAO, *
  */
 contract OracleProxy is User {
   // Verify signature
@@ -105,6 +105,11 @@ contract OracleProxy is User {
   // Get valid nonce of next transaction
   function getValidNonce(address inputAddress) external view returns (uint256) {
     return _nonceStorage[inputAddress] + 1;
+  }
+
+  // Get valid nonce of next transaction
+  function getValidTimeNonce(address inputAddress, uint256 durationInSec) external view returns (uint256) {
+    return ((block.timestamp + durationInSec) << 128) | (_nonceStorage[inputAddress] + 1);
   }
 
   // Check a address is controller

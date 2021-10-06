@@ -27,6 +27,10 @@ contract NFT is User, ERC721 {
     return true;
   }
 
+  /*******************************************************
+   * Distributor section
+   ********************************************************/
+
   // Only distributor able to mint new item
   function mint(address to, uint256 tokenId) external onlyAllowSameDomain('Distributor') returns (bool) {
     _supply += 1;
@@ -42,6 +46,16 @@ contract NFT is User, ERC721 {
     return !_exists(tokenId);
   }
 
+  // Change the base URI
+  function changeBaseURI(string memory uri_) public onlyAllowSameDomain('Distributor') returns (bool) {
+    _uri = uri_;
+    return true;
+  }
+
+  /*******************************************************
+   * Swap cross domain section
+   ********************************************************/
+
   // Allow swap to perform transfer
   function safeTransfer(
     address from,
@@ -52,11 +66,9 @@ contract NFT is User, ERC721 {
     return true;
   }
 
-  // Change the base URI
-  function changeBaseURI(string memory uri_) public onlyAllowSameDomain('Distributor') returns (bool) {
-    _uri = uri_;
-    return true;
-  }
+  /*******************************************************
+   * View section
+   ********************************************************/
 
   // Get total supply
   function totalSupply() external view returns (uint256) {

@@ -8,7 +8,7 @@ import '../libraries/Verifier.sol';
 import '../libraries/User.sol';
 
 /**
- * Swap able to transfer token by
+ * Swap can transfer NFT by consume cryptography proof
  * Name: Swap
  * Domain: DKDAO
  */
@@ -19,20 +19,11 @@ contract Swap is User {
   // Decode bytes array
   using Bytes for bytes;
 
-  // Lending storage
-  mapping(uint256 => mapping(address => uint256)) lendingStorage;
-
-  // Lending state
-  mapping(uint256 => address) lendingState;
-
   // Partner of duelistking
-  mapping(address => bool) private partners;
+  mapping(address => bool) private _partners;
 
   // Nonce
-  mapping(address => uint256) private nonceStorage;
-
-  // Staking
-  mapping(address => mapping(uint256 => uint256)) private stakingStorage;
+  mapping(address => uint256) private _nonceStorage;
 
   // List partner
   event ListPartner(address indexed partnerAddress);
@@ -40,15 +31,9 @@ contract Swap is User {
   // Delist partner
   event DelistPartner(address indexed partnerAddress);
 
-  // Start staking
-  event StartStaking(address indexed owner, uint256 indexed tokenId, uint256 timestamp);
-
-  // Stop staking
-  event StopStaking(address indexed owner, uint256 indexed tokenId, uint256 timestamp);
-
   // Only allow partner to execute
   modifier onlyPartner() {
-    require(partners[msg.sender] == true, 'Swap: Sender was not partner');
+    require(_partners[msg.sender] == true, 'Swap: Sender was not partner');
     _;
   }
 
@@ -61,7 +46,7 @@ contract Swap is User {
    * Partner section
    ********************************************************/
 
-  // User able to delegate transfer right with a cyrptographic proof
+  // Partners can trigger delegate transfer right with a cyrptography proof from owner
   function delegateTransfer(bytes memory proof) external onlyPartner returns (bool) {
     // Check for size of the proof
     require(proof.length >= 169, 'Swap: Wrong size of the proof, it must be greater than 169 bytes');
@@ -78,8 +63,8 @@ contract Swap is User {
       INFT(nft).safeTransfer(from, to, nftTokenIds.readUint256(i));
     }
     // Each nonce is only able to be use once
-    require(nonce - nonceStorage[from] == 1, 'Swap: Incorrect nonce of signer');
-    nonceStorage[from] += 1;
+    require(nonce - _nonceStorage[from] == 1, 'Swap: Incorrect nonce of signer');
+    _nonceStorage[from] += 1;
     return true;
   }
 
@@ -89,14 +74,14 @@ contract Swap is User {
 
   // List a new partner
   function listPartner(address partnerAddress) external onlyAllowSameDomain('Operator') returns (bool) {
-    partners[partnerAddress] = true;
+    _partners[partnerAddress] = true;
     emit ListPartner(partnerAddress);
     return true;
   }
 
   // Delist a partner
   function delistPartner(address partnerAddress) external onlyAllowSameDomain('Operator') returns (bool) {
-    partners[partnerAddress] = false;
+    _partners[partnerAddress] = false;
     emit DelistPartner(partnerAddress);
     return true;
   }
@@ -107,11 +92,11 @@ contract Swap is User {
 
   // Get nonce of an address
   function getValidNonce(address owner) external view returns (uint256) {
-    return nonceStorage[owner] + 1;
+    return _nonceStorage[owner] + 1;
   }
 
   // Check an address is partner or not
   function isPartner(address partner) external view returns (bool) {
-    return partners[partner];
+    return _partners[partner];
   }
 }
