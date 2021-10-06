@@ -9,8 +9,10 @@ contract MultiOwner {
   // Multi owner data
   mapping(address => uint256) private _activeTime;
 
+  // Total number of owners
   uint256 private _totalOwner;
 
+  // Only allow listed address to trigger smart contract
   modifier onlyListedOwner() {
     require(
       _owners[msg.sender] && block.timestamp > _activeTime[msg.sender],
@@ -19,6 +21,7 @@ contract MultiOwner {
     _;
   }
 
+  // Transfer ownership event
   event TransferOwnership(address indexed preOwner, address indexed newOwner);
 
   constructor(address[] memory owners_) {
@@ -34,7 +37,7 @@ contract MultiOwner {
    ********************************************************/
 
   function _transferOwnership(address newOwner, uint256 lockDuration) internal returns (bool) {
-    require(newOwner != address(0), 'MultiOwner: Can not transfer to zero address');
+    require(newOwner != address(0), 'MultiOwner: Can not transfer ownership to zero address');
     _owners[msg.sender] = false;
     _owners[newOwner] = true;
     _activeTime[newOwner] = block.timestamp + lockDuration;
