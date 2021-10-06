@@ -6,20 +6,20 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '../libraries/MultiOwner.sol';
 
 /**
- * CardSale Wallet
- * Name: No name
- * Domain: Duelist King
+ * Card Sale Wallet
+ * Name: N/A
+ * Domain: N/A
  */
 contract CardSaleWallet is MultiOwner {
   // Init target address once and can't change
   address private immutable _target;
 
-  mapping(address => bool) private _owners;
-
+  // Pass parameters to MultiOwner
   constructor(address target_, address[] memory owners_) MultiOwner(owners_) {
     _target = target_;
   }
 
+  // Forward fund to target address
   receive() external payable {
     payable(_target).transfer(address(this).balance);
   }
@@ -34,7 +34,7 @@ contract CardSaleWallet is MultiOwner {
     _transferOwnership(newOwner, 1 hours);
   }
 
-  // Withdraw token to multisign wallet
+  // Withdraw token to target address
   function withdraw(address[] memory tokens) external onlyListedOwner {
     for (uint256 i = 0; i < tokens.length; i += 1) {
       IERC20 token = IERC20(tokens[i]);
