@@ -52,6 +52,10 @@ contract DAOToken is ERC20 {
     return true;
   }
 
+  /*******************************************************
+   * Same domain section
+   ********************************************************/
+
   // Override {transferFrom} method
   function transferFrom(
     address sender,
@@ -147,6 +151,10 @@ contract DAOToken is ERC20 {
     stakingStorage[owner] = stakingData;
     return true;
   }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
 
   // Check transferable balance
   function _available(address owner) private view returns (uint256) {
