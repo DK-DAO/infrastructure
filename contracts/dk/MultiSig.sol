@@ -9,8 +9,8 @@ import '../libraries/MultiOwner.sol';
 
 /**
  * Multi Signature Wallet
- * Name: MultiSig
- * Domain: Duelist King
+ * Name: N/A
+ * Domain: N/A
  */
 contract MultiSig is MultiOwner {
   // Address lib providing safe {call} and {delegatecall}
@@ -47,15 +47,20 @@ contract MultiSig is MultiOwner {
 
   // Create a new proposal
   event CreateProposal(uint256 indexed proposalId, uint256 indexed expired);
+
   // Execute proposal
   event ExecuteProposal(uint256 indexed proposalId, address indexed trigger, int256 indexed vote);
+
   // Positive vote
   event PositiveVote(uint256 indexed proposalId, address indexed owner);
+
   // Negative vote
   event NegativeVote(uint256 indexed proposalId, address indexed owner);
 
+  // This contract able to receive fund
   receive() external payable {}
 
+  // Pass parameters to parent contract
   constructor(address[] memory owners_) MultiOwner(owners_) {}
 
   /*******************************************************
@@ -74,14 +79,14 @@ contract MultiSig is MultiOwner {
     for (uint256 i = 0; i < proofs.length; i += 1) {
       address signer = txData.verifySerialized(proofs[i]);
       // Each signer only able to be counted once
-      if (isOwner(signer) && !_isInclude(signedAddresses, signer)) {
+      if (isOwner(signer) && _isNotInclude(signedAddresses, signer)) {
         signedAddresses[totalSigned] = signer;
         totalSigned += 1;
       }
     }
     require(_calculatePercent(int256(totalSigned)) > 70, 'MultiSig: Total accept was not greater than 70%');
-    address target = txData.readAddress(0);
-    uint256 nonce = txData.readUint256(20);
+    uint256 nonce = txData.readUint256(0);
+    address target = txData.readAddress(32);
     bytes memory data = txData.readBytes(52, txData.length - 52);
     require(nonce - _nonce == 1, 'MultiSign: Invalid nonce value');
     _nonce = nonce;
@@ -156,17 +161,17 @@ contract MultiSig is MultiOwner {
    * Pure section
    ********************************************************/
 
-  function _isInclude(address[] memory addressList, address checkAddress) private pure returns (bool) {
+  function _isNotInclude(address[] memory addressList, address checkAddress) private pure returns (bool) {
     for (uint256 i = 0; i < addressList.length; i += 1) {
       if (addressList[i] == checkAddress) {
-        return true;
+        return false;
       }
     }
-    return false;
+    return true;
   }
 
   function _calculatePercent(int256 votedOwner) private view returns (int256) {
-    return (votedOwner * 100) / (int256(totalOwner()) * 100);
+    return (votedOwner * 100) / int256(totalOwner() * 100);
   }
 
   /*******************************************************
