@@ -19,13 +19,13 @@ contract DAO is User, IDAO {
   using Address for address;
 
   // Proposal index, begin from 1
-  uint256 proposalIndex;
+  uint256 private _proposalIndex;
 
   // Proposal storage
-  mapping(uint256 => Proposal) proposalStorage;
+  mapping(uint256 => Proposal) private _proposalStorage;
 
   // Voted storage
-  mapping(uint256 => mapping(address => bool)) votedStorage;
+  mapping(uint256 => mapping(address => bool)) private _votedStorage;
 
   // Create a new proposal
   event CreateProposal(uint256 indexed proposalId, bytes32 indexed proposalDigest, uint256 indexed expired);
@@ -40,39 +40,47 @@ contract DAO is User, IDAO {
     return _registryUserInit(registry_, domain_);
   }
 
+  /*******************************************************
+   * Stakeholder section
+   ********************************************************/
+
   // Create a new proposal
   function createProposal(Proposal memory newProposal) external override returns (uint256) {
     uint256 votePower = IDAOToken(getAddressSameDomain('DAOToken')).votePower(msg.sender);
-    require(votePower > 0, 'DAO: Only allow locked token to vote');
-    proposalIndex += 1;
-    newProposal.expired = uint64(block.timestamp + 7 days);
+    require(votePower > 0, 'DAO: Only allow stakeholder to vote');
+    _proposalIndex += 1;
+    newProposal.expired = uint64(block.timestamp + 3 days);
     newProposal.vote = 0;
-    proposalStorage[proposalIndex] = newProposal;
-    return proposalIndex;
+    _proposalStorage[_proposalIndex] = newProposal;
+    return _proposalIndex;
   }
 
   // Vote a proposal
   function voteProposal(uint256 proposalId, bool positive) external override returns (bool) {
     uint256 votePower = IDAOToken(getAddressSameDomain('DAOToken')).votePower(msg.sender);
-    require(block.timestamp < proposalStorage[proposalId].expired, 'DAO: Voting period was over');
+    require(block.timestamp < _proposalStorage[proposalId].expired, 'DAO: Voting period was over');
     require(votePower > 0, 'DAO: Only allow stakeholder to vote');
-    require(votedStorage[proposalId][msg.sender] == false, 'DAO: You had voted this proposal');
+    require(_votedStorage[proposalId][msg.sender] == false, 'DAO: You had voted this proposal');
     if (positive) {
-      proposalStorage[proposalId].vote += int256(votePower);
+      _proposalStorage[proposalId].vote += int256(votePower);
       emit PositiveVote(proposalId, msg.sender, votePower);
     } else {
-      proposalStorage[proposalId].vote -= int256(votePower);
+      _proposalStorage[proposalId].vote -= int256(votePower);
       emit NegativeVote(proposalId, msg.sender, votePower);
     }
-    votedStorage[proposalId][msg.sender] = true;
+    _votedStorage[proposalId][msg.sender] = true;
     return true;
   }
 
+  /*******************************************************
+   * Public section
+   ********************************************************/
+
   // Execute a voted proposal
   function execute(uint256 proposalId) external override returns (bool) {
-    Proposal memory currentProposal = proposalStorage[proposalId];
+    Proposal memory currentProposal = _proposalStorage[proposalId];
     int256 threshold = int256(IDAOToken(getAddressSameDomain('DAOToken')).totalSupply() / 2);
-    require(block.timestamp > proposalStorage[proposalId].expired, "DAO: Voting period wasn't over");
+    require(block.timestamp > _proposalStorage[proposalId].expired, "DAO: Voting period wasn't over");
     require(currentProposal.vote > threshold, 'DAO: Vote was not pass threshold');
     require(currentProposal.executed == false, 'DAO: Proposal was executed');
     if (currentProposal.delegate) {
@@ -81,8 +89,24 @@ contract DAO is User, IDAO {
       currentProposal.target.functionCall(currentProposal.data);
     }
     currentProposal.executed = true;
-    proposalStorage[proposalId] = currentProposal;
+    _proposalStorage[proposalId] = currentProposal;
     emit ExecuteProposal(proposalId, msg.sender, currentProposal.vote);
     return true;
+  }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
+
+  function getProposalIndex() external view returns (uint256) {
+    return _proposalIndex;
+  }
+
+  function getProposalDetail(uint256 proposalId) external view returns (Proposal memory) {
+    return _proposalStorage[proposalId];
+  }
+
+  function isVoted(address stakeholder, uint256 proposalId) external view returns (bool) {
+    return _votedStorage[proposalId][stakeholder];
   }
 }
