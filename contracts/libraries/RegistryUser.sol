@@ -4,7 +4,7 @@ pragma abicoder v2;
 
 import '../interfaces/IRegistry.sol';
 
-abstract contract User {
+abstract contract RegistryUser {
   // Registry contract
   IRegistry internal _registry;
 

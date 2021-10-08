@@ -5,14 +5,14 @@ pragma abicoder v2;
 import '../interfaces/INFT.sol';
 import '../libraries/Bytes.sol';
 import '../libraries/Verifier.sol';
-import '../libraries/User.sol';
+import '../libraries/RegistryUser.sol';
 
 /**
  * Swap can transfer NFT by consume cryptography proof
  * Name: Swap
  * Domain: DKDAO
  */
-contract Swap is User {
+contract Swap is RegistryUser {
   // Verify signature
   using Verifier for bytes;
 

@@ -3,14 +3,14 @@ pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
 import '../interfaces/IRegistry.sol';
-import '../libraries/User.sol';
+import '../libraries/RegistryUser.sol';
 
 /**
  * DKDAO domain name system
  * Name: Registry
  * Domain: DKDAO
  */
-contract Registry is User, IRegistry {
+contract Registry is RegistryUser, IRegistry {
   // Mapping domain -> name -> address
   mapping(bytes32 => mapping(bytes32 => address)) private registered;
 

@@ -3,7 +3,7 @@
 pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
-import '../libraries/User.sol';
+import '../libraries/RegistryUser.sol';
 import '../libraries/Bytes.sol';
 import '../interfaces/IRNGConsumer.sol';
 
@@ -12,7 +12,7 @@ import '../interfaces/IRNGConsumer.sol';
  * Name: RNG
  * Domain: DKDAO
  */
-contract RNG is User {
+contract RNG is RegistryUser {
   // Use bytes lib for bytes
   using Bytes for bytes;
 

@@ -5,7 +5,7 @@ pragma abicoder v2;
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/proxy/Clones.sol';
 import '../interfaces/INFT.sol';
-import '../libraries/User.sol';
+import '../libraries/RegistryUser.sol';
 import '../libraries/Bytes.sol';
 
 /**
@@ -13,7 +13,7 @@ import '../libraries/Bytes.sol';
  * Name: Press
  * Domain: DKDAO
  */
-contract Press is User {
+contract Press is RegistryUser {
   // Allow to clone NFT
   using Clones for address;
 

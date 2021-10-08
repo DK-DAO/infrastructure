@@ -5,19 +5,21 @@ pragma abicoder v2;
 import '@openzeppelin/contracts/utils/Address.sol';
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
-import './libraries/User.sol';
+import './libraries/RegistryUser.sol';
+import './interfaces/IPool.sol';
 
 /**
  * Profit Pool
  * Name: Pool
  * Domain: DKDAO, *
  */
-contract Pool is User, Ownable {
+contract Pool is RegistryUser, Ownable, IPool {
   // Use address lib for address
   using Address for address;
 
-  function init(address registry_, bytes32 domain_) external returns (bool) {
-    return _registryUserInit(registry_, domain_);
+  function init(address registry_, bytes32 domain_) external override returns (bool) {
+    _registryUserInit(registry_, domain_);
+    return true;
   }
 
   /*******************************************************

@@ -3,7 +3,7 @@ pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
 import '../libraries/ERC721.sol';
-import '../libraries/User.sol';
+import '../libraries/RegistryUser.sol';
 
 /**
  * Only allow Press to mint new token following domain
@@ -11,7 +11,7 @@ import '../libraries/User.sol';
  * Name: NFT
  * Domain: DKDAO
  */
-contract NFT is User, ERC721 {
+contract NFT is RegistryUser, ERC721 {
   uint256 private _supply;
 
   // This method will replace constructor

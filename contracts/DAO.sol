@@ -7,14 +7,14 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
 import './interfaces/IDAO.sol';
 import './interfaces/IDAOToken.sol';
-import './libraries/User.sol';
+import './libraries/RegistryUser.sol';
 
 /**
  * DAO
  * Name: DAO
  * Domain: DKDAO, *
  */
-contract DAO is User, IDAO {
+contract DAO is RegistryUser, IDAO {
   // Address lib providing safe {call} and {delegatecall}
   using Address for address;
 
@@ -40,7 +40,8 @@ contract DAO is User, IDAO {
   event NegativeVote(uint256 indexed proposalId, address indexed stakeholder, uint256 indexed power);
 
   function init(address registry_, bytes32 domain_) external override returns (bool) {
-    return _registryUserInit(registry_, domain_);
+    _registryUserInit(registry_, domain_);
+    return true;
   }
 
   /*******************************************************

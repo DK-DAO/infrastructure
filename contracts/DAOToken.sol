@@ -53,7 +53,7 @@ contract DAOToken is ERC20 {
   }
 
   /*******************************************************
-   * Same domain section
+   * Public section
    ********************************************************/
 
   // Override {transferFrom} method

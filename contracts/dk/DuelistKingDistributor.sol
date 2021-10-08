@@ -5,7 +5,7 @@ pragma abicoder v2;
 
 import './DuelistKingItem.sol';
 import '../interfaces/IRNGConsumer.sol';
-import '../libraries/User.sol';
+import '../libraries/RegistryUser.sol';
 import '../libraries/Bytes.sol';
 import '../interfaces/ITheDivine.sol';
 import '../interfaces/INFT.sol';
@@ -15,7 +15,7 @@ import '../interfaces/INFT.sol';
  * Name: Distributor
  * Domain: Duelist King
  */
-contract DuelistKingDistributor is User, IRNGConsumer {
+contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
   // Using Bytes for bytes
   using Bytes for bytes;
 
@@ -51,8 +51,8 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     bytes32 domain_,
     address divine
   ) {
-    _registryUserInit(registry_, domain_);
     _theDivine = ITheDivine(divine);
+    _registryUserInit(registry_, domain_);
   }
 
   // Adding entropy to the pool

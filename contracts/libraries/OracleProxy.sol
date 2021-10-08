@@ -5,14 +5,14 @@ pragma abicoder v2;
 import '@openzeppelin/contracts/utils/Address.sol';
 import './Verifier.sol';
 import './Bytes.sol';
-import './User.sol';
+import './RegistryUser.sol';
 
 /**
  * Oracle Proxy
  * Name: Oracle
  * Domain: DKDAO, *
  */
-contract OracleProxy is User {
+contract OracleProxy is RegistryUser {
   // Verify signature
   using Bytes for bytes;
 
@@ -47,9 +47,9 @@ contract OracleProxy is User {
     address sender = message.verifySerialized(signature);
     uint256 timeAndNonce = message.readUint256(0);
     uint256 nonce = uint128(timeAndNonce);
-    uint256 time = timeAndNonce >> 128;
+    uint256 expired = timeAndNonce >> 128;
     require(nonce - _nonceStorage[sender] == 1, 'OracleProxy: Nonce value is invalid');
-    require(time < block.timestamp, 'OracleProxy: This proof was expired');
+    require(expired > block.timestamp, 'OracleProxy: This proof was expired');
     require(_controllers[sender], 'OracleProxy: Controller was not in the list');
     _nonceStorage[sender] += 1;
     _;

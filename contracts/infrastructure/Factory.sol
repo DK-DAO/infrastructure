@@ -6,14 +6,14 @@ import '@openzeppelin/contracts/proxy/Clones.sol';
 import '../interfaces/IPool.sol';
 import '../interfaces/IDAO.sol';
 import '../interfaces/IDAOToken.sol';
-import '../libraries/User.sol';
+import '../libraries/RegistryUser.sol';
 
 /**
  * Factory
  * Name: Factory
  * Domain: DKDAO
  */
-contract Factory is User {
+contract Factory is RegistryUser {
   // Use clone lib for address
   using Clones for address;
 
@@ -38,15 +38,19 @@ contract Factory is User {
   function cloneNewDAO(NewDAO calldata creatingDAO) external onlyAllowSameDomain('DAO') returns (bool) {
     // New DAO will be cloned from DKDAO
     address newDAO = _registry.getAddress('DKDAO', 'DAO').clone();
-    IDAO(newDAO).init(address(_registry), creatingDAO.domain);
+    bool success = IDAO(newDAO).init(address(_registry), creatingDAO.domain);
 
     // New DAO Token will be cloned from DKDAOToken
     address newDAOToken = _registry.getAddress('DKDAO', 'DAOToken').clone();
-    IDAOToken(newDAOToken).init(creatingDAO.name, creatingDAO.symbol, creatingDAO.genesis, creatingDAO.supply);
+    success =
+      success &&
+      IDAOToken(newDAOToken).init(creatingDAO.name, creatingDAO.symbol, creatingDAO.genesis, creatingDAO.supply);
 
     // New Pool will be clone from
     address newPool = _registry.getAddress('DKDAO', 'Pool').clone();
-    IPool(newPool).init(address(_registry), creatingDAO.domain);
+    success = success && IPool(newPool).init(address(_registry), creatingDAO.domain);
+
+    require(success, 'Factory: All initialized must be successed');
 
     return true;
   }
