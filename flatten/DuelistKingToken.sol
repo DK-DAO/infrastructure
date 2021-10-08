@@ -497,14 +497,21 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 }
 
 
-// Root file: contracts/test/TestToken.sol
+// Root file: contracts/dk/DuelistKingToken.sol
 
 pragma solidity >=0.8.4 <0.9.0;
 
 // import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
-contract TestToken is ERC20("Test Token", "TEST") {
-  constructor(){
-    _mint(msg.sender, 0xffffffffffffffffffffffffffffffff);
+/**
+ * Duelist King Token
+ * Name: DAO Token
+ * Domain: Duelist King
+ */
+contract DuelistKingToken is ERC20 {
+  // For now, DKT is just an ordinary ERC20 token
+  constructor(address genesis) ERC20('Duelist King Token', 'DKT') {
+    // There are only 10,000,000 DKT
+    _mint(genesis, 10000000 * (10**decimals()));
   }
 }

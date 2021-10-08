@@ -34,44 +34,56 @@ interface IRegistry {
 
 abstract contract User {
   // Registry contract
-  IRegistry internal registry;
+  IRegistry internal _registry;
 
   // Active domain
-  bytes32 internal domain;
+  bytes32 internal _domain;
+
+  // Initialized
+  bool private _initialized = false;
 
   // Allow same domain calls
   modifier onlyAllowSameDomain(bytes32 name) {
-    require(msg.sender == registry.getAddress(domain, name), 'User: Only allow call from same domain');
+    require(msg.sender == _registry.getAddress(_domain, name), 'User: Only allow call from same domain');
     _;
   }
 
   // Allow cross domain call
   modifier onlyAllowCrossDomain(bytes32 fromDomain, bytes32 name) {
-    require(msg.sender == registry.getAddress(fromDomain, name), 'User: Only allow call from allowed cross domain');
+    require(msg.sender == _registry.getAddress(fromDomain, name), 'User: Only allow call from allowed cross domain');
     _;
   }
 
+  /*******************************************************
+   * Internal section
+   ********************************************************/
+
   // Constructing with registry address and its active domain
-  function _init(address _registry, bytes32 _domain) internal returns (bool) {
-    require(domain == bytes32(0) && address(registry) == address(0), "User: It's only able to set once");
-    registry = IRegistry(_registry);
-    domain = _domain;
+  function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
+    require(!_initialized, "User: It's only able to initialize once");
+    _registry = IRegistry(registry_);
+    _domain = domain_;
+    _initialized = true;
     return true;
   }
 
   // Get address in the same domain
-  function getAddressSameDomain(bytes32 name) internal view returns (address) {
-    return registry.getAddress(domain, name);
+  function _getAddressSameDomain(bytes32 name) internal view returns (address) {
+    return _registry.getAddress(_domain, name);
   }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
 
   // Return active domain
   function getDomain() external view returns (bytes32) {
-    return domain;
+    return _domain;
   }
 
   // Return registry address
   function getRegistry() external view returns (address) {
-    return address(registry);
+    return address(_registry);
   }
 }
 
@@ -172,7 +184,7 @@ pragma solidity >=0.8.4 <0.9.0;
 /**
  * Random Number Generator
  * Name: RNG
- * Domain: DKDAO Infrastructure
+ * Domain: DKDAO
  */
 contract RNG is User {
   // Use bytes lib for bytes
@@ -205,14 +217,20 @@ contract RNG is User {
   // Secret storage
   mapping(uint256 => bytes32) private secretValues;
 
-  // Events
+  // Commit event
   event Committed(uint256 indexed index, bytes32 indexed digest);
+
+  // Reveal event
   event Revealed(uint256 indexed index, uint256 indexed s, uint256 indexed t);
 
   // Pass constructor parameter to User
-  constructor(address _registry, bytes32 _domain) {
-    _init(_registry, _domain);
+  constructor(address registry_, bytes32 domain_) {
+    _registryUserInit(registry_, domain_);
   }
+
+  /*******************************************************
+   * Oracle section
+   ********************************************************/
 
   // DKDAO Oracle will commit H(S||t) to blockchain
   function commit(bytes32 digest) external onlyAllowSameDomain('Oracle') returns (uint256) {
@@ -255,8 +273,12 @@ contract RNG is User {
     return index;
   }
 
+  /*******************************************************
+   * Private section
+   ********************************************************/
+
   // Commit digest to blockchain state
-  function _commit(bytes32 digest) internal returns (uint256) {
+  function _commit(bytes32 digest) private returns (uint256) {
     // We begin from 1 instead of 0 to prevent error
     totalDigest += 1;
     remainingDigest += 1;
@@ -265,6 +287,10 @@ contract RNG is User {
     emit Committed(totalDigest, digest);
     return totalDigest;
   }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
 
   // Get progress of commit scheme
   function getDataByIndex(uint256 index) external view returns (CommitSchemeData memory) {

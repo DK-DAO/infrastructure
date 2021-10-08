@@ -11,7 +11,7 @@ pragma solidity >=0.8.4 <0.9.0;
  */
 library DuelistKingItem {
   // We have 256 bits to store an item's id so we dicide to contain as much as posible data
-  // Application      64  bits    We can't control this, it will be assigned by DKDAO
+  // Entropy         64  bits    Some item need the randomnes value as seed to be openned
 
   // Edition:         16  bits    For now, 0-Standard edition 0xffff-Creator edition
   // Generation:      16  bits    Generation of item, now it's Gen 0
@@ -19,15 +19,15 @@ library DuelistKingItem {
   // Type:            16  bits    0-Card, 1-Loot Box
   // Id:              64  bits    Increasement value that unique for each item
   // Serial:          64  bits    Increasement value that count the number of items
-  // 256         192         176             160            144         128       64            0 
-  //  |application|  edition  |  generation   |   rareness   |   type    |   id    |   seiral   |
+  // 256         192         176             160            144         128       64            0
+  //  |  entropy  |  edition  |  generation   |   rareness   |   type    |   id    |   seiral   |
   function set(
     uint256 value,
     uint256 shift,
     uint256 mask,
     uint256 newValue
   ) internal pure returns (uint256 result) {
-    require((mask | newValue) ^ mask == 0, 'Card: New value is out range');
+    require((mask | newValue) ^ mask == 0, 'DuelistKingItem: New value is out range');
     assembly {
       result := and(value, not(shl(shift, mask)))
       result := or(shl(shift, newValue), result)
@@ -90,5 +90,13 @@ library DuelistKingItem {
 
   function getEdition(uint256 a) internal pure returns (uint256 c) {
     return get(a, 176, 0xffff);
+  }
+
+  function setEntropy(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    return set(a, 192, 0xffffffffffffffff, b);
+  }
+
+  function getEntropy(uint256 a) internal pure returns (uint256 c) {
+    return get(a, 192, 0xffffffffffffffff);
   }
 }

@@ -1,114 +1,15 @@
-// Dependency file: @openzeppelin/contracts/utils/Context.sol
-
-// SPDX-License-Identifier: MIT
-
-// pragma solidity ^0.8.0;
-
-/*
- * @dev Provides information about the current execution context, including the
- * sender of the transaction and its data. While these are generally available
- * via msg.sender and msg.data, they should not be accessed in such a direct
- * manner, since when dealing with meta-transactions the account sending and
- * paying for execution may not be the actual sender (as far as an application
- * is concerned).
- *
- * This contract is only required for intermediate, library-like contracts.
- */
-abstract contract Context {
-    function _msgSender() internal view virtual returns (address) {
-        return msg.sender;
-    }
-
-    function _msgData() internal view virtual returns (bytes calldata) {
-        return msg.data;
-    }
-}
-
-
-// Dependency file: @openzeppelin/contracts/access/Ownable.sol
-
-
-// pragma solidity ^0.8.0;
-
-// import "@openzeppelin/contracts/utils/Context.sol";
-
-/**
- * @dev Contract module which provides a basic access control mechanism, where
- * there is an account (an owner) that can be granted exclusive access to
- * specific functions.
- *
- * By default, the owner account will be the one that deploys the contract. This
- * can later be changed with {transferOwnership}.
- *
- * This module is used through inheritance. It will make available the modifier
- * `onlyOwner`, which can be applied to your functions to restrict their use to
- * the owner.
- */
-abstract contract Ownable is Context {
-    address private _owner;
-
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-    /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
-     */
-    constructor() {
-        _setOwner(_msgSender());
-    }
-
-    /**
-     * @dev Returns the address of the current owner.
-     */
-    function owner() public view virtual returns (address) {
-        return _owner;
-    }
-
-    /**
-     * @dev Throws if called by any account other than the owner.
-     */
-    modifier onlyOwner() {
-        require(owner() == _msgSender(), "Ownable: caller is not the owner");
-        _;
-    }
-
-    /**
-     * @dev Leaves the contract without owner. It will not be possible to call
-     * `onlyOwner` functions anymore. Can only be called by the current owner.
-     *
-     * NOTE: Renouncing ownership will leave the contract without an owner,
-     * thereby removing any functionality that is only available to the owner.
-     */
-    function renounceOwnership() public virtual onlyOwner {
-        _setOwner(address(0));
-    }
-
-    /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
-     * Can only be called by the current owner.
-     */
-    function transferOwnership(address newOwner) public virtual onlyOwner {
-        require(newOwner != address(0), "Ownable: new owner is the zero address");
-        _setOwner(newOwner);
-    }
-
-    function _setOwner(address newOwner) private {
-        address oldOwner = _owner;
-        _owner = newOwner;
-        emit OwnershipTransferred(oldOwner, newOwner);
-    }
-}
-
-
 // Dependency file: contracts/interfaces/INFT.sol
 
+// SPDX-License-Identifier: MIT
 // pragma solidity >=0.8.4 <0.9.0;
 
 interface INFT {
   function init(
+    address registry_,
+    bytes32 domain_,
     string memory name_,
     string memory symbol_,
-    address registry,
-    bytes32 domain
+    string memory uri_
   ) external returns (bool);
 
   function safeTransfer(
@@ -117,7 +18,13 @@ interface INFT {
     uint256 tokenId
   ) external returns (bool);
 
+  function ownerOf(uint256 tokenId) external view returns (address);
+
   function mint(address to, uint256 tokenId) external returns (bool);
+
+  function burn(uint256 tokenId) external returns (bool);
+
+  function changeBaseURI(string memory uri_) external returns (bool);
 }
 
 
@@ -336,44 +243,56 @@ interface IRegistry {
 
 abstract contract User {
   // Registry contract
-  IRegistry internal registry;
+  IRegistry internal _registry;
 
   // Active domain
-  bytes32 internal domain;
+  bytes32 internal _domain;
+
+  // Initialized
+  bool private _initialized = false;
 
   // Allow same domain calls
   modifier onlyAllowSameDomain(bytes32 name) {
-    require(msg.sender == registry.getAddress(domain, name), 'User: Only allow call from same domain');
+    require(msg.sender == _registry.getAddress(_domain, name), 'User: Only allow call from same domain');
     _;
   }
 
   // Allow cross domain call
   modifier onlyAllowCrossDomain(bytes32 fromDomain, bytes32 name) {
-    require(msg.sender == registry.getAddress(fromDomain, name), 'User: Only allow call from allowed cross domain');
+    require(msg.sender == _registry.getAddress(fromDomain, name), 'User: Only allow call from allowed cross domain');
     _;
   }
 
+  /*******************************************************
+   * Internal section
+   ********************************************************/
+
   // Constructing with registry address and its active domain
-  function _init(address _registry, bytes32 _domain) internal returns (bool) {
-    require(domain == bytes32(0) && address(registry) == address(0), "User: It's only able to set once");
-    registry = IRegistry(_registry);
-    domain = _domain;
+  function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
+    require(!_initialized, "User: It's only able to initialize once");
+    _registry = IRegistry(registry_);
+    _domain = domain_;
+    _initialized = true;
     return true;
   }
 
   // Get address in the same domain
-  function getAddressSameDomain(bytes32 name) internal view returns (address) {
-    return registry.getAddress(domain, name);
+  function _getAddressSameDomain(bytes32 name) internal view returns (address) {
+    return _registry.getAddress(_domain, name);
   }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
 
   // Return active domain
   function getDomain() external view returns (bytes32) {
-    return domain;
+    return _domain;
   }
 
   // Return registry address
   function getRegistry() external view returns (address) {
-    return address(registry);
+    return address(_registry);
   }
 }
 
@@ -382,29 +301,28 @@ abstract contract User {
 
 pragma solidity >=0.8.4 <0.9.0;
 
-// import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/access/Ownable.sol';
 // import 'contracts/interfaces/INFT.sol';
 // import 'contracts/libraries/Bytes.sol';
 // import 'contracts/libraries/Verifier.sol';
 // import 'contracts/libraries/User.sol';
 
 /**
- * Swap able to transfer token by
+ * Swap can transfer NFT by consume cryptography proof
  * Name: Swap
- * Domain: DKDAO Infrastructure
+ * Domain: DKDAO
  */
-contract Swap is User, Ownable {
+contract Swap is User {
+  // Verify signature
   using Verifier for bytes;
+
+  // Decode bytes array
   using Bytes for bytes;
 
   // Partner of duelistking
-  mapping(address => bool) private partners;
+  mapping(address => bool) private _partners;
 
   // Nonce
-  mapping(address => uint256) private nonceStorage;
-
-  // Staking
-  mapping(address => mapping(uint256 => uint256)) private stakingStorage;
+  mapping(address => uint256) private _nonceStorage;
 
   // List partner
   event ListPartner(address indexed partnerAddress);
@@ -412,110 +330,72 @@ contract Swap is User, Ownable {
   // Delist partner
   event DelistPartner(address indexed partnerAddress);
 
-  // Start staking
-  event StartStaking(address indexed owner, uint256 indexed tokenId, uint256 timestamp);
-
-  // Stop staking
-  event StopStaking(address indexed owner, uint256 indexed tokenId, uint256 timestamp);
-
   // Only allow partner to execute
   modifier onlyPartner() {
-    require(partners[msg.sender] == true, 'Swap: Sender was not partner');
+    require(_partners[msg.sender] == true, 'Swap: Sender was not partner');
     _;
   }
 
   // Pass constructor parameter to User
-  constructor(address _registry, bytes32 _domain) {
-    _init(_registry, _domain);
+  constructor(address registry_, bytes32 domain_) {
+    _registryUserInit(registry_, domain_);
   }
 
-  // User able to delegate transfer right with a cyrptographic proof
+  /*******************************************************
+   * Partner section
+   ********************************************************/
+
+  // Partners can trigger delegate transfer right with a cyrptography proof from owner
   function delegateTransfer(bytes memory proof) external onlyPartner returns (bool) {
     // Check for size of the proof
-    require(proof.length == 149, 'Swap: Wrong size of the proof, it must be 149 bytes');
+    require(proof.length >= 169, 'Swap: Wrong size of the proof, it must be greater than 169 bytes');
     bytes memory signature = proof.readBytes(0, 65);
     bytes memory message = proof.readBytes(65, proof.length - 65);
-    address _from = message.verifySerialized(signature);
-    address _to = message.readAddress(0);
-    uint256 _value = message.readUint256(20);
-    uint256 _nonce = message.readUint256(52);
+    address from = message.verifySerialized(signature);
+    address to = message.readAddress(0);
+    address nft = message.readAddress(20);
+    uint256 nonce = message.readUint256(40);
+    bytes memory nftTokenIds = message.readBytes(72, proof.length - 72);
+    require(nftTokenIds.length % 32 == 0, 'Swap: Invalid token ID length');
+    // Transfer one by one
+    for (uint256 i = 0; i < nftTokenIds.length; i += 32) {
+      INFT(nft).safeTransfer(from, to, nftTokenIds.readUint256(i));
+    }
     // Each nonce is only able to be use once
-    require(_nonce - nonceStorage[_from] == 1, 'Swap: Incorrect nonce of signer');
-    nonceStorage[_from] += 1;
-    return INFT(getAddressSameDomain('NFT')).safeTransfer(_from, _to, _value);
-  }
-
-  // Anyone could able to staking their good/items for their own sake
-  function startStaking(bytes memory tokenIds) external returns (bool) {
-    INFT nft = INFT(getAddressSameDomain('NFT'));
-    require(tokenIds.length % 32 == 0, 'Swap: Staking Ids need to be divied by 32');
-    for (uint256 i = 0; i < tokenIds.length; i += 32) {
-      uint256 tokenId = tokenIds.readUint256(i);
-      require(stakingStorage[msg.sender][tokenId] == 0, 'Swap: We are only able to stake, unstaked token');
-      // Store starting point of staking
-      stakingStorage[msg.sender][tokenId] = block.timestamp;
-      emit StartStaking(msg.sender, tokenId, block.timestamp);
-      require(
-        nft.safeTransfer(msg.sender, 0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa, tokenId),
-        'Swap: User should able to transfer their own token to staking address'
-      );
-    }
+    require(nonce - _nonceStorage[from] == 1, 'Swap: Incorrect nonce of signer');
+    _nonceStorage[from] += 1;
     return true;
   }
 
-  // Anyone could able to stop staking their good/items for their own sake
-  function stopStaking(bytes memory tokenIds) external returns (bool) {
-    INFT nft = INFT(getAddressSameDomain('NFT'));
-    require(tokenIds.length % 32 == 0, 'Swap: Staking Ids need to be divied by 32');
-    for (uint256 i = 0; i < tokenIds.length; i += 32) {
-      uint256 tokenId = tokenIds.readUint256(i);
-      require(
-        block.timestamp - stakingStorage[msg.sender][tokenId] > 1 days,
-        'Swap: You only able to stop staking after at least 1 day'
-      );
-      require(stakingStorage[msg.sender][tokenId] > 0, 'Swap: You only able to stop staking staked token');
-      // Reset staking state
-      stakingStorage[msg.sender][tokenId] = 0;
-      emit StopStaking(msg.sender, tokenId, block.timestamp);
-      require(
-        nft.safeTransfer(0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa, msg.sender, tokenId),
-        'Swap: User should able to transfer their own token to staking address'
-      );
-    }
-    return true;
-  }
+  /*******************************************************
+   * Operator section
+   ********************************************************/
 
   // List a new partner
-  function listPartner(address partnerAddress) external onlyOwner returns (bool) {
-    partners[partnerAddress] = true;
+  function listPartner(address partnerAddress) external onlyAllowSameDomain('Operator') returns (bool) {
+    _partners[partnerAddress] = true;
     emit ListPartner(partnerAddress);
     return true;
   }
 
   // Delist a partner
-  function delistPartner(address partnerAddress) external onlyOwner returns (bool) {
-    partners[partnerAddress] = false;
+  function delistPartner(address partnerAddress) external onlyAllowSameDomain('Operator') returns (bool) {
+    _partners[partnerAddress] = false;
     emit DelistPartner(partnerAddress);
     return true;
   }
 
+  /*******************************************************
+   * View section
+   ********************************************************/
+
   // Get nonce of an address
-  function getNonce(address owner) external view returns (uint256) {
-    return nonceStorage[owner] + 1;
+  function getValidNonce(address owner) external view returns (uint256) {
+    return _nonceStorage[owner] + 1;
   }
 
   // Check an address is partner or not
   function isPartner(address partner) external view returns (bool) {
-    return partners[partner];
-  }
-
-  // Get staking timestamp of given address and list of token Id
-  function getStakingStatus(address owner, bytes memory tokenIds) external view returns (uint256[] memory) {
-    require(tokenIds.length % 32 == 0, 'Swap: Staking Ids need to be divied by 32');
-    uint256[] memory result = new uint256[](tokenIds.length / 32);
-    for (uint256 i = 0; i < tokenIds.length; i += 1) {
-      result[i] = stakingStorage[owner][tokenIds.readUint256(i * 32)];
-    }
-    return result;
+    return _partners[partner];
   }
 }

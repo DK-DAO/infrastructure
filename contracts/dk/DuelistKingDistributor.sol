@@ -5,103 +5,225 @@ pragma abicoder v2;
 
 import './DuelistKingItem.sol';
 import '../interfaces/IRNGConsumer.sol';
-import '../libraries/User.sol';
+import '../libraries/RegistryUser.sol';
 import '../libraries/Bytes.sol';
 import '../interfaces/ITheDivine.sol';
 import '../interfaces/INFT.sol';
-import '../interfaces/IPress.sol';
 
 /**
  * Card distributor
  * Name: Distributor
  * Domain: Duelist King
  */
-contract DuelistKingDistributor is User, IRNGConsumer {
+contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
   // Using Bytes for bytes
   using Bytes for bytes;
 
-  // Using Duelist King Card for uint256
+  // Using Duelist King Item for uint256
   using DuelistKingItem for uint256;
 
-  // Number of seiral
-  uint256 private serial;
+  // Item's serial
+  uint256 private _itemSerial;
 
-  // Campaign index
-  uint256 campaignIndex;
+  // Card's serial
+  uint256 private _cardSerial;
+
+  // Default capped is 1,000,000 boxes
+  uint256 private _capped = 1000000;
 
   // The Divine
-  ITheDivine private immutable theDivine;
+  ITheDivine private immutable _theDivine;
 
   // Maping genesis
-  mapping(uint256 => uint256) genesisEdition;
+  mapping(uint256 => uint256) private _genesisEdition;
+
+  // Map minted boxes
+  mapping(uint256 => uint256) private _mintedBoxes;
 
   // Entropy data
-  uint256 private entropy;
+  uint256 private _entropy;
 
-  // Campaign structure
-  struct Campaign {
-    // Total number of issued card
-    uint64 opened;
-    // Soft cap of card distribution
-    uint64 softCap;
-    // Deadline of timestamp
-    uint64 deadline;
-    // Generation
-    uint64 generation;
-    // Start card Id
-    uint64 start;
-    // Start end card Id
-    uint64 end;
-    // Card distribution
-    uint256[] distribution;
-  }
-
-  // Campaign storage
-  mapping(uint256 => Campaign) private campaignStorage;
-
-  // New campaign
-  event NewCampaign(uint256 indexed campaginId, uint256 indexed generation, uint64 indexed softcap);
+  // New genesis card
+  event NewGenesisCard(address indexed owner, uint256 indexed carId, uint256 indexed nftTokenId);
 
   constructor(
-    address _registry,
-    bytes32 _domain,
+    address registry_,
+    bytes32 domain_,
     address divine
   ) {
-    _init(_registry, _domain);
-    theDivine = ITheDivine(divine);
+    _theDivine = ITheDivine(divine);
+    _registryUserInit(registry_, domain_);
   }
 
-  // Create new campaign
-  function newCampaign(Campaign memory campaign) external onlyAllowSameDomain('Oracle') returns (uint256) {
-    // Overwrite start with number of unique design
-    // and then increase unique design to new card
-    // To make sure card id won't be duplicated
-    // Auto assign generation
-    campaignIndex += 1;
-    campaignStorage[campaignIndex] = campaign;
-    emit NewCampaign(campaignIndex, campaign.generation, campaign.softCap);
-    return campaignIndex;
-  }
-
-  // Compute random value from RNG
-  function compute(bytes memory data)
-    external
-    override
-    onlyAllowCrossDomain('DKDAO Infrastructure', 'RNG')
-    returns (bool)
-  {
+  // Adding entropy to the pool
+  function compute(bytes memory data) external override onlyAllowCrossDomain('Infrastructure', 'RNG') returns (bool) {
     require(data.length == 32, 'Distributor: Data must be 32 in length');
     // We combine random value with The Divine's result to prevent manipulation
     // https://github.com/chiro-hiro/thedivine
-    entropy ^= uint256(data.readUint256(0)) ^ theDivine.rand();
+    _entropy ^= uint256(data.readUint256(0)) ^ _theDivine.rand();
     return true;
   }
 
+  /*******************************************************
+   * Public section
+   ********************************************************/
+
+  // Anyone would able to help owner claim boxes
+  function claimCards(address owner, bytes memory nftIds) external {
+    // Get nft
+    INFT nft = INFT(_registry.getAddress(_domain, 'NFT'));
+    // Make sure that number of id length is valid
+    require(nftIds.length % 32 == 0, 'Distributor: Invalid length of NFT IDs');
+    for (uint256 i = 0; i < nftIds.length; i += 32) {
+      uint256 nftId = nftIds.readUint256(i);
+      // We only able to claim openned boxes
+      require(nftId.getType() == 1 && nftId.getEntropy() > 0, 'Distributor: Invalid box id');
+      // Claim cards from open boxes
+      require(_claimCardsInBox(owner, nftId), 'Distributor: Unable to claim cards in the box');
+      // Burn claimed box after open
+      require(nft.ownerOf(nftId) == owner && nft.burn(nftId), 'Distributor: Unable to burn claimed box');
+    }
+  }
+
+  // Only owner able to open boxes
+  function openBoxes(bytes memory nftIds) external {
+    INFT nft = INFT(_registry.getAddress(_domain, 'NFT'));
+    address owner = msg.sender;
+    require(nftIds.length % 32 == 0, 'Distributor: Invalid length of NFT IDs');
+    uint256 rand = uint256(keccak256(abi.encodePacked(_entropy, owner)));
+    uint256 j = 0;
+    for (uint256 i = 0; i < nftIds.length; i += 32) {
+      uint256 nftId = nftIds.readUint256(i);
+      require(nftId.getType() == 1 && nftId.getEntropy() == 0, 'Distributor: Only able to open unopened boxes');
+      if (j >= 256) {
+        rand = uint256(keccak256(abi.encodePacked(_entropy)));
+        j = 0;
+      }
+      require(
+        nft.ownerOf(nftId) == owner &&
+          nft.burn(nftId) &&
+          nft.mint(owner, nftId.setEntropy((rand >> j) & 0xffffffffffffffff)),
+        'Distributor: Unable to burn old box and issue opened box'
+      );
+      j += 64;
+    }
+  }
+
+  /*******************************************************
+   * Oracle section
+   ********************************************************/
+
+  // Mint boxes
+  function mintBoxes(
+    address owner,
+    uint256 numberOfBoxes,
+    uint256 boxId
+  ) external onlyAllowSameDomain('Oracle') returns (bool) {
+    require(numberOfBoxes > 0 && numberOfBoxes <= 1000, 'Distributor: Invalid number of boxes');
+    require(boxId >= 1, 'Distributor: Invalid box id');
+    require(_mintedBoxes[boxId] > _capped, 'Distributor: We run out of this box');
+    bool isSuccess = true;
+    for (uint256 i = 0; i < numberOfBoxes; i += 1) {
+      isSuccess = isSuccess && _issueItem(owner, uint256(0).setType(1).setId(boxId)) > 0;
+    }
+    require(isSuccess, 'Distributor: We were not able to mint boxes');
+    _mintedBoxes[boxId] += numberOfBoxes;
+    return isSuccess;
+  }
+
+  // Issue genesis edition for card creator
+  function issueGenesisCard(
+    address owner,
+    uint256 generation,
+    uint256 id
+  ) external onlyAllowSameDomain('Oracle') returns (uint256) {
+    require(_genesisEdition[id] == 0, 'Distributor: Only one genesis edition will be distributed');
+    uint256 issueCard = _issueCard(
+      owner,
+      uint256(0x0000000000000000ffff00000000000000000000000000000000000000000000).setGeneration(generation).setId(id)
+    );
+    _genesisEdition[id] = issueCard;
+    emit NewGenesisCard(owner, id, issueCard);
+    return issueCard;
+  }
+
+  /*******************************************************
+   * Private section
+   ********************************************************/
+
+  // Open loot boxes
+  function _claimCardsInBox(address owner, uint256 boxNftTokenId) private returns (bool) {
+    INFT nft = INFT(_registry.getAddress(_domain, 'NFT'));
+    // Read entropy from openned card
+    uint256 rand = uint256(keccak256(abi.encodePacked(boxNftTokenId.getEntropy())));
+    // Box Id is equal to phase of card
+    uint256 boxId = boxNftTokenId.getId();
+    // 20 phases = 1 gen
+    uint256 generation = boxId / 20;
+    // Start point
+    uint256 startPoint = boxId * 20 - 20;
+    // Serial of card
+    uint256 serial = _cardSerial;
+    for (uint256 i = 0; i < 5; ) {
+      // Repeat hash on its selft
+      rand = uint256(keccak256(abi.encodePacked(rand)));
+      for (uint256 j = 0; j < 256 && i < 5; j += 32) {
+        uint256 luckyNumber = (rand >> j) & 0xffffffff;
+        // Draw card by lucky number
+        uint256 card = _caculateCard(startPoint, luckyNumber);
+        if (card > 0) {
+          serial += 1;
+          require(
+            nft.mint(owner, card.setGeneration(generation).setSerial(serial)),
+            'Distributor: Can not mint NFT card'
+          );
+          i += 1;
+        }
+      }
+    }
+    // Update card's serial
+    _cardSerial = serial;
+    // Update old random with new one
+    _entropy = rand;
+    return true;
+  }
+
+  // Issue card
+  function _issueCard(address owner, uint256 baseCardId) private returns (uint256) {
+    _cardSerial += 1;
+    // Overwrite item type with 0
+    return _mint(owner, baseCardId.setType(0).setSerial(_cardSerial));
+  }
+
+  // Issue other item
+  function _issueItem(address owner, uint256 baseItemId) private returns (uint256) {
+    _itemSerial += 1;
+    // Overite item's serial
+    return _mint(owner, baseItemId.setSerial(_itemSerial));
+  }
+
+  function _mint(address owner, uint256 nftTokenId) private returns (uint256) {
+    if (INFT(_registry.getAddress(_domain, 'NFT')).mint(owner, nftTokenId)) {
+      return nftTokenId;
+    }
+    return 0;
+  }
+
   // Calcualte card
-  function caculateCard(Campaign memory currentCampaign, uint256 luckyNumber) private pure returns (uint256) {
-    uint256 luckyDraw = luckyNumber % (currentCampaign.softCap * 5);
-    for (uint256 i = 0; i < currentCampaign.distribution.length; i += 1) {
-      uint256 t = currentCampaign.distribution[i];
+  function _caculateCard(uint256 startPoint, uint256 luckyNumber) private view returns (uint256) {
+    // Draw value from luckey number
+    uint256 luckyDraw = luckyNumber % (_capped * 5);
+    // Card distribution
+    uint256[6] memory distribution = [
+      uint256(0x00000000000000000000000000000001000000000000000600000000000009c4),
+      uint256(0x000000000000000000000000000000020000000100000005000009c400006b6c),
+      uint256(0x00000000000000000000000000000003000000030000000400006b6c00043bfc),
+      uint256(0x00000000000000000000000000000004000000060000000300043bfc000fadac),
+      uint256(0x000000000000000000000000000000050000000a00000002000fadac0026910c),
+      uint256(0x000000000000000000000000000000050000000f000000010026910c004c4b40)
+    ];
+    for (uint256 i = 0; i < distribution.length; i += 1) {
+      uint256 t = distribution[i];
       uint256 rEnd = t & 0xffffffff;
       uint256 rStart = (t >> 32) & 0xffffffff;
       uint256 rareness = (t >> 64) & 0xffffffff;
@@ -109,78 +231,23 @@ contract DuelistKingDistributor is User, IRNGConsumer {
       uint256 cardFactor = (t >> 128) & 0xffffffff;
       if (luckyDraw >= rStart && luckyDraw <= rEnd) {
         // Return card Id
-        return uint256(0).setRareness(rareness).setId(currentCampaign.start + cardStart + (luckyNumber % cardFactor));
+        return uint256(0).setRareness(rareness).setId(startPoint + cardStart + (luckyNumber % cardFactor));
       }
     }
     return 0;
   }
 
-  // Open loot boxes
-  function openBox(
-    uint256 campaignId,
-    address owner,
-    uint256 numberOfBoxes
-  ) external onlyAllowSameDomain('Oracle') returns (bool) {
-    require(
-      numberOfBoxes <= 10,
-      'Distributor: Invalid number of loot boxes'
-    );
-    IPress infrastructurePress = IPress(registry.getAddress('DKDAO Infrastructure', 'Press'));
-    require(campaignId > 0 && campaignId <= campaignIndex, 'Distributor: Invalid campaign Id');
-    Campaign memory currentCampaign = campaignStorage[campaignId];
-    currentCampaign.opened += uint64(numberOfBoxes);
-    // Set deadline if softcap is reached
-    if (currentCampaign.deadline > 0) {
-      require(block.timestamp > currentCampaign.deadline, 'Distributor: Card sale is over');
-    }
-    if (currentCampaign.deadline == 0 && currentCampaign.opened > currentCampaign.softCap) {
-      currentCampaign.deadline = uint64(block.timestamp + 3 days);
-    }
-    uint256 rand = uint256(keccak256(abi.encodePacked(entropy, owner)));
-    uint256 boughtCards = numberOfBoxes * 5;
-    uint256 luckyNumber;
-    uint256 card = uint256(0).setGeneration(currentCampaign.generation);
-    uint256 cardSerial = serial;
-    for (uint256 i = 0; i < boughtCards; ) {
-      // Repeat hash on its selft
-      rand = uint256(keccak256(abi.encodePacked(rand)));
-      for (uint256 j = 0; j < 256 && i < boughtCards; j += 32) {
-        luckyNumber = (rand >> j) & 0xffffffff;
-        // Draw card by lucky number
-        card = caculateCard(currentCampaign, luckyNumber);
-        if (card > 0) {
-          cardSerial += 1;
-          infrastructurePress.createItem(domain, owner, card.setSerial(cardSerial));
-          i += 1;
-        }
-      }
-    }
-    serial = cardSerial;
-    campaignStorage[campaignId] = currentCampaign;
-    // Update old random with new one
-    entropy = rand;
-    return true;
+  /*******************************************************
+   * View section
+   ********************************************************/
+
+  // Get remaining box of a phase
+  function getRemainingBox(uint256 boxId) external view returns (uint256) {
+    return _capped - _mintedBoxes[boxId];
   }
 
-  // Issue genesis edition for card creator
-  function issueGenesisEdittion(address owner, uint256 id) public onlyAllowSameDomain('Oracle') returns (bool) {
-    // This card is genesis edittion
-    uint256 card = uint256(0x0000000000000000ffff00000000000000000000000000000000000000000000).setId(id);
-    require(genesisEdition[card] == 0, 'Distributor: Only one genesis edition will be distributed');
-    serial += 1;
-    uint256 issueCard = card.setSerial(serial);
-    genesisEdition[card] = issueCard;
-    IPress(registry.getAddress('DKDAO Infrastructure', 'Press')).createItem(domain, owner, issueCard);
-    return true;
-  }
-
-  // Read campaign storage of a given campaign index
-  function getCampaignIndex() external view returns (uint256) {
-    return campaignIndex;
-  }
-
-  // Read campaign storage of a given campaign index
-  function getCampaign(uint256 index) external view returns (Campaign memory) {
-    return campaignStorage[index];
+  // Get genesis token id of given card ID
+  function getGenesisEdittion(uint256 cardId) external view returns (uint256) {
+    return _genesisEdition[cardId];
   }
 }

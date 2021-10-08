@@ -6,45 +6,51 @@ import '@openzeppelin/contracts/proxy/Clones.sol';
 import '../interfaces/IPool.sol';
 import '../interfaces/IDAO.sol';
 import '../interfaces/IDAOToken.sol';
-import '../libraries/User.sol';
-import '../libraries/TokenMetadata.sol';
+import '../libraries/RegistryUser.sol';
 
 /**
- * Item manufacture
+ * Factory
  * Name: Factory
- * Domain: DKDAO Infrastructure
+ * Domain: Infrastructure
  */
-contract Factory is User {
+contract Factory is RegistryUser {
   // Use clone lib for address
   using Clones for address;
 
   // New DAO data
   struct NewDAO {
     bytes32 domain;
-    TokenMetadata.Metadata tokenMetadata;
+    address genesis;
+    uint256 supply;
+    string name;
+    string symbol;
   }
 
   // Pass constructor parameter to User
-  constructor(address _registry, bytes32 _domain) {
-    _init(_registry, _domain);
+  constructor(address registry_, bytes32 domain_) {
+    _registryUserInit(registry_, domain_);
   }
 
-  function cloneNewDAO(NewDAO calldata creatingDAO)
-    external
-    onlyAllowCrossDomain('DKDAO', 'DAO')
-    returns (bool)
-  {
-    // New DAO will be cloned from KDDAO
-    address newDAO = registry.getAddress('DKDAO', 'DAO').clone();
-    IDAO(newDAO).init(address(registry), creatingDAO.domain);
+  /*******************************************************
+   * Same domain section
+   ********************************************************/
+
+  function cloneNewDAO(NewDAO calldata creatingDAO) external onlyAllowSameDomain('Infrastructure') returns (bool) {
+    // New DAO will be cloned from DKDAO
+    address newDAO = _registry.getAddress('Infrastructure', 'DAO').clone();
+    bool success = IDAO(newDAO).init(address(_registry), creatingDAO.domain);
 
     // New DAO Token will be cloned from DKDAOToken
-    address newDAOToken = registry.getAddress('DKDAO', 'DAOToken').clone();
-    IDAOToken(newDAOToken).init(creatingDAO.tokenMetadata);
+    address newDAOToken = _registry.getAddress('Infrastructure', 'DAOToken').clone();
+    success =
+      success &&
+      IDAOToken(newDAOToken).init(creatingDAO.name, creatingDAO.symbol, creatingDAO.genesis, creatingDAO.supply);
 
     // New Pool will be clone from
-    address newPool = registry.getAddress('DKDAO', 'Pool').clone();
-    IPool(newPool).init(address(registry), creatingDAO.domain);
+    address newPool = _registry.getAddress('Infrastructure', 'Pool').clone();
+    success = success && IPool(newPool).init(address(_registry), creatingDAO.domain);
+
+    require(success, 'Factory: All initialized must be successed');
 
     return true;
   }

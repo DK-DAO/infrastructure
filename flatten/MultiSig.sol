@@ -131,7 +131,7 @@ library Address {
         require(isContract(target), "Address: call to non-contract");
 
         (bool success, bytes memory returndata) = target.call{value: value}(data);
-        return _verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResult(success, returndata, errorMessage);
     }
 
     /**
@@ -158,7 +158,7 @@ library Address {
         require(isContract(target), "Address: static call to non-contract");
 
         (bool success, bytes memory returndata) = target.staticcall(data);
-        return _verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResult(success, returndata, errorMessage);
     }
 
     /**
@@ -185,14 +185,20 @@ library Address {
         require(isContract(target), "Address: delegate call to non-contract");
 
         (bool success, bytes memory returndata) = target.delegatecall(data);
-        return _verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResult(success, returndata, errorMessage);
     }
 
-    function _verifyCallResult(
+    /**
+     * @dev Tool to verifies that a low level call was successful, and revert if it wasn't, either by bubbling the
+     * revert reason using the provided one.
+     *
+     * _Available since v4.3._
+     */
+    function verifyCallResult(
         bool success,
         bytes memory returndata,
         string memory errorMessage
-    ) private pure returns (bytes memory) {
+    ) internal pure returns (bytes memory) {
         if (success) {
             return returndata;
         } else {
@@ -212,20 +218,270 @@ library Address {
 }
 
 
+// Dependency file: contracts/libraries/Verifier.sol
+
+// pragma solidity >=0.8.4 <0.9.0;
+
+library Verifier {
+  function verifySerialized(bytes memory message, bytes memory signature) public pure returns (address) {
+    bytes32 r;
+    bytes32 s;
+    uint8 v;
+    assembly {
+      // Singature need to be 65 in length
+      // if (signature.length !== 65) revert();
+      if iszero(eq(mload(signature), 65)) {
+        revert(0, 0)
+      }
+      // r = signature[:32]
+      // s = signature[32:64]
+      // v = signature[64]
+      r := mload(add(signature, 0x20))
+      s := mload(add(signature, 0x40))
+      v := byte(0, mload(add(signature, 0x60)))
+      // Invalid v value, for Ethereum it's only possible to be 27, 28 and 0, 1 in legacy code
+      if lt(v, 27) {
+        v := add(v, 27)
+      }
+      if iszero(or(eq(v, 27), eq(v, 28))) {
+        revert(0, 0)
+      }
+    }
+
+    // Get hashes of message with Ethereum proof prefix
+    bytes32 hashes = keccak256(abi.encodePacked('\x19Ethereum Signed Message:\n', uintToStr(message.length), message));
+
+    return ecrecover(hashes, v, r, s);
+  }
+
+  function verify(
+    bytes memory message,
+    bytes32 r,
+    bytes32 s,
+    uint8 v
+  ) public pure returns (address) {
+    if (v < 27) {
+      v += 27;
+    }
+    // V must be 27 or 28
+    require(v == 27 || v == 28, 'Invalid v value');
+    // Get hashes of message with Ethereum proof prefix
+    bytes32 hashes = keccak256(abi.encodePacked('\x19Ethereum Signed Message:\n', uintToStr(message.length), message));
+
+    return ecrecover(hashes, v, r, s);
+  }
+
+  function uintToStr(uint256 value) public pure returns (bytes memory result) {
+    assembly {
+      switch value
+      case 0 {
+        // In case of 0, we just return "0"
+        result := mload(0x40)
+        // result.length = 1
+        mstore(result, 0x01)
+        // result = "0"
+        mstore(add(result, 0x20), 0x30)
+      }
+      default {
+        let length := 0x0
+        // let result = new bytes(32)
+        result := mload(0x40)
+
+        // Get length of render number
+        // for (let v := value; v > 0; v = v / 10)
+        for {
+          let v := value
+        } gt(v, 0x00) {
+          v := div(v, 0x0a)
+        } {
+          length := add(length, 0x01)
+        }
+
+        // We're only support number with 32 digits
+        // if (length > 32) revert();
+        if gt(length, 0x20) {
+          revert(0, 0)
+        }
+
+        // Set length of result
+        mstore(result, length)
+
+        // Start render result
+        // for (let v := value; length > 0; v = v / 10)
+        for {
+          let v := value
+        } gt(length, 0x00) {
+          v := div(v, 0x0a)
+        } {
+          // result[--length] = 48 + (v % 10)
+          length := sub(length, 0x01)
+          mstore8(add(add(result, 0x20), length), add(0x30, mod(v, 0x0a)))
+        }
+      }
+    }
+  }
+}
+
+
+// Dependency file: contracts/libraries/Bytes.sol
+
+// pragma solidity >=0.8.4 <0.9.0;
+
+library Bytes {
+  // Convert bytes to bytes32[]
+  function toBytes32Array(bytes memory input) internal pure returns (bytes32[] memory) {
+    require(input.length % 32 == 0, 'Bytes: invalid data length should divied by 32');
+    bytes32[] memory result = new bytes32[](input.length / 32);
+    assembly {
+      // Read length of data from offset
+      let length := mload(input)
+
+      // Seek offset to the beginning
+      let offset := add(input, 0x20)
+
+      // Next is size of chunk
+      let resultOffset := add(result, 0x20)
+
+      for {
+        let i := 0
+      } lt(i, length) {
+        i := add(i, 0x20)
+      } {
+        mstore(resultOffset, mload(add(offset, i)))
+        resultOffset := add(resultOffset, 0x20)
+      }
+    }
+    return result;
+  }
+
+  // Read address from input bytes buffer
+  function readAddress(bytes memory input, uint256 offset) internal pure returns (address result) {
+    require(offset + 20 <= input.length, 'Bytes: Our of range, can not read address from bytes');
+    assembly {
+      result := shr(96, mload(add(add(input, 0x20), offset)))
+    }
+  }
+
+  // Read uint256 from input bytes buffer
+  function readUint256(bytes memory input, uint256 offset) internal pure returns (uint256 result) {
+    require(offset + 32 <= input.length, 'Bytes: Our of range, can not read uint256 from bytes');
+    assembly {
+      result := mload(add(add(input, 0x20), offset))
+    }
+  }
+
+  // Read bytes from input bytes buffer
+  function readBytes(
+    bytes memory input,
+    uint256 offset,
+    uint256 length
+  ) internal pure returns (bytes memory) {
+    require(offset + length <= input.length, 'Bytes: Our of range, can not read bytes from bytes');
+    bytes memory result = new bytes(length);
+    assembly {
+      // Seek offset to the beginning
+      let seek := add(add(input, 0x20), offset)
+
+      // Next is size of data
+      let resultOffset := add(result, 0x20)
+
+      for {
+        let i := 0
+      } lt(i, length) {
+        i := add(i, 0x20)
+      } {
+        mstore(add(resultOffset, i), mload(add(seek, i)))
+      }
+    }
+    return result;
+  }
+}
+
+
+// Dependency file: contracts/libraries/MultiOwner.sol
+
+// pragma solidity >=0.8.4 <0.9.0;
+
+contract MultiOwner {
+  // Multi owner data
+  mapping(address => bool) private _owners;
+
+  // Multi owner data
+  mapping(address => uint256) private _activeTime;
+
+  // Total number of owners
+  uint256 private _totalOwner;
+
+  // Only allow listed address to trigger smart contract
+  modifier onlyListedOwner() {
+    require(
+      _owners[msg.sender] && block.timestamp > _activeTime[msg.sender],
+      'MultiOwner: We are only allow owner to trigger this contract'
+    );
+    _;
+  }
+
+  // Transfer ownership event
+  event TransferOwnership(address indexed preOwner, address indexed newOwner);
+
+  constructor(address[] memory owners_) {
+    for (uint256 i = 0; i < owners_.length; i += 1) {
+      _owners[owners_[i]] = true;
+      emit TransferOwnership(address(0), owners_[i]);
+    }
+    _totalOwner = owners_.length;
+  }
+
+  /*******************************************************
+   * Internal section
+   ********************************************************/
+
+  function _transferOwnership(address newOwner, uint256 lockDuration) internal returns (bool) {
+    require(newOwner != address(0), 'MultiOwner: Can not transfer ownership to zero address');
+    _owners[msg.sender] = false;
+    _owners[newOwner] = true;
+    _activeTime[newOwner] = block.timestamp + lockDuration;
+    emit TransferOwnership(msg.sender, newOwner);
+    return _owners[newOwner];
+  }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
+
+  function isOwner(address checkAddress) public view returns (bool) {
+    return _owners[checkAddress] && block.timestamp > _activeTime[checkAddress];
+  }
+
+  function totalOwner() public view returns (uint256) {
+    return _totalOwner;
+  }
+}
+
+
 // Root file: contracts/dk/MultiSig.sol
 
 pragma solidity >=0.8.4 <0.9.0;
 
 // import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/utils/Address.sol';
+// import 'contracts/libraries/Verifier.sol';
+// import 'contracts/libraries/Bytes.sol';
+// import 'contracts/libraries/MultiOwner.sol';
 
 /**
  * Multi Signature Wallet
- * Name: MultiSig
- * Domain: Duelist King
+ * Name: N/A
+ * Domain: N/A
  */
-contract MultiSig {
+contract MultiSig is MultiOwner {
   // Address lib providing safe {call} and {delegatecall}
   using Address for address;
+
+  // Byte manipulation
+  using Bytes for bytes;
+
+  // Verifiy digital signature
+  using Verifier for bytes;
 
   // Structure of proposal
   struct Proposal {
@@ -238,12 +494,6 @@ contract MultiSig {
     bytes data;
   }
 
-  // Total number of owner
-  uint256 private _ownerCount;
-
-  // Proposal storage
-  mapping(address => bool) private _owners;
-
   // Proposal index, begin from 1
   uint256 private _proposalIndex;
 
@@ -253,35 +503,60 @@ contract MultiSig {
   // Voted storage
   mapping(uint256 => mapping(address => bool)) private _votedStorage;
 
-  // Only allow owner to call this smart contract
-  modifier onlyOwner() {
-    require(_owners[msg.sender], 'MultiSig: Sender was not owner');
-    _;
-  }
+  // Quick transaction nonce
+  uint256 private _nonce;
 
   // Create a new proposal
   event CreateProposal(uint256 indexed proposalId, uint256 indexed expired);
+
   // Execute proposal
   event ExecuteProposal(uint256 indexed proposalId, address indexed trigger, int256 indexed vote);
+
   // Positive vote
   event PositiveVote(uint256 indexed proposalId, address indexed owner);
+
   // Negative vote
   event NegativeVote(uint256 indexed proposalId, address indexed owner);
-  // Transfer ownership
-  event TransferOwnership(address indexed from, address indexed to);
 
+  // This contract able to receive fund
   receive() external payable {}
 
-  constructor(address[] memory owners_) {
-    for (uint256 i = 0; i < owners_.length; i += 1) {
-      _owners[owners_[i]] = true;
-      emit TransferOwnership(address(0), owners_[i]);
+  // Pass parameters to parent contract
+  constructor(address[] memory owners_) MultiOwner(owners_) {}
+
+  /*******************************************************
+   * Owner section
+   ********************************************************/
+  // Transfer ownership to new owner
+  function transferOwnership(address newOwner) external onlyListedOwner {
+    // New owner will be activated after 3 days
+    _transferOwnership(newOwner, 3 days);
+  }
+
+  // Transfer with signed proofs instead of onchain voting
+  function quickTransfer(bytes[] memory signatures, bytes memory txData) external onlyListedOwner returns (bool) {
+    uint256 totalSigned = 0;
+    address[] memory signedAddresses = new address[](signatures.length);
+    for (uint256 i = 0; i < signatures.length; i += 1) {
+      address signer = txData.verifySerialized(signatures[i]);
+      // Each signer only able to be counted once
+      if (isOwner(signer) && _isNotInclude(signedAddresses, signer)) {
+        signedAddresses[totalSigned] = signer;
+        totalSigned += 1;
+      }
     }
-    _ownerCount = owners_.length;
+    require(_calculatePercent(int256(totalSigned)) > 70, 'MultiSig: Total accept was not greater than 70%');
+    uint256 nonce = txData.readUint256(0);
+    address target = txData.readAddress(32);
+    bytes memory data = txData.readBytes(52, txData.length - 52);
+    require(nonce - _nonce == 1, 'MultiSign: Invalid nonce value');
+    _nonce = nonce;
+    target.functionCallWithValue(data, 0);
+    return true;
   }
 
   // Create a new proposal
-  function createProposal(Proposal memory newProposal) external onlyOwner returns (uint256) {
+  function createProposal(Proposal memory newProposal) external onlyListedOwner returns (uint256) {
     _proposalIndex += 1;
     newProposal.expired = uint64(block.timestamp + 1 days);
     newProposal.vote = 0;
@@ -290,26 +565,25 @@ contract MultiSig {
     return _proposalIndex;
   }
 
-  // Vote a proposal
-  function voteProposal(uint256 proposalId, bool positive) external onlyOwner returns (bool) {
-    require(block.timestamp < _proposalStorage[proposalId].expired, 'MultiSig: Voting period was over');
-    require(_votedStorage[proposalId][msg.sender] == false, 'MultiSig: You had voted this proposal');
-    if (positive) {
-      _proposalStorage[proposalId].vote += 1;
-      emit PositiveVote(proposalId, msg.sender);
-    } else {
-      _proposalStorage[proposalId].vote -= 1;
-      emit NegativeVote(proposalId, msg.sender);
-    }
-    _votedStorage[proposalId][msg.sender] = true;
-    return true;
+  // Positive vote
+  function votePositive(uint256 proposalId) external onlyListedOwner returns (bool) {
+    return _voteProposal(proposalId, true);
+  }
+
+  // Negative vote
+  function voteNegative(uint256 proposalId) external onlyListedOwner returns (bool) {
+    return _voteProposal(proposalId, false);
   }
 
   // Execute a voted proposal
-  function execute(uint256 proposalId) external onlyOwner returns (bool) {
+  function execute(uint256 proposalId) external onlyListedOwner returns (bool) {
     Proposal memory currentProposal = _proposalStorage[proposalId];
-    require(block.timestamp > _proposalStorage[proposalId].expired, "MultiSig: Voting period wasn't over");
-    require(currentProposal.vote >= int256(_ownerCount / 2), 'MultiSig: Vote was not pass threshold');
+    int256 positiveVoted = _calculatePercent(currentProposal.vote);
+    // If positiveVoted < 70%, It need to pass 50% and expired
+    if (positiveVoted < 70) {
+      require(block.timestamp > _proposalStorage[proposalId].expired, "MultiSig: Voting period wasn't over");
+      require(positiveVoted >= 50, 'MultiSig: Vote was not pass 50%');
+    }
     require(currentProposal.executed == false, 'MultiSig: Proposal was executed');
     if (currentProposal.delegate) {
       currentProposal.target.functionDelegateCall(currentProposal.data);
@@ -326,6 +600,45 @@ contract MultiSig {
     return true;
   }
 
+  /*******************************************************
+   * Private section
+   ********************************************************/
+  // Vote a proposal
+  function _voteProposal(uint256 proposalId, bool positive) private returns (bool) {
+    require(block.timestamp < _proposalStorage[proposalId].expired, 'MultiSig: Voting period was over');
+    require(_votedStorage[proposalId][msg.sender] == false, 'MultiSig: You had voted this proposal');
+    if (positive) {
+      _proposalStorage[proposalId].vote += 1;
+      emit PositiveVote(proposalId, msg.sender);
+    } else {
+      _proposalStorage[proposalId].vote -= 1;
+      emit NegativeVote(proposalId, msg.sender);
+    }
+    _votedStorage[proposalId][msg.sender] = true;
+    return true;
+  }
+
+  /*******************************************************
+   * Pure section
+   ********************************************************/
+
+  function _isNotInclude(address[] memory addressList, address checkAddress) private pure returns (bool) {
+    for (uint256 i = 0; i < addressList.length; i += 1) {
+      if (addressList[i] == checkAddress) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function _calculatePercent(int256 votedOwner) private view returns (int256) {
+    return (votedOwner * 100) / int256(totalOwner() * 100);
+  }
+
+  /*******************************************************
+   * View section
+   ********************************************************/
+
   function proposalIndex() external view returns (uint256) {
     return _proposalIndex;
   }
@@ -334,11 +647,11 @@ contract MultiSig {
     return _proposalStorage[index];
   }
 
-  function isOwner(address owner) external view returns (bool) {
-    return _owners[owner];
-  }
-
   function isVoted(uint256 proposalId, address owner) external view returns (bool) {
     return _votedStorage[proposalId][owner];
+  }
+
+  function getNextValidNonce() external view returns (uint256) {
+    return _nonce + 1;
   }
 }

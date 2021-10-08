@@ -1,5 +1,5 @@
 {
-  "name": "dkdao",
+  "name": "@dkdao/contracts",
   "description": "DKDAO infrastructure",
   "version": "1.1.2",
   "private": false,
