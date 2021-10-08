@@ -9,7 +9,7 @@ import '../libraries/RegistryUser.sol';
  * Only allow Press to mint new token following domain
  * Distributor will work with NFT through Press'
  * Name: NFT
- * Domain: DKDAO
+ * Domain: Infrastructure
  */
 contract NFT is RegistryUser, ERC721 {
   uint256 private _supply;
@@ -61,7 +61,7 @@ contract NFT is RegistryUser, ERC721 {
     address from,
     address to,
     uint256 tokenId
-  ) external onlyAllowCrossDomain('DKDAO', 'Swap') returns (bool) {
+  ) external onlyAllowCrossDomain('Infrastructure', 'Swap') returns (bool) {
     _transfer(from, to, tokenId);
     return true;
   }

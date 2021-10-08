@@ -11,7 +11,7 @@ import '../libraries/RegistryUser.sol';
 /**
  * Factory
  * Name: Factory
- * Domain: DKDAO
+ * Domain: Infrastructure
  */
 contract Factory is RegistryUser {
   // Use clone lib for address
@@ -35,19 +35,19 @@ contract Factory is RegistryUser {
    * Same domain section
    ********************************************************/
 
-  function cloneNewDAO(NewDAO calldata creatingDAO) external onlyAllowSameDomain('DAO') returns (bool) {
+  function cloneNewDAO(NewDAO calldata creatingDAO) external onlyAllowSameDomain('Infrastructure') returns (bool) {
     // New DAO will be cloned from DKDAO
-    address newDAO = _registry.getAddress('DKDAO', 'DAO').clone();
+    address newDAO = _registry.getAddress('Infrastructure', 'DAO').clone();
     bool success = IDAO(newDAO).init(address(_registry), creatingDAO.domain);
 
     // New DAO Token will be cloned from DKDAOToken
-    address newDAOToken = _registry.getAddress('DKDAO', 'DAOToken').clone();
+    address newDAOToken = _registry.getAddress('Infrastructure', 'DAOToken').clone();
     success =
       success &&
       IDAOToken(newDAOToken).init(creatingDAO.name, creatingDAO.symbol, creatingDAO.genesis, creatingDAO.supply);
 
     // New Pool will be clone from
-    address newPool = _registry.getAddress('DKDAO', 'Pool').clone();
+    address newPool = _registry.getAddress('Infrastructure', 'Pool').clone();
     success = success && IPool(newPool).init(address(_registry), creatingDAO.domain);
 
     require(success, 'Factory: All initialized must be successed');

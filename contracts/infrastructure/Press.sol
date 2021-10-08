@@ -11,7 +11,7 @@ import '../libraries/Bytes.sol';
 /**
  * NFT Press
  * Name: Press
- * Domain: DKDAO
+ * Domain: Infrastructure
  */
 contract Press is RegistryUser {
   // Allow to clone NFT

@@ -56,7 +56,7 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
   }
 
   // Adding entropy to the pool
-  function compute(bytes memory data) external override onlyAllowCrossDomain('DKDAO', 'RNG') returns (bool) {
+  function compute(bytes memory data) external override onlyAllowCrossDomain('Infrastructure', 'RNG') returns (bool) {
     require(data.length == 32, 'Distributor: Data must be 32 in length');
     // We combine random value with The Divine's result to prevent manipulation
     // https://github.com/chiro-hiro/thedivine

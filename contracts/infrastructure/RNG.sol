@@ -10,7 +10,7 @@ import '../interfaces/IRNGConsumer.sol';
 /**
  * Random Number Generator
  * Name: RNG
- * Domain: DKDAO
+ * Domain: Infrastructure
  */
 contract RNG is RegistryUser {
   // Use bytes lib for bytes

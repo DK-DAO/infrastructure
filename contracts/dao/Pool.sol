@@ -5,8 +5,8 @@ pragma abicoder v2;
 import '@openzeppelin/contracts/utils/Address.sol';
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
-import './libraries/RegistryUser.sol';
-import './interfaces/IPool.sol';
+import '../libraries/RegistryUser.sol';
+import '../interfaces/IPool.sol';
 
 /**
  * Profit Pool

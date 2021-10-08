@@ -10,7 +10,7 @@ import '../libraries/RegistryUser.sol';
 /**
  * Swap can transfer NFT by consume cryptography proof
  * Name: Swap
- * Domain: DKDAO
+ * Domain: Infrastructure
  */
 contract Swap is RegistryUser {
   // Verify signature
