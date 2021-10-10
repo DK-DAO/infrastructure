@@ -131,7 +131,7 @@ library Address {
         require(isContract(target), "Address: call to non-contract");
 
         (bool success, bytes memory returndata) = target.call{value: value}(data);
-        return verifyCallResult(success, returndata, errorMessage);
+        return _verifyCallResult(success, returndata, errorMessage);
     }
 
     /**
@@ -158,7 +158,7 @@ library Address {
         require(isContract(target), "Address: static call to non-contract");
 
         (bool success, bytes memory returndata) = target.staticcall(data);
-        return verifyCallResult(success, returndata, errorMessage);
+        return _verifyCallResult(success, returndata, errorMessage);
     }
 
     /**
@@ -185,20 +185,14 @@ library Address {
         require(isContract(target), "Address: delegate call to non-contract");
 
         (bool success, bytes memory returndata) = target.delegatecall(data);
-        return verifyCallResult(success, returndata, errorMessage);
+        return _verifyCallResult(success, returndata, errorMessage);
     }
 
-    /**
-     * @dev Tool to verifies that a low level call was successful, and revert if it wasn't, either by bubbling the
-     * revert reason using the provided one.
-     *
-     * _Available since v4.3._
-     */
-    function verifyCallResult(
+    function _verifyCallResult(
         bool success,
         bytes memory returndata,
         string memory errorMessage
-    ) internal pure returns (bytes memory) {
+    ) private pure returns (bytes memory) {
         if (success) {
             return returndata;
         } else {
@@ -425,13 +419,13 @@ interface IRegistry {
 }
 
 
-// Dependency file: contracts/libraries/User.sol
+// Dependency file: contracts/libraries/RegistryUser.sol
 
 // pragma solidity >=0.8.4 <0.9.0;
 
 // import 'contracts/interfaces/IRegistry.sol';
 
-abstract contract User {
+abstract contract RegistryUser {
   // Registry contract
   IRegistry internal _registry;
 
@@ -443,13 +437,16 @@ abstract contract User {
 
   // Allow same domain calls
   modifier onlyAllowSameDomain(bytes32 name) {
-    require(msg.sender == _registry.getAddress(_domain, name), 'User: Only allow call from same domain');
+    require(msg.sender == _registry.getAddress(_domain, name), 'UserRegistry: Only allow call from same domain');
     _;
   }
 
   // Allow cross domain call
   modifier onlyAllowCrossDomain(bytes32 fromDomain, bytes32 name) {
-    require(msg.sender == _registry.getAddress(fromDomain, name), 'User: Only allow call from allowed cross domain');
+    require(
+      msg.sender == _registry.getAddress(fromDomain, name),
+      'UserRegistry: Only allow call from allowed cross domain'
+    );
     _;
   }
 
@@ -459,7 +456,7 @@ abstract contract User {
 
   // Constructing with registry address and its active domain
   function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
-    require(!_initialized, "User: It's only able to initialize once");
+    require(!_initialized, "UserRegistry: It's only able to initialize once");
     _registry = IRegistry(registry_);
     _domain = domain_;
     _initialized = true;
@@ -494,14 +491,14 @@ pragma solidity >=0.8.4 <0.9.0;
 // import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/utils/Address.sol';
 // import 'contracts/libraries/Verifier.sol';
 // import 'contracts/libraries/Bytes.sol';
-// import 'contracts/libraries/User.sol';
+// import 'contracts/libraries/RegistryUser.sol';
 
 /**
  * Oracle Proxy
  * Name: Oracle
  * Domain: DKDAO, *
  */
-contract OracleProxy is User {
+contract OracleProxy is RegistryUser {
   // Verify signature
   using Bytes for bytes;
 
@@ -536,9 +533,9 @@ contract OracleProxy is User {
     address sender = message.verifySerialized(signature);
     uint256 timeAndNonce = message.readUint256(0);
     uint256 nonce = uint128(timeAndNonce);
-    uint256 time = timeAndNonce >> 128;
+    uint256 expired = timeAndNonce >> 128;
     require(nonce - _nonceStorage[sender] == 1, 'OracleProxy: Nonce value is invalid');
-    require(time < block.timestamp, 'OracleProxy: This proof was expired');
+    require(expired > block.timestamp, 'OracleProxy: This proof was expired');
     require(_controllers[sender], 'OracleProxy: Controller was not in the list');
     _nonceStorage[sender] += 1;
     _;

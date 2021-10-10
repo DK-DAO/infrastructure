@@ -5,12 +5,14 @@ import 'hardhat-typechain';
 import '@nomiclabs/hardhat-ethers';
 import 'hardhat-gas-reporter';
 import 'solidity-coverage';
+/*
 import './tasks/deploy';
 import './tasks/create-campaign';
 import './tasks/change-nft';
 import './tasks/live-test-contract';
+*/
 
-const compilers = ['0.8.6'].map((item: string) => ({
+const compilers = ['0.8.7'].map((item: string) => ({
   version: item,
   settings: {
     optimizer: {
@@ -71,7 +73,7 @@ const config: HardhatUserConfig = {
     // Hard hat network
     hardhat: {
       chainId: 911,
-      hardfork: 'berlin',
+      hardfork: 'london',
       accounts: {
         mnemonic: env.DUELIST_KING_LOCAL_MNEMONIC,
         path: "m/44'/60'/0'/0",

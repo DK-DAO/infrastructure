@@ -18,7 +18,7 @@ contract Press is RegistryUser {
   using Clones for address;
 
   // Create new NFT
-  event CreateNewNFT(bytes32 indexed domain, address indexed nftContract, bytes32 indexed name);
+  event CreateNewNFT(bytes32 indexed domain, address indexed nftContract, string indexed name);
 
   // Pass constructor parameter to User
   constructor(address registry_, bytes32 domain_) {
@@ -37,6 +37,7 @@ contract Press is RegistryUser {
   ) external onlyAllowSameDomain('Operator') returns (address) {
     address newNft = _registry.getAddress(_domain, 'NFT').clone();
     INFT(newNft).init(address(_registry), _domain, name_, symbol_, uri_);
+    emit CreateNewNFT(_domain, newNft, name_);
     return newNft;
   }
 }

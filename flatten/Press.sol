@@ -361,7 +361,7 @@ library Address {
         require(isContract(target), "Address: call to non-contract");
 
         (bool success, bytes memory returndata) = target.call{value: value}(data);
-        return verifyCallResult(success, returndata, errorMessage);
+        return _verifyCallResult(success, returndata, errorMessage);
     }
 
     /**
@@ -388,7 +388,7 @@ library Address {
         require(isContract(target), "Address: static call to non-contract");
 
         (bool success, bytes memory returndata) = target.staticcall(data);
-        return verifyCallResult(success, returndata, errorMessage);
+        return _verifyCallResult(success, returndata, errorMessage);
     }
 
     /**
@@ -415,20 +415,14 @@ library Address {
         require(isContract(target), "Address: delegate call to non-contract");
 
         (bool success, bytes memory returndata) = target.delegatecall(data);
-        return verifyCallResult(success, returndata, errorMessage);
+        return _verifyCallResult(success, returndata, errorMessage);
     }
 
-    /**
-     * @dev Tool to verifies that a low level call was successful, and revert if it wasn't, either by bubbling the
-     * revert reason using the provided one.
-     *
-     * _Available since v4.3._
-     */
-    function verifyCallResult(
+    function _verifyCallResult(
         bool success,
         bytes memory returndata,
         string memory errorMessage
-    ) internal pure returns (bytes memory) {
+    ) private pure returns (bytes memory) {
         if (success) {
             return returndata;
         } else {
@@ -453,7 +447,7 @@ library Address {
 
 // pragma solidity ^0.8.0;
 
-/**
+/*
  * @dev Provides information about the current execution context, including the
  * sender of the transaction and its data. While these are generally available
  * via msg.sender and msg.data, they should not be accessed in such a direct
@@ -951,7 +945,7 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
     ) private returns (bool) {
         if (to.isContract()) {
             try IERC721Receiver(to).onERC721Received(_msgSender(), from, tokenId, _data) returns (bytes4 retval) {
-                return retval == IERC721Receiver.onERC721Received.selector;
+                return retval == IERC721Receiver(to).onERC721Received.selector;
             } catch (bytes memory reason) {
                 if (reason.length == 0) {
                     revert("ERC721: transfer to non ERC721Receiver implementer");
@@ -1130,13 +1124,13 @@ interface IRegistry {
 }
 
 
-// Dependency file: contracts/libraries/User.sol
+// Dependency file: contracts/libraries/RegistryUser.sol
 
 // pragma solidity >=0.8.4 <0.9.0;
 
 // import 'contracts/interfaces/IRegistry.sol';
 
-abstract contract User {
+abstract contract RegistryUser {
   // Registry contract
   IRegistry internal _registry;
 
@@ -1148,13 +1142,16 @@ abstract contract User {
 
   // Allow same domain calls
   modifier onlyAllowSameDomain(bytes32 name) {
-    require(msg.sender == _registry.getAddress(_domain, name), 'User: Only allow call from same domain');
+    require(msg.sender == _registry.getAddress(_domain, name), 'UserRegistry: Only allow call from same domain');
     _;
   }
 
   // Allow cross domain call
   modifier onlyAllowCrossDomain(bytes32 fromDomain, bytes32 name) {
-    require(msg.sender == _registry.getAddress(fromDomain, name), 'User: Only allow call from allowed cross domain');
+    require(
+      msg.sender == _registry.getAddress(fromDomain, name),
+      'UserRegistry: Only allow call from allowed cross domain'
+    );
     _;
   }
 
@@ -1164,7 +1161,7 @@ abstract contract User {
 
   // Constructing with registry address and its active domain
   function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
-    require(!_initialized, "User: It's only able to initialize once");
+    require(!_initialized, "UserRegistry: It's only able to initialize once");
     _registry = IRegistry(registry_);
     _domain = domain_;
     _initialized = true;
@@ -1274,20 +1271,20 @@ pragma solidity >=0.8.4 <0.9.0;
 // import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/token/ERC721/ERC721.sol';
 // import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/proxy/Clones.sol';
 // import 'contracts/interfaces/INFT.sol';
-// import 'contracts/libraries/User.sol';
+// import 'contracts/libraries/RegistryUser.sol';
 // import 'contracts/libraries/Bytes.sol';
 
 /**
  * NFT Press
  * Name: Press
- * Domain: DKDAO
+ * Domain: Infrastructure
  */
-contract Press is User {
+contract Press is RegistryUser {
   // Allow to clone NFT
   using Clones for address;
 
   // Create new NFT
-  event CreateNewNFT(bytes32 indexed domain, address indexed nftContract, bytes32 indexed name);
+  event CreateNewNFT(bytes32 indexed domain, address indexed nftContract, string indexed name);
 
   // Pass constructor parameter to User
   constructor(address registry_, bytes32 domain_) {
@@ -1306,6 +1303,7 @@ contract Press is User {
   ) external onlyAllowSameDomain('Operator') returns (address) {
     address newNft = _registry.getAddress(_domain, 'NFT').clone();
     INFT(newNft).init(address(_registry), _domain, name_, symbol_, uri_);
+    emit CreateNewNFT(_domain, newNft, name_);
     return newNft;
   }
 }

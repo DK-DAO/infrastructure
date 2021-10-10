@@ -9,7 +9,7 @@ interface IDAOToken {
     string memory symbol,
     address genesis,
     uint256 supply
-  ) external;
+  ) external returns (bool);
 
   function totalSupply() external view returns (uint256);
 
