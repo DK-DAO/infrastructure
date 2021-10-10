@@ -4,8 +4,6 @@ import crypto from 'crypto';
 import { keccak256 } from 'js-sha3';
 import hre from 'hardhat';
 import { ContractTransaction } from 'ethers';
-import { getContractFactory } from '@nomiclabs/hardhat-ethers/types';
-import config from '../../hardhat.config';
 
 interface IKeyValues {
   [key: string]: string;
@@ -84,7 +82,7 @@ export function timestamp() {
 
 export function buildDigest(): { s: Buffer; h: Buffer } {
   const buf = crypto.randomBytes(32);
-  // Write time stampe to last 8 bytes it's implementation of S || t
+  // Write time stamp to last 8 bytes it's implementation of S || t
   buf.writeBigInt64BE(BigInt(timestamp()), 24);
 
   return {
@@ -125,4 +123,31 @@ export async function getGasCost(tx: ContractTransaction) {
 export async function contractAt(name: string, at: string) {
   const factory = await hre.ethers.getContractFactory(name);
   return factory.attach(at);
+}
+
+function rTrim(value: string, trim: string): string {
+  if (value.length === 0) return value;
+  let count = 0;
+  for (let i = value.length - 1; i >= 0 && value[i] === trim; i -= 1) {
+    count += 1;
+  }
+  return value.substr(0, value.length - count);
+}
+
+function argumentTransform(eventName: string, arg: string) {
+  if (eventName === 'RecordSet' && arg.length === 66) {
+    let hexString = rTrim(arg.replace(/0x/gi, ''), '0');
+    hexString = hexString.length % 2 === 0 ? hexString : `${hexString}0`;
+    return Buffer.from(hexString, 'hex').toString();
+  }
+  return arg;
+}
+
+export async function printAllEvents(tx: ContractTransaction) {
+  const result = await tx.wait();
+  console.log(
+    result.events
+      ?.map((e) => `\t${e.event}(${e.args?.map((i) => argumentTransform(e.event || '', i)).join(', ')})`)
+      .join('\n'),
+  );
 }

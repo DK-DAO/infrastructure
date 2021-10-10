@@ -90,7 +90,7 @@ library Clones {
 // pragma solidity >=0.8.4 <0.9.0;
 
 interface IPool {
-  function init(address registry, bytes32 domain) external returns (bool);
+  function init(address registry_, bytes32 domain_) external returns (bool);
 }
 
 
@@ -129,7 +129,7 @@ interface IDAOToken {
     string memory symbol,
     address genesis,
     uint256 supply
-  ) external;
+  ) external returns (bool);
 
   function totalSupply() external view returns (uint256);
 
@@ -164,13 +164,13 @@ interface IRegistry {
 }
 
 
-// Dependency file: contracts/libraries/User.sol
+// Dependency file: contracts/libraries/RegistryUser.sol
 
 // pragma solidity >=0.8.4 <0.9.0;
 
 // import 'contracts/interfaces/IRegistry.sol';
 
-abstract contract User {
+abstract contract RegistryUser {
   // Registry contract
   IRegistry internal _registry;
 
@@ -182,13 +182,16 @@ abstract contract User {
 
   // Allow same domain calls
   modifier onlyAllowSameDomain(bytes32 name) {
-    require(msg.sender == _registry.getAddress(_domain, name), 'User: Only allow call from same domain');
+    require(msg.sender == _registry.getAddress(_domain, name), 'UserRegistry: Only allow call from same domain');
     _;
   }
 
   // Allow cross domain call
   modifier onlyAllowCrossDomain(bytes32 fromDomain, bytes32 name) {
-    require(msg.sender == _registry.getAddress(fromDomain, name), 'User: Only allow call from allowed cross domain');
+    require(
+      msg.sender == _registry.getAddress(fromDomain, name),
+      'UserRegistry: Only allow call from allowed cross domain'
+    );
     _;
   }
 
@@ -198,7 +201,7 @@ abstract contract User {
 
   // Constructing with registry address and its active domain
   function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
-    require(!_initialized, "User: It's only able to initialize once");
+    require(!_initialized, "UserRegistry: It's only able to initialize once");
     _registry = IRegistry(registry_);
     _domain = domain_;
     _initialized = true;
@@ -226,7 +229,7 @@ abstract contract User {
 }
 
 
-// Root file: contracts/infrastructure/Factory.sol
+// Root file: contracts/dao/Factory.sol
 
 pragma solidity >=0.8.4 <0.9.0;
 
@@ -234,14 +237,14 @@ pragma solidity >=0.8.4 <0.9.0;
 // import 'contracts/interfaces/IPool.sol';
 // import 'contracts/interfaces/IDAO.sol';
 // import 'contracts/interfaces/IDAOToken.sol';
-// import 'contracts/libraries/User.sol';
+// import 'contracts/libraries/RegistryUser.sol';
 
 /**
  * Factory
  * Name: Factory
- * Domain: DKDAO
+ * Domain: Infrastructure
  */
-contract Factory is User {
+contract Factory is RegistryUser {
   // Use clone lib for address
   using Clones for address;
 
@@ -263,18 +266,22 @@ contract Factory is User {
    * Same domain section
    ********************************************************/
 
-  function cloneNewDAO(NewDAO calldata creatingDAO) external onlyAllowSameDomain('DAO') returns (bool) {
+  function cloneNewDAO(NewDAO calldata creatingDAO) external onlyAllowSameDomain('Infrastructure') returns (bool) {
     // New DAO will be cloned from DKDAO
-    address newDAO = _registry.getAddress('DKDAO', 'DAO').clone();
-    IDAO(newDAO).init(address(_registry), creatingDAO.domain);
+    address newDAO = _registry.getAddress('Infrastructure', 'DAO').clone();
+    bool success = IDAO(newDAO).init(address(_registry), creatingDAO.domain);
 
     // New DAO Token will be cloned from DKDAOToken
-    address newDAOToken = _registry.getAddress('DKDAO', 'DAOToken').clone();
-    IDAOToken(newDAOToken).init(creatingDAO.name, creatingDAO.symbol, creatingDAO.genesis, creatingDAO.supply);
+    address newDAOToken = _registry.getAddress('Infrastructure', 'DAOToken').clone();
+    success =
+      success &&
+      IDAOToken(newDAOToken).init(creatingDAO.name, creatingDAO.symbol, creatingDAO.genesis, creatingDAO.supply);
 
     // New Pool will be clone from
-    address newPool = _registry.getAddress('DKDAO', 'Pool').clone();
-    IPool(newPool).init(address(_registry), creatingDAO.domain);
+    address newPool = _registry.getAddress('Infrastructure', 'Pool').clone();
+    success = success && IPool(newPool).init(address(_registry), creatingDAO.domain);
+
+    require(success, 'Factory: All initialized must be successed');
 
     return true;
   }

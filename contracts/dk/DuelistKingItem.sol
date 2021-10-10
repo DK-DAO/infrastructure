@@ -19,7 +19,7 @@ library DuelistKingItem {
   // Id:              64  bits    Increasement value that unique for each item
   // Serial:          64  bits    Increasement value that count the number of items
   // 256         192         176             160            144         128       64            0
-  //  |  entropy  |  edition  |  generation   |   rareness   |   type    |   id    |   seiral   |
+  //  |  entropy  |  edition  |  generation   |   rareness   |   type    |   id    |   serial   |
   function set(
     uint256 value,
     uint256 shift,

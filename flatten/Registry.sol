@@ -26,13 +26,13 @@ interface IRegistry {
 }
 
 
-// Dependency file: contracts/libraries/User.sol
+// Dependency file: contracts/libraries/RegistryUser.sol
 
 // pragma solidity >=0.8.4 <0.9.0;
 
 // import 'contracts/interfaces/IRegistry.sol';
 
-abstract contract User {
+abstract contract RegistryUser {
   // Registry contract
   IRegistry internal _registry;
 
@@ -44,13 +44,16 @@ abstract contract User {
 
   // Allow same domain calls
   modifier onlyAllowSameDomain(bytes32 name) {
-    require(msg.sender == _registry.getAddress(_domain, name), 'User: Only allow call from same domain');
+    require(msg.sender == _registry.getAddress(_domain, name), 'UserRegistry: Only allow call from same domain');
     _;
   }
 
   // Allow cross domain call
   modifier onlyAllowCrossDomain(bytes32 fromDomain, bytes32 name) {
-    require(msg.sender == _registry.getAddress(fromDomain, name), 'User: Only allow call from allowed cross domain');
+    require(
+      msg.sender == _registry.getAddress(fromDomain, name),
+      'UserRegistry: Only allow call from allowed cross domain'
+    );
     _;
   }
 
@@ -60,7 +63,7 @@ abstract contract User {
 
   // Constructing with registry address and its active domain
   function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
-    require(!_initialized, "User: It's only able to initialize once");
+    require(!_initialized, "UserRegistry: It's only able to initialize once");
     _registry = IRegistry(registry_);
     _domain = domain_;
     _initialized = true;
@@ -93,14 +96,14 @@ abstract contract User {
 pragma solidity >=0.8.4 <0.9.0;
 
 // import 'contracts/interfaces/IRegistry.sol';
-// import 'contracts/libraries/User.sol';
+// import 'contracts/libraries/RegistryUser.sol';
 
 /**
  * DKDAO domain name system
  * Name: Registry
- * Domain: DKDAO
+ * Domain: Infrastructure
  */
-contract Registry is User, IRegistry {
+contract Registry is RegistryUser, IRegistry {
   // Mapping domain -> name -> address
   mapping(bytes32 => mapping(bytes32 => address)) private registered;
 
@@ -115,9 +118,9 @@ contract Registry is User, IRegistry {
 
   constructor() {
     // Set the operator
-    _set('DKDAO', 'Operator', msg.sender);
-    _set('DKDAO', 'Registry', address(this));
-    _registryUserInit(address(this), 'DKDAO');
+    _set('Infrastructure', 'Operator', msg.sender);
+    _set('Infrastructure', 'Registry', address(this));
+    _registryUserInit(address(this), 'Infrastructure');
   }
 
   /*******************************************************

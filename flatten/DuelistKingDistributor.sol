@@ -20,7 +20,7 @@ library DuelistKingItem {
   // Id:              64  bits    Increasement value that unique for each item
   // Serial:          64  bits    Increasement value that count the number of items
   // 256         192         176             160            144         128       64            0
-  //  |  entropy  |  edition  |  generation   |   rareness   |   type    |   id    |   seiral   |
+  //  |  entropy  |  edition  |  generation   |   rareness   |   type    |   id    |   serial   |
   function set(
     uint256 value,
     uint256 shift,
@@ -138,13 +138,13 @@ interface IRegistry {
 }
 
 
-// Dependency file: contracts/libraries/User.sol
+// Dependency file: contracts/libraries/RegistryUser.sol
 
 // pragma solidity >=0.8.4 <0.9.0;
 
 // import 'contracts/interfaces/IRegistry.sol';
 
-abstract contract User {
+abstract contract RegistryUser {
   // Registry contract
   IRegistry internal _registry;
 
@@ -156,13 +156,16 @@ abstract contract User {
 
   // Allow same domain calls
   modifier onlyAllowSameDomain(bytes32 name) {
-    require(msg.sender == _registry.getAddress(_domain, name), 'User: Only allow call from same domain');
+    require(msg.sender == _registry.getAddress(_domain, name), 'UserRegistry: Only allow call from same domain');
     _;
   }
 
   // Allow cross domain call
   modifier onlyAllowCrossDomain(bytes32 fromDomain, bytes32 name) {
-    require(msg.sender == _registry.getAddress(fromDomain, name), 'User: Only allow call from allowed cross domain');
+    require(
+      msg.sender == _registry.getAddress(fromDomain, name),
+      'UserRegistry: Only allow call from allowed cross domain'
+    );
     _;
   }
 
@@ -172,7 +175,7 @@ abstract contract User {
 
   // Constructing with registry address and its active domain
   function _registryUserInit(address registry_, bytes32 domain_) internal returns (bool) {
-    require(!_initialized, "User: It's only able to initialize once");
+    require(!_initialized, "UserRegistry: It's only able to initialize once");
     _registry = IRegistry(registry_);
     _domain = domain_;
     _initialized = true;
@@ -320,7 +323,7 @@ pragma solidity >=0.8.4 <0.9.0;
 
 // import 'contracts/dk/DuelistKingItem.sol';
 // import 'contracts/interfaces/IRNGConsumer.sol';
-// import 'contracts/libraries/User.sol';
+// import 'contracts/libraries/RegistryUser.sol';
 // import 'contracts/libraries/Bytes.sol';
 // import 'contracts/interfaces/ITheDivine.sol';
 // import 'contracts/interfaces/INFT.sol';
@@ -330,7 +333,7 @@ pragma solidity >=0.8.4 <0.9.0;
  * Name: Distributor
  * Domain: Duelist King
  */
-contract DuelistKingDistributor is User, IRNGConsumer {
+contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
   // Using Bytes for bytes
   using Bytes for bytes;
 
@@ -366,12 +369,12 @@ contract DuelistKingDistributor is User, IRNGConsumer {
     bytes32 domain_,
     address divine
   ) {
-    _registryUserInit(registry_, domain_);
     _theDivine = ITheDivine(divine);
+    _registryUserInit(registry_, domain_);
   }
 
   // Adding entropy to the pool
-  function compute(bytes memory data) external override onlyAllowCrossDomain('DKDAO', 'RNG') returns (bool) {
+  function compute(bytes memory data) external override onlyAllowCrossDomain('Infrastructure', 'RNG') returns (bool) {
     require(data.length == 32, 'Distributor: Data must be 32 in length');
     // We combine random value with The Divine's result to prevent manipulation
     // https://github.com/chiro-hiro/thedivine
