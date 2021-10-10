@@ -67,6 +67,14 @@ export class Deployer {
     return this._contractCache[contractPath];
   }
 
+  public async contractAttach(contractPath: string, contractAddress: string): Promise<Contract> {
+    const [contractName] = contractPath.split('/');
+    const instanceFactory = await this._hre.ethers.getContractFactory(contractName, {
+      signer: this._signer,
+    });
+    return instanceFactory.attach(contractAddress);
+  }
+
   public getDeployedContract<T>(contractPath: string): T {
     return <any>this._contractCache[contractPath];
   }

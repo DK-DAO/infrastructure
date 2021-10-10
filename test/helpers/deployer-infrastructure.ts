@@ -5,6 +5,7 @@ import { registryRecords } from './const';
 
 export interface IOperators {
   operator: Signer;
+  operatorAddress: string;
   oracles: string[];
 }
 
