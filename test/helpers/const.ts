@@ -6,7 +6,7 @@ export function stringToBytes32(v: string) {
 
 export const registryRecords = {
   domain: {
-    infrastructure: stringToBytes32('DKDAO Infrastructure'),
+    infrastructure: stringToBytes32('Infrastructure'),
     dkdao: stringToBytes32('DKDAO'),
     duelistKing: stringToBytes32('Duelist King'),
   },
@@ -17,6 +17,8 @@ export const registryRecords = {
     oracle: stringToBytes32('Oracle'),
     rng: stringToBytes32('RNG'),
     nft: stringToBytes32('NFT'),
+    card: stringToBytes32('Card'),
+    item: stringToBytes32('item'),
     distributor: stringToBytes32('Distributor'),
     factory: stringToBytes32('Factory'),
     press: stringToBytes32('Press'),
