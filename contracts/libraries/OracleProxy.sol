@@ -43,7 +43,6 @@ contract OracleProxy is RegistryUser {
     bytes memory message = proof.readBytes(65, 32);
     address sender = message.verifySerialized(signature);
     uint256 timeAndNonce = message.readUint256(0);
-    uint256 nonce = uint128(timeAndNonce);
     uint256 expired = timeAndNonce >> 128;
     require(expired > block.timestamp, 'OracleProxy: This proof was expired');
     require(_controllers[sender], 'OracleProxy: Controller was not in the list');

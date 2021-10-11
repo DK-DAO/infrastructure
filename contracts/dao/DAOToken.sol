@@ -2,7 +2,7 @@
 pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
-import '../libraries/ERC20.sol';
+import './ERC20.sol';
 
 /**
  * DAO Token

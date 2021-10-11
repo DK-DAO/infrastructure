@@ -5,7 +5,7 @@ pragma abicoder v2;
 import '@openzeppelin/contracts/utils/Address.sol';
 import '../libraries/Verifier.sol';
 import '../libraries/Bytes.sol';
-import '../libraries/MultiOwner.sol';
+import './MultiOwner.sol';
 
 /**
  * Multi Signature Wallet
