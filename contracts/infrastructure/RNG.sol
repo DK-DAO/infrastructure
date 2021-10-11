@@ -24,7 +24,7 @@ contract RNG is RegistryUser {
   }
 
   // Commit scheme progess
-  struct CommitSchemeProgess {
+  struct CommitSchemeProgress {
     uint256 remaining;
     uint256 total;
   }
@@ -130,7 +130,7 @@ contract RNG is RegistryUser {
   }
 
   // Get progress of commit scheme
-  function getProgess() external view returns (CommitSchemeProgess memory) {
-    return CommitSchemeProgess({ remaining: remainingDigest, total: totalDigest });
+  function getProgress() external view returns (CommitSchemeProgress memory) {
+    return CommitSchemeProgress({ remaining: remainingDigest, total: totalDigest });
   }
 }

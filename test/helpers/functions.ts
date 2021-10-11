@@ -1,9 +1,9 @@
 import { Signer } from '@ethersproject/abstract-signer';
 import { Contract } from '@ethersproject/contracts';
-import crypto from 'crypto';
+import crypto, { randomBytes } from 'crypto';
 import { keccak256 } from 'js-sha3';
 import hre from 'hardhat';
-import { ContractTransaction } from 'ethers';
+import { BigNumber, ContractTransaction } from 'ethers';
 
 interface IKeyValues {
   [key: string]: string;
@@ -63,6 +63,14 @@ export function stringToBytes32(v: string) {
   const buf = Buffer.alloc(32);
   buf.write(v);
   return `0x${buf.toString('hex')}`;
+}
+
+export function bigNumberToBytes32(b: BigNumber): Buffer {
+  return Buffer.from(`${b.toHexString().replace(/^0x/i, '').padStart(64, '0')}`, 'hex');
+}
+
+export function getUint128Random(): string {
+  return `0x${randomBytes(16).toString('hex')}`;
 }
 
 export async function contractDeploy(actor: Signer, contractPath: string, ...params: any[]): Promise<Contract> {

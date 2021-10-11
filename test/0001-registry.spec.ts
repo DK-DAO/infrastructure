@@ -1,83 +1,78 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
+import { registryRecords } from './helpers/const';
 import initInfrastructure, { IConfiguration } from './helpers/deployer-infrastructure';
-import initDuelistKing from './helpers/deployer-duelistking';
+import initDuelistKing, { IDeployContext } from './helpers/deployer-duelist-king';
+
+let config: IConfiguration;
+let context: IDeployContext;
 
 describe('Registry', () => {
   it('account[0] must be the owner of registry', async () => {
     const accounts = await hre.ethers.getSigners();
-    const config: IConfiguration = {
-      network: hre.network.name,
-      infrastructure: {
-        operator: accounts[0],
-        oracles: [accounts[1].address],
-      },
-      duelistKing: {
-        operator: accounts[2],
-        oracles: [accounts[3].address],
-      },
-    };
-    const deployer = await initDuelistKing(await initInfrastructure(hre, config), config);
+    context = await initDuelistKing(
+      await initInfrastructure(hre, {
+        network: hre.network.name,
+        infrastructure: {
+          operator: accounts[0],
+          oracles: [accounts[1]],
+        },
+        duelistKing: {
+          operator: accounts[2],
+          oracles: [accounts[3]],
+        },
+      }),
+    );
   });
 
-  /*
-  it('account[0] must be the owner of registry', async () => {
-    ctx = await init(hre);
+  it('infrastructure operator must be set correctly', async () => {
     const {
-      infrastructure: { contractRegistry, owner },
-    } = ctx;
-    expect(await contractRegistry.owner()).to.eq(await owner.getAddress());
+      infrastructure: { registry },
+      config: { infrastructure },
+    } = context;
+    expect(await registry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.operator)).to.eq(
+      infrastructure.operatorAddress,
+    );
   });
 
   it('All records in registry should be set correctly for DKDAO infrastructure domain', async () => {
     const {
-      infrastructure: { contractRNG, contractOracleProxy, contractRegistry },
-    } = ctx;
-    expect(contractOracleProxy.address).to.eq(
-      await contractRegistry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.oracle),
+      infrastructure: { registry, oracle, nft, press, rng },
+    } = context;
+    expect(oracle.address).to.eq(
+      await registry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.oracle),
     );
-    expect(contractRNG.address).to.eq(
-      await contractRegistry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.rng),
+    expect(nft.address).to.eq(
+      await registry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.nft),
+    );
+    expect(rng.address).to.eq(
+      await registry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.rng),
+    );
+    expect(press.address).to.eq(
+      await registry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.press),
     );
   });
 
   it('All records in registry should be set correctly for Duelist King domain', async () => {
     const {
-      infrastructure: { contractRegistry },
-      duelistKing: { contractDAO, contractDAOToken, contractDuelistKingDistributor, contractPool, contractOracleProxy },
-    } = ctx;
-    expect(contractDAO.address).to.eq(
-      await contractRegistry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.dao),
+      infrastructure: { registry },
+      duelistKing: { distributor, oracle },
+    } = context;
+    expect(oracle.address).to.eq(
+      await registry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.oracle),
     );
-    expect(contractDAOToken.address).to.eq(
-      await contractRegistry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.daoToken),
-    );
-    expect(contractPool.address).to.eq(
-      await contractRegistry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.pool),
-    );
-    expect(contractDuelistKingDistributor.address).to.eq(
-      await contractRegistry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.distributor),
-    );
-    expect(contractOracleProxy.address).to.eq(
-      await contractRegistry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.oracle),
-    );
-  });
-
-  it('RNG record must be existed', async () => {
-    const {
-      infrastructure: { contractRegistry },
-    } = ctx;
-    expect(true).to.eq(
-      await contractRegistry.isExistRecord(registryRecords.domain.infrastructure, registryRecords.name.rng),
+    expect(distributor.address).to.eq(
+      await registry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.distributor),
     );
   });
 
   it('reversed mapping should be correct', async () => {
     const {
-      infrastructure: { contractRNG, contractRegistry },
-    } = ctx;
-    const [domain, name] = await contractRegistry.getDomainAndName(contractRNG.address);
+      infrastructure: { registry },
+      config: { infrastructure },
+    } = context;
+    const [domain, name] = await registry.getDomainAndName(infrastructure.operatorAddress);
     expect(domain).to.eq(registryRecords.domain.infrastructure);
-    expect(name).to.eq(registryRecords.name.rng);
-  });*/
+    expect(name).to.eq(registryRecords.name.operator);
+  });
 });
