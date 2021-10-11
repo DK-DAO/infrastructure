@@ -1,52 +1,93 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
-import { buildDigestArray, buildDigest } from './helpers/functions';
+import {
+  buildDigestArray,
+  buildDigest,
+  bigNumberToBytes32,
+  printAllEvents,
+  getUint128Random,
+} from './helpers/functions';
 import { BytesBuffer } from './helpers/bytes';
-import { zeroAddress } from './helpers/const';
-import { BytesLike } from 'ethers';
+import { BytesLike, utils } from 'ethers';
 import initInfrastructure, { IConfiguration } from './helpers/deployer-infrastructure';
-import initDuelistKing from './helpers/deployer-duelistking';
+import initDuelistKing, { IDeployContext } from './helpers/deployer-duelist-king';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { OracleProxy } from '../typechain';
 
 let digests: { s: Buffer[]; h: Buffer[]; v: Buffer };
+let context: IDeployContext;
+let accounts: SignerWithAddress[];
+const commitRevealData = buildDigest();
 
 describe('RNG', () => {
-  it('OracleProxy should able to forward call from oracle to RNG', async () => {
-    const accounts = await hre.ethers.getSigners();
+  it('All initialize should be correct', async () => {
+    accounts = await hre.ethers.getSigners();
+    context = await initDuelistKing(
+      await initInfrastructure(hre, {
+        network: hre.network.name,
+        infrastructure: {
+          operator: accounts[0],
+          oracles: [accounts[1]],
+        },
+        duelistKing: {
+          operator: accounts[2],
+          oracles: [accounts[3]],
+        },
+      }),
+    );
+  });
 
-    const config: IConfiguration = {
-      network: hre.network.name,
-      infrastructure: {
-        operator: accounts[0],
-        oracles: [accounts[1].address],
-      },
-      duelistKing: {
-        operator: accounts[2],
-        oracles: [accounts[3].address],
-      },
-    };
+  async function craftProof(oracleSigner: SignerWithAddress, oracle: OracleProxy): Promise<Buffer> {
+    let message = bigNumberToBytes32(await oracle.getValidTimeNonce(60000, getUint128Random()));
+    // Make sure that it matched
+    let signedProof = await oracleSigner.signMessage(utils.arrayify(message));
+    return BytesBuffer.newInstance().writeBytes(signedProof).writeBytes(message).invoke();
+  }
 
-    const deployer = await initDuelistKing(await initInfrastructure(hre, config), config);
-    /*
-    const { s, h } = buildDigest();
+  it('OracleProxy should able to forward commit call from oracle to RNG', async () => {
     const {
-      infrastructure: { contractOracleProxy, oracle, contractRNG },
-      duelistKing: { contractDuelistKingDistributor, addressOwner },
-    } = ctx;
+      infrastructure: { oracle, rng },
+      config,
+    } = context;
 
-    await contractOracleProxy
-      .connect(oracle)
-      .safeCall(contractRNG.address, 0, contractRNG.interface.encodeFunctionData('commit', [h]));
+    // Anyone would able to trigger oracle with signed proof
+    await (
+      await oracle
+        .connect(accounts[5])
+        .safeCall(
+          await craftProof(await hre.ethers.getSigner(config.infrastructure.oracleAddresses[0]), oracle),
+          rng.address,
+          0,
+          rng.interface.encodeFunctionData('commit', [commitRevealData.h]),
+        )
+    ).wait();
+  });
+
+  it('OracleProxy should able to forward reveal call from oracle to RNG', async () => {
+    const {
+      infrastructure: { oracle, rng },
+      duelistKing: { distributor },
+      config,
+    } = context;
 
     const data: BytesLike = BytesBuffer.newInstance()
-      .writeAddress(zeroAddress)
+      .writeAddress(distributor.address)
       .writeUint256('0x01')
-      .writeUint256(s)
+      .writeUint256(commitRevealData.s)
       .invoke();
-    await contractOracleProxy
-      .connect(oracle)
-      .safeCall(contractRNG.address, 0, contractRNG.interface.encodeFunctionData('reveal', [data]));
 
-    const { remaining } = await contractRNG.getProgess();
+    // Anyone would able to trigger oracle with signed proof
+    await (
+      await oracle
+        .connect(accounts[6])
+        .safeCall(
+          await craftProof(await hre.ethers.getSigner(config.infrastructure.oracleAddresses[0]), oracle),
+          rng.address,
+          0,
+          rng.interface.encodeFunctionData('reveal', [data]),
+        )
+    ).wait();
+    const { remaining } = await rng.getProgress();
 
     expect(remaining.toNumber()).to.eq(0);
   });
@@ -55,24 +96,35 @@ describe('RNG', () => {
     digests = buildDigestArray(10);
 
     const {
-      infrastructure: { contractOracleProxy, oracle, contractRNG },
-      duelistKing: { contractDuelistKingDistributor, addressOwner },
-    } = ctx;
+      infrastructure: { oracle, rng },
+      duelistKing: { distributor },
+      config,
+    } = context;
 
-    await contractOracleProxy
-      .connect(oracle)
-      .safeCall(contractRNG.address, 0, contractRNG.interface.encodeFunctionData('batchCommit', [digests.v]));
+    await oracle
+      .connect(accounts[7])
+      .safeCall(
+        await craftProof(await hre.ethers.getSigner(config.infrastructure.oracleAddresses[0]), oracle),
+        rng.address,
+        0,
+        rng.interface.encodeFunctionData('batchCommit', [digests.v]),
+      );
     for (let i = 0; i < digests.s.length; i += 1) {
       const data: BytesLike = BytesBuffer.newInstance()
-        .writeAddress(contractDuelistKingDistributor.address)
+        .writeAddress(distributor.address)
         .writeUint256(`0x${(2 + i).toString(16).padStart(8, '0')}`)
         .writeUint256(digests.s[i])
         .invoke();
-      await contractOracleProxy
-        .connect(oracle)
-        .safeCall(contractRNG.address, 0, contractRNG.interface.encodeFunctionData('reveal', [data]));
+      await oracle
+        .connect(accounts[8])
+        .safeCall(
+          await craftProof(await hre.ethers.getSigner(config.infrastructure.oracleAddresses[0]), oracle),
+          rng.address,
+          0,
+          rng.interface.encodeFunctionData('reveal', [data]),
+        );
     }
-    const { remaining } = await contractRNG.getProgess();
-    expect(remaining.toNumber()).to.eq(0);*/
+    const { remaining } = await rng.getProgress();
+    expect(remaining.toNumber()).to.eq(0);
   });
 });

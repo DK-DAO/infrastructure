@@ -1,12 +1,13 @@
 import Deployer from './deployer';
 import { registryRecords } from './const';
-import { IConfiguration } from './deployer-infrastructure';
+import { IConfigurationExtend } from './deployer-infrastructure';
 import { NFT, Registry, RNG, Press, OracleProxy, DuelistKingDistributor } from '../../typechain';
 import { ContractTransaction } from '@ethersproject/contracts';
 import { printAllEvents } from './functions';
 
 export interface IDeployContext {
   deployer: Deployer;
+  config: IConfigurationExtend;
   infrastructure: {
     rng: RNG;
     registry: Registry;
@@ -30,9 +31,12 @@ async function getContractAddress(contractTx: ContractTransaction) {
   throw new Error('Unexpected result');
 }
 
-export default async function init(deployer: Deployer, config: IConfiguration): Promise<IDeployContext> {
+export default async function init(context: {
+  deployer: Deployer;
+  config: IConfigurationExtend;
+}): Promise<IDeployContext> {
+  const { deployer, config } = context;
   // Deploy libraries
-  await deployer.contractDeploy('Libraries/Bytes', []);
   deployer.connect(config.duelistKing.operator);
 
   // Deploy token
@@ -52,12 +56,7 @@ export default async function init(deployer: Deployer, config: IConfiguration): 
   ).wait();
 
   const duelistKingOracleProxy = <OracleProxy>(
-    await deployer.contractDeploy(
-      'Duelist King/OracleProxy',
-      ['Verifier'],
-      registry.address,
-      registryRecords.domain.duelistKing,
-    )
+    await deployer.contractDeploy('Duelist King/OracleProxy', [], registry.address, registryRecords.domain.duelistKing)
   );
 
   const distributor = <DuelistKingDistributor>(
@@ -144,16 +143,17 @@ export default async function init(deployer: Deployer, config: IConfiguration): 
     );
 
     for (let i = 0; i < config.infrastructure.oracles.length; i += 1) {
-      await printAllEvents(await infrastructureOracleProxy.addController(config.infrastructure.oracles[i]));
+      await printAllEvents(await infrastructureOracleProxy.addController(config.infrastructure.oracleAddresses[i]));
     }
 
     for (let i = 0; i < config.duelistKing.oracles.length; i += 1) {
-      await printAllEvents(await duelistKingOracleProxy.addController(config.duelistKing.oracles[i]));
+      await printAllEvents(await duelistKingOracleProxy.addController(config.duelistKing.oracleAddresses[i]));
     }
   });
 
   return {
     deployer,
+    config,
     infrastructure: {
       rng,
       registry,

@@ -25,9 +25,6 @@ contract OracleProxy is RegistryUser {
   // Controller list
   mapping(address => bool) private _controllers;
 
-  // Nonce storatge
-  mapping(address => uint256) private _nonceStorage;
-
   // List controller
   event ListAddress(address indexed addr);
 
@@ -48,10 +45,8 @@ contract OracleProxy is RegistryUser {
     uint256 timeAndNonce = message.readUint256(0);
     uint256 nonce = uint128(timeAndNonce);
     uint256 expired = timeAndNonce >> 128;
-    require(nonce - _nonceStorage[sender] == 1, 'OracleProxy: Nonce value is invalid');
     require(expired > block.timestamp, 'OracleProxy: This proof was expired');
     require(_controllers[sender], 'OracleProxy: Controller was not in the list');
-    _nonceStorage[sender] += 1;
     _;
   }
 
@@ -103,13 +98,8 @@ contract OracleProxy is RegistryUser {
    ********************************************************/
 
   // Get valid nonce of next transaction
-  function getValidNonce(address inputAddress) external view returns (uint256) {
-    return _nonceStorage[inputAddress] + 1;
-  }
-
-  // Get valid nonce of next transaction
-  function getValidTimeNonce(address inputAddress, uint256 durationInSec) external view returns (uint256) {
-    return ((block.timestamp + durationInSec) << 128) | (_nonceStorage[inputAddress] + 1);
+  function getValidTimeNonce(uint256 timeout, uint256 randomNonce) external view returns (uint256) {
+    return ((block.timestamp + timeout) << 128) | randomNonce;
   }
 
   // Check a address is controller

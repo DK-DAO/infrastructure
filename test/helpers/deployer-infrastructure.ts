@@ -5,8 +5,7 @@ import { registryRecords } from './const';
 
 export interface IOperators {
   operator: Signer;
-  operatorAddress: string;
-  oracles: string[];
+  oracles: Signer[];
 }
 
 export interface IConfiguration {
@@ -15,13 +14,53 @@ export interface IConfiguration {
   duelistKing: IOperators;
 }
 
-export default async function init(hre: HardhatRuntimeEnvironment, config: IConfiguration): Promise<Deployer> {
+export interface IOperatorsExtend {
+  operator: Signer;
+  operatorAddress: string;
+  oracles: Signer[];
+  oracleAddresses: string[];
+}
+
+export interface IConfigurationExtend {
+  network: string;
+  infrastructure: IOperatorsExtend;
+  duelistKing: IOperatorsExtend;
+}
+
+async function getAddresses(singers: Signer[]): Promise<string[]> {
+  const tmp = [];
+  for (let i = 0; i < singers.length; i++) {
+    tmp[i] = await singers[i].getAddress();
+  }
+  return tmp;
+}
+
+async function extendConfig(conf: IConfiguration): Promise<IConfigurationExtend> {
+  const { network, infrastructure, duelistKing } = conf;
+  return {
+    network,
+    infrastructure: {
+      operator: infrastructure.operator,
+      operatorAddress: await infrastructure.operator.getAddress(),
+      oracles: infrastructure.oracles,
+      oracleAddresses: await getAddresses(infrastructure.oracles),
+    },
+    duelistKing: {
+      operator: duelistKing.operator,
+      operatorAddress: await duelistKing.operator.getAddress(),
+      oracles: duelistKing.oracles,
+      oracleAddresses: await getAddresses(duelistKing.oracles),
+    },
+  };
+}
+
+export default async function init(
+  hre: HardhatRuntimeEnvironment,
+  config: IConfiguration,
+): Promise<{ deployer: Deployer; config: IConfigurationExtend }> {
   const deployer = Deployer.getInstance(hre);
   // Connect to infrastructure operator
   deployer.connect(config.infrastructure.operator);
-
-  // Deploy libraries
-  await deployer.contractDeploy('Libraries/Verifier', []);
 
   // Deploy registry
   const registry = await deployer.contractDeploy('Infrastructure/Registry', []);
@@ -29,7 +68,7 @@ export default async function init(hre: HardhatRuntimeEnvironment, config: IConf
   // Deploy oracle proxy
   await deployer.contractDeploy(
     'Infrastructure/OracleProxy',
-    ['Verifier'],
+    [],
     registry.address,
     registryRecords.domain.infrastructure,
   );
@@ -43,5 +82,8 @@ export default async function init(hre: HardhatRuntimeEnvironment, config: IConf
   // Deploy RNG
   await deployer.contractDeploy('Infrastructure/RNG', [], registry.address, registryRecords.domain.infrastructure);
 
-  return deployer;
+  return {
+    deployer,
+    config: await extendConfig(config),
+  };
 }

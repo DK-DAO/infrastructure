@@ -3,8 +3,6 @@ import { expect } from 'chai';
 import { registryRecords } from './helpers/const';
 import initInfrastructure, { IConfiguration } from './helpers/deployer-infrastructure';
 import initDuelistKing, { IDeployContext } from './helpers/deployer-duelist-king';
-import { Registry } from '../typechain';
-import Deployer from './helpers/deployer';
 
 let config: IConfiguration;
 let context: IDeployContext;
@@ -12,29 +10,29 @@ let context: IDeployContext;
 describe('Registry', () => {
   it('account[0] must be the owner of registry', async () => {
     const accounts = await hre.ethers.getSigners();
-    config = {
-      network: hre.network.name,
-      infrastructure: {
-        operator: accounts[0],
-        operatorAddress: accounts[0].address,
-        oracles: [accounts[1].address],
-      },
-      duelistKing: {
-        operator: accounts[2],
-        operatorAddress: accounts[2].address,
-        oracles: [accounts[3].address],
-      },
-    };
-    context = await initDuelistKing(await initInfrastructure(hre, config), config);
+    context = await initDuelistKing(
+      await initInfrastructure(hre, {
+        network: hre.network.name,
+        infrastructure: {
+          operator: accounts[0],
+          oracles: [accounts[1]],
+        },
+        duelistKing: {
+          operator: accounts[2],
+          oracles: [accounts[3]],
+        },
+      }),
+    );
   });
 
   it('infrastructure operator must be set correctly', async () => {
-    expect(
-      await context.infrastructure.registry.getAddress(
-        registryRecords.domain.infrastructure,
-        registryRecords.name.operator,
-      ),
-    ).to.eq(config.infrastructure.operatorAddress);
+    const {
+      infrastructure: { registry },
+      config: { infrastructure },
+    } = context;
+    expect(await registry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.operator)).to.eq(
+      infrastructure.operatorAddress,
+    );
   });
 
   it('All records in registry should be set correctly for DKDAO infrastructure domain', async () => {
@@ -70,9 +68,10 @@ describe('Registry', () => {
 
   it('reversed mapping should be correct', async () => {
     const {
-      infrastructure: { rng, registry },
+      infrastructure: { registry },
+      config: { infrastructure },
     } = context;
-    const [domain, name] = await registry.getDomainAndName(config.infrastructure.operatorAddress);
+    const [domain, name] = await registry.getDomainAndName(infrastructure.operatorAddress);
     expect(domain).to.eq(registryRecords.domain.infrastructure);
     expect(name).to.eq(registryRecords.name.operator);
   });

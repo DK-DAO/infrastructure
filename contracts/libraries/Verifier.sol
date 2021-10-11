@@ -3,7 +3,7 @@ pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
 library Verifier {
-  function verifySerialized(bytes memory message, bytes memory signature) public pure returns (address) {
+  function verifySerialized(bytes memory message, bytes memory signature) internal pure returns (address) {
     bytes32 r;
     bytes32 s;
     uint8 v;
@@ -19,19 +19,8 @@ library Verifier {
       r := mload(add(signature, 0x20))
       s := mload(add(signature, 0x40))
       v := byte(0, mload(add(signature, 0x60)))
-      // Invalid v value, for Ethereum it's only possible to be 27, 28 and 0, 1 in legacy code
-      if lt(v, 27) {
-        v := add(v, 27)
-      }
-      if iszero(or(eq(v, 27), eq(v, 28))) {
-        revert(0, 0)
-      }
     }
-
-    // Get hashes of message with Ethereum proof prefix
-    bytes32 hashes = keccak256(abi.encodePacked('\x19Ethereum Signed Message:\n', uintToStr(message.length), message));
-
-    return ecrecover(hashes, v, r, s);
+    return verify(message, r, s, v);
   }
 
   function verify(
@@ -39,7 +28,7 @@ library Verifier {
     bytes32 r,
     bytes32 s,
     uint8 v
-  ) public pure returns (address) {
+  ) internal pure returns (address) {
     if (v < 27) {
       v += 27;
     }
@@ -51,53 +40,25 @@ library Verifier {
     return ecrecover(hashes, v, r, s);
   }
 
-  function uintToStr(uint256 value) public pure returns (bytes memory result) {
-    assembly {
-      switch value
-      case 0 {
-        // In case of 0, we just return "0"
-        result := mload(0x40)
-        // result.length = 1
-        mstore(result, 0x01)
-        // result = "0"
-        mstore(add(result, 0x20), 0x30)
-      }
-      default {
-        let length := 0x0
-        // let result = new bytes(32)
-        result := mload(0x40)
+  function uintToStr(uint256 value) internal pure returns (string memory result) {
+    // Inspired by OraclizeAPI's implementation - MIT licence
+    // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
 
-        // Get length of render number
-        // for (let v := value; v > 0; v = v / 10)
-        for {
-          let v := value
-        } gt(v, 0x00) {
-          v := div(v, 0x0a)
-        } {
-          length := add(length, 0x01)
-        }
-
-        // We're only support number with 32 digits
-        // if (length > 32) revert();
-        if gt(length, 0x20) {
-          revert(0, 0)
-        }
-
-        // Set length of result
-        mstore(result, length)
-
-        // Start render result
-        // for (let v := value; length > 0; v = v / 10)
-        for {
-          let v := value
-        } gt(length, 0x00) {
-          v := div(v, 0x0a)
-        } {
-          // result[--length] = 48 + (v % 10)
-          length := sub(length, 0x01)
-          mstore8(add(add(result, 0x20), length), add(0x30, mod(v, 0x0a)))
-        }
-      }
+    if (value == 0) {
+      return '0';
     }
+    uint256 temp = value;
+    uint256 digits;
+    while (temp != 0) {
+      digits++;
+      temp /= 10;
+    }
+    bytes memory buffer = new bytes(digits);
+    while (value != 0) {
+      digits -= 1;
+      buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+      value /= 10;
+    }
+    return string(buffer);
   }
 }
