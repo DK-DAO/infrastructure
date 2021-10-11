@@ -71,7 +71,7 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
   // Anyone would able to help owner claim boxes
   function claimCards(address owner, bytes memory nftIds) external {
     // Get nft
-    INFT nft = INFT(_registry.getAddress(_domain, 'NFT'));
+    INFT nftItem = INFT(_registry.getAddress(_domain, 'NFT Item'));
     // Make sure that number of id length is valid
     require(nftIds.length % 32 == 0, 'Distributor: Invalid length of NFT IDs');
     for (uint256 i = 0; i < nftIds.length; i += 32) {
@@ -81,13 +81,13 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
       // Claim cards from open boxes
       require(_claimCardsInBox(owner, nftId), 'Distributor: Unable to claim cards in the box');
       // Burn claimed box after open
-      require(nft.ownerOf(nftId) == owner && nft.burn(nftId), 'Distributor: Unable to burn claimed box');
+      require(nftItem.ownerOf(nftId) == owner && nftItem.burn(nftId), 'Distributor: Unable to burn claimed box');
     }
   }
 
   // Only owner able to open boxes
   function openBoxes(bytes memory nftIds) external {
-    INFT nft = INFT(_registry.getAddress(_domain, 'NFT'));
+    INFT nftItem = INFT(_registry.getAddress(_domain, 'NFT Item'));
     address owner = msg.sender;
     require(nftIds.length % 32 == 0, 'Distributor: Invalid length of NFT IDs');
     uint256 rand = uint256(keccak256(abi.encodePacked(_entropy, owner)));
@@ -100,9 +100,9 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
         j = 0;
       }
       require(
-        nft.ownerOf(nftId) == owner &&
-          nft.burn(nftId) &&
-          nft.mint(owner, nftId.setEntropy((rand >> j) & 0xffffffffffffffff)),
+        nftItem.ownerOf(nftId) == owner &&
+          nftItem.burn(nftId) &&
+          nftItem.mint(owner, nftId.setEntropy((rand >> j) & 0xffffffffffffffff)),
         'Distributor: Unable to burn old box and issue opened box'
       );
       j += 64;
@@ -153,7 +153,7 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
 
   // Open loot boxes
   function _claimCardsInBox(address owner, uint256 boxNftTokenId) private returns (bool) {
-    INFT nft = INFT(_registry.getAddress(_domain, 'NFT'));
+    INFT nftCard = INFT(_registry.getAddress(_domain, 'NFT Item'));
     // Read entropy from openned card
     uint256 rand = uint256(keccak256(abi.encodePacked(boxNftTokenId.getEntropy())));
     // Box Id is equal to phase of card
@@ -174,7 +174,7 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
         if (card > 0) {
           serial += 1;
           require(
-            nft.mint(owner, card.setGeneration(generation).setSerial(serial)),
+            nftCard.mint(owner, card.setGeneration(generation).setSerial(serial)),
             'Distributor: Can not mint NFT card'
           );
           i += 1;
@@ -191,22 +191,24 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
   // Issue card
   function _issueCard(address owner, uint256 baseCardId) private returns (uint256) {
     _cardSerial += 1;
-    // Overwrite item type with 0
-    return _mint(owner, baseCardId.setType(0).setSerial(_cardSerial));
+    uint256 nftTokenId = baseCardId.setSerial(_cardSerial);
+    require(
+      INFT(_registry.getAddress(_domain, 'NFT Card')).mint(owner, nftTokenId),
+      'Distributor: Unable to issue card'
+    );
+    return nftTokenId;
   }
 
   // Issue other item
   function _issueItem(address owner, uint256 baseItemId) private returns (uint256) {
     _itemSerial += 1;
+    uint256 nftTokenId = baseItemId.setSerial(_itemSerial);
     // Overite item's serial
-    return _mint(owner, baseItemId.setSerial(_itemSerial));
-  }
-
-  function _mint(address owner, uint256 nftTokenId) private returns (uint256) {
-    if (INFT(_registry.getAddress(_domain, 'NFT')).mint(owner, nftTokenId)) {
-      return nftTokenId;
-    }
-    return 0;
+    require(
+      INFT(_registry.getAddress(_domain, 'NFT Item')).mint(owner, nftTokenId),
+      'Distributor: Unable to issue item'
+    );
+    return nftTokenId;
   }
 
   // Calcualte card

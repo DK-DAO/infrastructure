@@ -3,7 +3,7 @@ pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '../libraries/MultiOwner.sol';
+import './MultiOwner.sol';
 
 /**
  * Card Sale Wallet
