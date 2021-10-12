@@ -93,6 +93,7 @@ describe('DuelistKingDistributor', function () {
 
   it('anyone could able to claim cards for owner', async () => {
     const {
+      deployer,
       infrastructure: { nft },
       duelistKing: { distributor },
     } = context;
@@ -117,5 +118,6 @@ describe('DuelistKingDistributor', function () {
         .join('\n'),
       `\n${txResult.gasUsed.toString()} Gas`,
     );
+    deployer.printReport();
   });
 });

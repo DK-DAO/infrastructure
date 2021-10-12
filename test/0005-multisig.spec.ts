@@ -1,11 +1,11 @@
 import hre from 'hardhat';
 import chai, { expect } from 'chai';
-import { contractDeploy, randInt } from './helpers/functions';
 import { TestToken, MultiSig } from '../typechain';
-import { Signer } from 'ethers';
+import { utils, BigNumber } from 'ethers';
 import { solidity } from 'ethereum-waffle';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import Deployer from './helpers/deployer';
+import BytesBuffer from './helpers/bytes';
 
 chai.use(solidity);
 
@@ -251,6 +251,53 @@ describe('MultiSig', function () {
     let error = false;
     try {
       await contractMultiSig.connect(accounts[3]).execute(5);
+    } catch (e: any) {
+      console.log(`\t${e.message}`);
+      error = true;
+    }
+    expect(error).to.eq(true);
+  });
+
+  it('owners should able to do quick transfer with all valid proof', async () => {
+    const buf = BytesBuffer.newInstance()
+      .writeUint256((await contractMultiSig.getNextValidNonce()).toHexString())
+      .writeAddress(contractTestToken.address)
+      .writeBytes(contractTestToken.interface.encodeFunctionData('transfer', [accounts[9].address, 2]))
+      .invoke();
+    const proofs = [];
+    for (let i = 0; i < 3; i += 1) {
+      proofs.push(await accounts[i].signMessage(buf));
+    }
+    const txResult = await (await contractMultiSig.connect(accounts[3]).quickTransfer(proofs, buf)).wait();
+    console.log(contractMultiSig.address, '->', accounts[9].address);
+    console.log(
+      txResult.logs
+        .filter((e) => e.topics[0] === utils.id('Transfer(address,address,uint256)'))
+        .map((e) => {
+          return contractTestToken.interface.decodeEventLog('Transfer', e.data, e.topics);
+        })
+        .map((e) => {
+          const { from, to, value } = e;
+          return `Transfer(${[from, to, BigNumber.from(value).toHexString()].join(', ')})`;
+        })
+        .join('\n'),
+      `\n${txResult.gasUsed.toString()} Gas`,
+    );
+  });
+
+  it('owners should not able to do quick transfer with invalid valid proof', async () => {
+    const buf = BytesBuffer.newInstance()
+      .writeUint256((await contractMultiSig.getNextValidNonce()).toHexString())
+      .writeAddress(contractTestToken.address)
+      .writeBytes(contractTestToken.interface.encodeFunctionData('transfer', [accounts[9].address, 2]))
+      .invoke();
+    const proofs = [];
+    for (let i = 0; i < 2; i += 1) {
+      proofs.push(await accounts[i].signMessage(buf));
+    }
+    let error = false;
+    try {
+      await (await contractMultiSig.connect(accounts[3]).quickTransfer(proofs, buf)).wait();
     } catch (e: any) {
       console.log(`\t${e.message}`);
       error = true;

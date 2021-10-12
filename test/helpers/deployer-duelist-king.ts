@@ -49,11 +49,7 @@ export default async function init(context: {
   const infrastructureOracleProxy = <OracleProxy>deployer.getDeployedContract('Infrastructure/OracleProxy');
 
   // The Divine Contract https://github.com/chiro-hiro/thedivine
-  const txResult = await (
-    await config.duelistKing.operator.sendTransaction({
-      data: '0x601a803d90600a8239f360203d333218600a57fd5b8181805482430340188152208155f3',
-    })
-  ).wait();
+  const theDivineContract = await deployer.deployTheDivine();
 
   const duelistKingOracleProxy = <OracleProxy>(
     await deployer.contractDeploy(
@@ -70,7 +66,7 @@ export default async function init(context: {
       ['Bytes'],
       registry.address,
       registryRecords.domain.duelistKing,
-      txResult.contractAddress,
+      theDivineContract.address,
     )
   );
 

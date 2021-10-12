@@ -10,7 +10,7 @@ export class Deployer {
 
   private _signer: Signer;
 
-  private _contractCache: { [contractName: string]: Contract } = {};
+  private _contractCache: { [contractPath: string]: Contract } = {};
 
   private _executed: boolean = false;
 
@@ -50,8 +50,6 @@ export class Deployer {
     const [domain, contractName] = contractPath.split('/');
     const entries = Object.entries(this._libraries);
     const linking = Object.fromEntries(entries.filter(([v, _k]: [string, string]) => librariesLink.includes(v)));
-    const gasPrice = await this._hre.ethers.provider.getGasPrice();
-
     if (typeof this._contractCache[contractPath] === 'undefined') {
       try {
         const instanceFactory = await this._hre.ethers.getContractFactory(contractName, {
@@ -92,8 +90,35 @@ export class Deployer {
     };
   }
 
+  public async deployTheDivine(): Promise<Contract> {
+    const txResult = await (
+      await this._signer.sendTransaction({
+        data: '0x601a803d90600a8239f360203d333218600a57fd5b8181805482430340188152208155f3',
+      })
+    ).wait();
+    this._contractCache['Chiro/TheDivine'] = await this._hre.ethers.getContractAt(
+      'ITheDivine',
+      txResult.contractAddress,
+    );
+    return this._contractCache['Chiro/TheDivine'];
+  }
+
   public static getInstance(hre: HardhatRuntimeEnvironment): Deployer {
     return Singleton('infrastructure', Deployer, hre);
+  }
+
+  public printReport() {
+    let entries = Object.entries(this._contractCache);
+    console.log(
+      `[Report for network: ${this._hre.network.name}] --------------------------------------------------------`,
+    );
+    for (let i = 0; i < entries.length; i += 1) {
+      const [k, v] = entries[i];
+      console.log(`\t${k}:${''.padEnd(48 - k.length, ' ')}${v.address}`);
+    }
+    console.log(
+      `[End of Report for network: ${this._hre.network.name}] -------------------------------------------------`,
+    );
   }
 }
 
