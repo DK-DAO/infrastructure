@@ -62,13 +62,17 @@ export default async function init(
   // Connect to infrastructure operator
   deployer.connect(config.infrastructure.operator);
 
+  await deployer.contractDeploy('Libraries/Bytes', []);
+
+  await deployer.contractDeploy('Libraries/Verifier', []);
+
   // Deploy registry
   const registry = await deployer.contractDeploy('Infrastructure/Registry', []);
 
   // Deploy oracle proxy
   await deployer.contractDeploy(
     'Infrastructure/OracleProxy',
-    [],
+    ['Bytes', 'Verifier'],
     registry.address,
     registryRecords.domain.infrastructure,
   );
@@ -80,7 +84,12 @@ export default async function init(
   await deployer.contractDeploy('Infrastructure/NFT', []);
 
   // Deploy RNG
-  await deployer.contractDeploy('Infrastructure/RNG', [], registry.address, registryRecords.domain.infrastructure);
+  await deployer.contractDeploy(
+    'Infrastructure/RNG',
+    ['Bytes'],
+    registry.address,
+    registryRecords.domain.infrastructure,
+  );
 
   return {
     deployer,

@@ -50,6 +50,8 @@ export class Deployer {
     const [domain, contractName] = contractPath.split('/');
     const entries = Object.entries(this._libraries);
     const linking = Object.fromEntries(entries.filter(([v, _k]: [string, string]) => librariesLink.includes(v)));
+    const gasPrice = await this._hre.ethers.provider.getGasPrice();
+
     if (typeof this._contractCache[contractPath] === 'undefined') {
       try {
         const instanceFactory = await this._hre.ethers.getContractFactory(contractName, {

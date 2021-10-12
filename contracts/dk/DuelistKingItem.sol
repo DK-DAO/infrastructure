@@ -28,7 +28,9 @@ library DuelistKingItem {
   ) internal pure returns (uint256 result) {
     require((mask | newValue) ^ mask == 0, 'DuelistKingItem: New value is out range');
     assembly {
+      // result = value & not(mask << shift)
       result := and(value, not(shl(shift, mask)))
+      // result = result or (newValue << shift)
       result := or(shl(shift, newValue), result)
     }
   }
@@ -39,6 +41,7 @@ library DuelistKingItem {
     uint256 mask
   ) internal pure returns (uint256 result) {
     assembly {
+      // result = ((mask << shift) & value) >> shift
       result := shr(shift, and(value, shl(shift, mask)))
     }
   }

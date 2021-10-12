@@ -56,7 +56,7 @@ describe('DuelistKingDistributor', function () {
         .map((e) => nft.interface.decodeEventLog('Transfer', e.data, e.topics))
         .map((e) => {
           const { from, to, tokenId } = e;
-          boxes.push(BigNumber.from(tokenId).toHexString());
+          if (from === zeroAddress) boxes.push(BigNumber.from(tokenId).toHexString());
           return `Transfer(${[from, to, BigNumber.from(tokenId).toHexString()].join(', ')})`;
         })
         .join('\n'),
@@ -79,7 +79,6 @@ describe('DuelistKingDistributor', function () {
       txResult.logs
         .filter((e) => e.topics[0] === utils.id('Transfer(address,address,uint256)'))
         .map((e) => {
-          console.log(e.address);
           return nft.interface.decodeEventLog('Transfer', e.data, e.topics);
         })
         .map((e) => {
@@ -101,7 +100,6 @@ describe('DuelistKingDistributor', function () {
     for (let i = 0; i < openedBoxes.length; i += 1) {
       packedTokenId.writeUint256(openedBoxes[i]);
     }
-    console.log(openedBoxes);
     const txResult = await (
       await distributor.connect(accounts[5]).claimCards(accounts[4].address, packedTokenId.invoke())
     ).wait();
@@ -109,7 +107,6 @@ describe('DuelistKingDistributor', function () {
       txResult.logs
         .filter((e) => e.topics[0] === utils.id('Transfer(address,address,uint256)'))
         .map((e) => {
-          console.log(e.address);
           return nft.interface.decodeEventLog('Transfer', e.data, e.topics);
         })
         .map((e) => {

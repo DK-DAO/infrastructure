@@ -171,7 +171,7 @@ contract MultiSig is MultiOwner {
   }
 
   function _calculatePercent(int256 votedOwner) private view returns (int256) {
-    return (votedOwner * 100) / int256(totalOwner() * 100);
+    return (votedOwner * 10000) / int256(totalOwner() * 100);
   }
 
   /*******************************************************

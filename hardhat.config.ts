@@ -12,7 +12,7 @@ import './tasks/change-nft';
 import './tasks/live-test-contract';
 */
 
-const compilers = ['0.8.7'].map((item: string) => ({
+const compilers = ['0.8.9'].map((item: string) => ({
   version: item,
   settings: {
     optimizer: {
@@ -74,6 +74,9 @@ const config: HardhatUserConfig = {
     hardhat: {
       chainId: 911,
       hardfork: 'london',
+      blockGasLimit: 30000000,
+      initialBaseFeePerGas: 0,
+      gas: 15000000,
       accounts: {
         mnemonic: env.DUELIST_KING_LOCAL_MNEMONIC,
         path: "m/44'/60'/0'/0",

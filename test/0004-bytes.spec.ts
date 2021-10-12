@@ -4,12 +4,17 @@ import { contractDeploy, randInt } from './helpers/functions';
 import { BytesTest } from '../typechain';
 import crypto from 'crypto';
 import { BigNumber, Signer } from 'ethers';
+import Deployer from './helpers/deployer';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
-let owner: Signer, contractBytesTest: BytesTest;
+let accounts: SignerWithAddress[], contractBytesTest: BytesTest;
+
 describe('BytesTest', function () {
   it('BytesTest mus be deployed correctly', async () => {
-    [owner] = await hre.ethers.getSigners();
-    contractBytesTest = <BytesTest>await contractDeploy(owner, 'test/BytesTest');
+    accounts = await hre.ethers.getSigners();
+    const deployer = Deployer.getInstance(hre);
+    await deployer.contractDeploy('Libraries/Bytes', []);
+    contractBytesTest = <BytesTest>await deployer.connect(accounts[0]).contractDeploy('test/BytesTest', ['Bytes']);
   });
 
   it('bytes to bytes32[] should be work properly', async () => {

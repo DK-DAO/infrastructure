@@ -56,13 +56,18 @@ export default async function init(context: {
   ).wait();
 
   const duelistKingOracleProxy = <OracleProxy>(
-    await deployer.contractDeploy('Duelist King/OracleProxy', [], registry.address, registryRecords.domain.duelistKing)
+    await deployer.contractDeploy(
+      'Duelist King/OracleProxy',
+      ['Bytes', 'Verifier'],
+      registry.address,
+      registryRecords.domain.duelistKing,
+    )
   );
 
   const distributor = <DuelistKingDistributor>(
     await deployer.contractDeploy(
       'Duelist King/DuelistKingDistributor',
-      [],
+      ['Bytes'],
       registry.address,
       registryRecords.domain.duelistKing,
       txResult.contractAddress,

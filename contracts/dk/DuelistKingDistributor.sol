@@ -97,7 +97,7 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
     uint256 j = 0;
     for (uint256 i = 0; i < nftIds.length; i += 32) {
       uint256 nftId = nftIds.readUint256(i);
-      require(nftId.getType() == 1 && nftId.getEntropy() == 0, 'Distributor: Only able to open unopened boxes');
+      require(nftId.getEntropy() == 0, 'Distributor: Only able to open unopened boxes');
       if (j >= 256) {
         rand = uint256(keccak256(abi.encodePacked(_entropy)));
         j = 0;
@@ -140,11 +140,18 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
     require(numberOfBoxes > 0 && numberOfBoxes <= 1000, 'Distributor: Invalid number of boxes');
     require(phaseId >= 1, 'Distributor: Invalid phase id');
     require(_mintedBoxes[phaseId] < _capped, 'Distributor: We run out of this box');
+    uint256 itemSerial = _itemSerial;
+    uint256 basedBox = uint256(0).setType(1).setId(phaseId);
     bool isSuccess = true;
     for (uint256 i = 0; i < numberOfBoxes; i += 1) {
-      isSuccess = isSuccess && _issueItem(owner, uint256(0).setType(1).setId(phaseId)) > 0;
+      itemSerial += 1;
+      // Overite item's serial
+      isSuccess =
+        isSuccess &&
+        INFT(_registry.getAddress(_domain, 'NFT Item')).mint(owner, basedBox.setSerial(itemSerial));
     }
-    require(isSuccess, 'Distributor: We were not able to mint boxes');
+    require(isSuccess, 'Distributor: Unable to issue item');
+    _itemSerial = itemSerial;
     _mintedBoxes[phaseId] += numberOfBoxes;
     return isSuccess;
   }
@@ -156,13 +163,15 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
     uint256 id
   ) external onlyAllowSameDomain('Oracle') returns (uint256) {
     require(_genesisEdition[id] == 0, 'Distributor: Only one genesis edition will be distributed');
-    uint256 issueCard = _issueCard(
-      owner,
-      uint256(0x0000000000000000ffff00000000000000000000000000000000000000000000).setGeneration(generation).setId(id)
-    );
-    _genesisEdition[id] = issueCard;
-    emit NewGenesisCard(owner, id, issueCard);
-    return issueCard;
+    _cardSerial += 1;
+    uint256 cardId = uint256(0x0000000000000000ffff00000000000000000000000000000000000000000000)
+      .setGeneration(generation)
+      .setId(id)
+      .setSerial(_cardSerial);
+    require(INFT(_registry.getAddress(_domain, 'NFT Card')).mint(owner, cardId), 'Distributor: Unable to issue card');
+    _genesisEdition[id] = cardId;
+    emit NewGenesisCard(owner, id, cardId);
+    return cardId;
   }
 
   /*******************************************************
@@ -204,29 +213,6 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
     // Update old random with new one
     _entropy = rand;
     return true;
-  }
-
-  // Issue card
-  function _issueCard(address owner, uint256 baseCardId) private returns (uint256) {
-    _cardSerial += 1;
-    uint256 nftTokenId = baseCardId.setSerial(_cardSerial);
-    require(
-      INFT(_registry.getAddress(_domain, 'NFT Card')).mint(owner, nftTokenId),
-      'Distributor: Unable to issue card'
-    );
-    return nftTokenId;
-  }
-
-  // Issue other item
-  function _issueItem(address owner, uint256 baseItemId) private returns (uint256) {
-    _itemSerial += 1;
-    uint256 nftTokenId = baseItemId.setSerial(_itemSerial);
-    // Overite item's serial
-    require(
-      INFT(_registry.getAddress(_domain, 'NFT Item')).mint(owner, nftTokenId),
-      'Distributor: Unable to issue item'
-    );
-    return nftTokenId;
   }
 
   // Calcualte card

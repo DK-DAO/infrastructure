@@ -34,7 +34,7 @@ describe('Registry', () => {
     );
   });
 
-  it('All records in registry should be set correctly for DKDAO infrastructure domain', async () => {
+  it('all records in registry should be set correctly for Infrastructure domain', async () => {
     const {
       infrastructure: { registry, oracle, nft, press, rng },
     } = context;
