@@ -139,7 +139,7 @@ abstract contract Context {
 }
 
 
-// Root file: contracts/libraries/ERC20.sol
+// Root file: contracts/dao/ERC20.sol
 
 
 pragma solidity ^0.8.0;

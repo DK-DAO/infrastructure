@@ -16,7 +16,7 @@ library DuelistKingItem {
   // Edition:         16  bits    For now, 0-Standard edition 0xffff-Creator edition
   // Generation:      16  bits    Generation of item, now it's Gen 0
   // Rareness:        16  bits    1-C, 2-U, 3-R, 4-SR, 5-SSR, 6-L
-  // Type:            16  bits    0-Card, 1-Loot Box
+  // Type:            16  bits    Type of item
   // Id:              64  bits    Increasement value that unique for each item
   // Serial:          64  bits    Increasement value that count the number of items
   // 256         192         176             160            144         128       64            0
@@ -29,7 +29,9 @@ library DuelistKingItem {
   ) internal pure returns (uint256 result) {
     require((mask | newValue) ^ mask == 0, 'DuelistKingItem: New value is out range');
     assembly {
+      // result = value & not(mask << shift)
       result := and(value, not(shl(shift, mask)))
+      // result = result or (newValue << shift)
       result := or(shl(shift, newValue), result)
     }
   }
@@ -40,6 +42,7 @@ library DuelistKingItem {
     uint256 mask
   ) internal pure returns (uint256 result) {
     assembly {
+      // result = ((mask << shift) & value) >> shift
       result := shr(shift, and(value, shl(shift, mask)))
     }
   }
@@ -209,7 +212,7 @@ abstract contract RegistryUser {
 
 library Bytes {
   // Convert bytes to bytes32[]
-  function toBytes32Array(bytes memory input) internal pure returns (bytes32[] memory) {
+  function toBytes32Array(bytes memory input) public pure returns (bytes32[] memory) {
     require(input.length % 32 == 0, 'Bytes: invalid data length should divied by 32');
     bytes32[] memory result = new bytes32[](input.length / 32);
     assembly {
@@ -235,7 +238,7 @@ library Bytes {
   }
 
   // Read address from input bytes buffer
-  function readAddress(bytes memory input, uint256 offset) internal pure returns (address result) {
+  function readAddress(bytes memory input, uint256 offset) public pure returns (address result) {
     require(offset + 20 <= input.length, 'Bytes: Our of range, can not read address from bytes');
     assembly {
       result := shr(96, mload(add(add(input, 0x20), offset)))
@@ -243,7 +246,7 @@ library Bytes {
   }
 
   // Read uint256 from input bytes buffer
-  function readUint256(bytes memory input, uint256 offset) internal pure returns (uint256 result) {
+  function readUint256(bytes memory input, uint256 offset) public pure returns (uint256 result) {
     require(offset + 32 <= input.length, 'Bytes: Our of range, can not read uint256 from bytes');
     assembly {
       result := mload(add(add(input, 0x20), offset))
@@ -255,7 +258,7 @@ library Bytes {
     bytes memory input,
     uint256 offset,
     uint256 length
-  ) internal pure returns (bytes memory) {
+  ) public pure returns (bytes memory) {
     require(offset + length <= input.length, 'Bytes: Our of range, can not read bytes from bytes');
     bytes memory result = new bytes(length);
     assembly {
@@ -364,6 +367,9 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
   // New genesis card
   event NewGenesisCard(address indexed owner, uint256 indexed carId, uint256 indexed nftTokenId);
 
+  // Set minted boxes
+  event SetRemainingBoxes(uint256 indexed phaseId, uint256 indexed remainingBoxes);
+
   constructor(
     address registry_,
     bytes32 domain_,
@@ -389,7 +395,7 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
   // Anyone would able to help owner claim boxes
   function claimCards(address owner, bytes memory nftIds) external {
     // Get nft
-    INFT nft = INFT(_registry.getAddress(_domain, 'NFT'));
+    INFT nftItem = INFT(_registry.getAddress(_domain, 'NFT Item'));
     // Make sure that number of id length is valid
     require(nftIds.length % 32 == 0, 'Distributor: Invalid length of NFT IDs');
     for (uint256 i = 0; i < nftIds.length; i += 32) {
@@ -399,28 +405,28 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
       // Claim cards from open boxes
       require(_claimCardsInBox(owner, nftId), 'Distributor: Unable to claim cards in the box');
       // Burn claimed box after open
-      require(nft.ownerOf(nftId) == owner && nft.burn(nftId), 'Distributor: Unable to burn claimed box');
+      require(nftItem.ownerOf(nftId) == owner && nftItem.burn(nftId), 'Distributor: Unable to burn claimed box');
     }
   }
 
   // Only owner able to open boxes
   function openBoxes(bytes memory nftIds) external {
-    INFT nft = INFT(_registry.getAddress(_domain, 'NFT'));
+    INFT nftItem = INFT(_registry.getAddress(_domain, 'NFT Item'));
     address owner = msg.sender;
     require(nftIds.length % 32 == 0, 'Distributor: Invalid length of NFT IDs');
     uint256 rand = uint256(keccak256(abi.encodePacked(_entropy, owner)));
     uint256 j = 0;
     for (uint256 i = 0; i < nftIds.length; i += 32) {
       uint256 nftId = nftIds.readUint256(i);
-      require(nftId.getType() == 1 && nftId.getEntropy() == 0, 'Distributor: Only able to open unopened boxes');
+      require(nftId.getEntropy() == 0, 'Distributor: Only able to open unopened boxes');
       if (j >= 256) {
         rand = uint256(keccak256(abi.encodePacked(_entropy)));
         j = 0;
       }
       require(
-        nft.ownerOf(nftId) == owner &&
-          nft.burn(nftId) &&
-          nft.mint(owner, nftId.setEntropy((rand >> j) & 0xffffffffffffffff)),
+        nftItem.ownerOf(nftId) == owner &&
+          nftItem.burn(nftId) &&
+          nftItem.mint(owner, nftId.setEntropy((rand >> j) & 0xffffffffffffffff)),
         'Distributor: Unable to burn old box and issue opened box'
       );
       j += 64;
@@ -432,20 +438,42 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
    ********************************************************/
 
   // Mint boxes
+  function setRemainingBoxes(uint256 phaseId, uint256 numberOfBoxes)
+    external
+    onlyAllowSameDomain('Oracle')
+    returns (bool)
+  {
+    require(
+      _mintedBoxes[phaseId] == 0 && numberOfBoxes > 0 && numberOfBoxes < _capped,
+      "Distributor: Once this set you can't change"
+    );
+    _mintedBoxes[phaseId] = _capped - numberOfBoxes;
+    emit SetRemainingBoxes(phaseId, numberOfBoxes);
+    return true;
+  }
+
+  // Mint boxes
   function mintBoxes(
     address owner,
     uint256 numberOfBoxes,
-    uint256 boxId
+    uint256 phaseId
   ) external onlyAllowSameDomain('Oracle') returns (bool) {
     require(numberOfBoxes > 0 && numberOfBoxes <= 1000, 'Distributor: Invalid number of boxes');
-    require(boxId >= 1, 'Distributor: Invalid box id');
-    require(_mintedBoxes[boxId] > _capped, 'Distributor: We run out of this box');
+    require(phaseId >= 1, 'Distributor: Invalid phase id');
+    require(_mintedBoxes[phaseId] < _capped, 'Distributor: We run out of this box');
+    uint256 itemSerial = _itemSerial;
+    uint256 basedBox = uint256(0).setType(1).setId(phaseId);
     bool isSuccess = true;
     for (uint256 i = 0; i < numberOfBoxes; i += 1) {
-      isSuccess = isSuccess && _issueItem(owner, uint256(0).setType(1).setId(boxId)) > 0;
+      itemSerial += 1;
+      // Overite item's serial
+      isSuccess =
+        isSuccess &&
+        INFT(_registry.getAddress(_domain, 'NFT Item')).mint(owner, basedBox.setSerial(itemSerial));
     }
-    require(isSuccess, 'Distributor: We were not able to mint boxes');
-    _mintedBoxes[boxId] += numberOfBoxes;
+    require(isSuccess, 'Distributor: Unable to issue item');
+    _itemSerial = itemSerial;
+    _mintedBoxes[phaseId] += numberOfBoxes;
     return isSuccess;
   }
 
@@ -456,13 +484,15 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
     uint256 id
   ) external onlyAllowSameDomain('Oracle') returns (uint256) {
     require(_genesisEdition[id] == 0, 'Distributor: Only one genesis edition will be distributed');
-    uint256 issueCard = _issueCard(
-      owner,
-      uint256(0x0000000000000000ffff00000000000000000000000000000000000000000000).setGeneration(generation).setId(id)
-    );
-    _genesisEdition[id] = issueCard;
-    emit NewGenesisCard(owner, id, issueCard);
-    return issueCard;
+    _cardSerial += 1;
+    uint256 cardId = uint256(0x0000000000000000ffff00000000000000000000000000000000000000000000)
+      .setGeneration(generation)
+      .setId(id)
+      .setSerial(_cardSerial);
+    require(INFT(_registry.getAddress(_domain, 'NFT Card')).mint(owner, cardId), 'Distributor: Unable to issue card');
+    _genesisEdition[id] = cardId;
+    emit NewGenesisCard(owner, id, cardId);
+    return cardId;
   }
 
   /*******************************************************
@@ -471,7 +501,7 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
 
   // Open loot boxes
   function _claimCardsInBox(address owner, uint256 boxNftTokenId) private returns (bool) {
-    INFT nft = INFT(_registry.getAddress(_domain, 'NFT'));
+    INFT nftCard = INFT(_registry.getAddress(_domain, 'NFT Card'));
     // Read entropy from openned card
     uint256 rand = uint256(keccak256(abi.encodePacked(boxNftTokenId.getEntropy())));
     // Box Id is equal to phase of card
@@ -492,7 +522,7 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
         if (card > 0) {
           serial += 1;
           require(
-            nft.mint(owner, card.setGeneration(generation).setSerial(serial)),
+            nftCard.mint(owner, card.setGeneration(generation).setSerial(serial)),
             'Distributor: Can not mint NFT card'
           );
           i += 1;
@@ -504,27 +534,6 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
     // Update old random with new one
     _entropy = rand;
     return true;
-  }
-
-  // Issue card
-  function _issueCard(address owner, uint256 baseCardId) private returns (uint256) {
-    _cardSerial += 1;
-    // Overwrite item type with 0
-    return _mint(owner, baseCardId.setType(0).setSerial(_cardSerial));
-  }
-
-  // Issue other item
-  function _issueItem(address owner, uint256 baseItemId) private returns (uint256) {
-    _itemSerial += 1;
-    // Overite item's serial
-    return _mint(owner, baseItemId.setSerial(_itemSerial));
-  }
-
-  function _mint(address owner, uint256 nftTokenId) private returns (uint256) {
-    if (INFT(_registry.getAddress(_domain, 'NFT')).mint(owner, nftTokenId)) {
-      return nftTokenId;
-    }
-    return 0;
   }
 
   // Calcualte card
@@ -560,8 +569,8 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
    ********************************************************/
 
   // Get remaining box of a phase
-  function getRemainingBox(uint256 boxId) external view returns (uint256) {
-    return _capped - _mintedBoxes[boxId];
+  function getRemainingBox(uint256 phaseId) external view returns (uint256) {
+    return _capped - _mintedBoxes[phaseId];
   }
 
   // Get genesis token id of given card ID

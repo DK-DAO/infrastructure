@@ -16,7 +16,7 @@ library DuelistKingItem {
   // Edition:         16  bits    For now, 0-Standard edition 0xffff-Creator edition
   // Generation:      16  bits    Generation of item, now it's Gen 0
   // Rareness:        16  bits    1-C, 2-U, 3-R, 4-SR, 5-SSR, 6-L
-  // Type:            16  bits    0-Card, 1-Loot Box
+  // Type:            16  bits    Type of item
   // Id:              64  bits    Increasement value that unique for each item
   // Serial:          64  bits    Increasement value that count the number of items
   // 256         192         176             160            144         128       64            0
@@ -29,7 +29,9 @@ library DuelistKingItem {
   ) internal pure returns (uint256 result) {
     require((mask | newValue) ^ mask == 0, 'DuelistKingItem: New value is out range');
     assembly {
+      // result = value & not(mask << shift)
       result := and(value, not(shl(shift, mask)))
+      // result = result or (newValue << shift)
       result := or(shl(shift, newValue), result)
     }
   }
@@ -40,6 +42,7 @@ library DuelistKingItem {
     uint256 mask
   ) internal pure returns (uint256 result) {
     assembly {
+      // result = ((mask << shift) & value) >> shift
       result := shr(shift, and(value, shl(shift, mask)))
     }
   }

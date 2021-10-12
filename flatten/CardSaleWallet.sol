@@ -83,7 +83,7 @@ interface IERC20 {
 }
 
 
-// Dependency file: contracts/libraries/MultiOwner.sol
+// Dependency file: contracts/operators/MultiOwner.sol
 
 // pragma solidity >=0.8.4 <0.9.0;
 
@@ -144,12 +144,12 @@ contract MultiOwner {
 }
 
 
-// Root file: contracts/dk/CardSaleWallet.sol
+// Root file: contracts/operators/CardSaleWallet.sol
 
 pragma solidity >=0.8.4 <0.9.0;
 
 // import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol';
-// import 'contracts/libraries/MultiOwner.sol';
+// import 'contracts/operators/MultiOwner.sol';
 
 /**
  * Card Sale Wallet

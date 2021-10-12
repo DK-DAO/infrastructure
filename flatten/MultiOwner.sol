@@ -1,4 +1,4 @@
-// Root file: contracts/libraries/MultiOwner.sol
+// Root file: contracts/operators/MultiOwner.sol
 
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.4 <0.9.0;

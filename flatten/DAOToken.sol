@@ -139,7 +139,7 @@ abstract contract Context {
 }
 
 
-// Dependency file: contracts/libraries/ERC20.sol
+// Dependency file: contracts/dao/ERC20.sol
 
 
 // pragma solidity ^0.8.0;
@@ -509,7 +509,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
 pragma solidity >=0.8.4 <0.9.0;
 
-// import 'contracts/libraries/ERC20.sol';
+// import 'contracts/dao/ERC20.sol';
 
 /**
  * DAO Token

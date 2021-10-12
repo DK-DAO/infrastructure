@@ -161,7 +161,7 @@ contract Registry is RegistryUser, IRegistry {
     bytes32 domain,
     bytes32 name,
     address addr
-  ) internal returns (bool) {
+  ) private returns (bool) {
     require(addr != address(0), "Registry: We don't allow zero address");
     registered[domain][name] = addr;
     revertedName[addr] = name;
