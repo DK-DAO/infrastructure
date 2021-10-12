@@ -3,7 +3,10 @@ import { Contract } from '@ethersproject/contracts';
 import crypto, { randomBytes } from 'crypto';
 import { keccak256 } from 'js-sha3';
 import hre from 'hardhat';
-import { BigNumber, ContractTransaction } from 'ethers';
+import { BigNumber, ContractTransaction, utils } from 'ethers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { OracleProxy } from '../../typechain';
+import BytesBuffer from './bytes';
 
 interface IKeyValues {
   [key: string]: string;
@@ -158,4 +161,11 @@ export async function printAllEvents(tx: ContractTransaction) {
       ?.map((e) => `\t${e.event}(${e.args?.map((i) => argumentTransform(e.event || '', i)).join(', ')})`)
       .join('\n'),
   );
+}
+
+export async function craftProof(oracleSigner: SignerWithAddress, oracle: OracleProxy): Promise<Buffer> {
+  let message = bigNumberToBytes32(await oracle.getValidTimeNonce(60000, getUint128Random()));
+  // Make sure that it matched
+  let signedProof = await oracleSigner.signMessage(utils.arrayify(message));
+  return BytesBuffer.newInstance().writeBytes(signedProof).writeBytes(message).invoke();
 }

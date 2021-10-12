@@ -1,18 +1,12 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
-import {
-  buildDigestArray,
-  buildDigest,
-  bigNumberToBytes32,
-  printAllEvents,
-  getUint128Random,
-} from './helpers/functions';
+import { buildDigestArray, buildDigest } from './helpers/functions';
 import { BytesBuffer } from './helpers/bytes';
-import { BytesLike, utils } from 'ethers';
+import { BytesLike } from 'ethers';
 import initInfrastructure, { IConfiguration } from './helpers/deployer-infrastructure';
 import initDuelistKing, { IDeployContext } from './helpers/deployer-duelist-king';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { OracleProxy } from '../typechain';
+import { craftProof } from './helpers/functions';
 
 let digests: { s: Buffer[]; h: Buffer[]; v: Buffer };
 let context: IDeployContext;
@@ -36,13 +30,6 @@ describe('RNG', () => {
       }),
     );
   });
-
-  async function craftProof(oracleSigner: SignerWithAddress, oracle: OracleProxy): Promise<Buffer> {
-    let message = bigNumberToBytes32(await oracle.getValidTimeNonce(60000, getUint128Random()));
-    // Make sure that it matched
-    let signedProof = await oracleSigner.signMessage(utils.arrayify(message));
-    return BytesBuffer.newInstance().writeBytes(signedProof).writeBytes(message).invoke();
-  }
 
   it('OracleProxy should able to forward commit call from oracle to RNG', async () => {
     const {
@@ -101,14 +88,18 @@ describe('RNG', () => {
       config,
     } = context;
 
-    await oracle
-      .connect(accounts[7])
-      .safeCall(
-        await craftProof(await hre.ethers.getSigner(config.infrastructure.oracleAddresses[0]), oracle),
-        rng.address,
-        0,
-        rng.interface.encodeFunctionData('batchCommit', [digests.v]),
-      );
+    const txResult = await (
+      await oracle
+        .connect(accounts[7])
+        .safeCall(
+          await craftProof(await hre.ethers.getSigner(config.infrastructure.oracleAddresses[0]), oracle),
+          rng.address,
+          0,
+          rng.interface.encodeFunctionData('batchCommit', [digests.v]),
+        )
+    ).wait();
+
+    console.log(`${txResult.gasUsed.toString()} Gas`);
     for (let i = 0; i < digests.s.length; i += 1) {
       const data: BytesLike = BytesBuffer.newInstance()
         .writeAddress(distributor.address)

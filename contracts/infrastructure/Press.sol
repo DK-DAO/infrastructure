@@ -31,13 +31,14 @@ contract Press is RegistryUser {
 
   // Clone new NFT
   function createNewNFT(
+    bytes32 domain_,
     string memory name_,
     string memory symbol_,
     string memory uri_
   ) external onlyAllowSameDomain('Operator') returns (address) {
     address newNft = _registry.getAddress(_domain, 'NFT').clone();
-    INFT(newNft).init(address(_registry), _domain, name_, symbol_, uri_);
-    emit CreateNewNFT(_domain, newNft, name_);
+    INFT(newNft).init(address(_registry), domain_, name_, symbol_, uri_);
+    emit CreateNewNFT(domain_, newNft, name_);
     return newNft;
   }
 }

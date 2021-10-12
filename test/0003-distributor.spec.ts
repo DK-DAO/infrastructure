@@ -1,114 +1,124 @@
-import { expect } from 'chai';
-import { getGasCost, contractAt } from './helpers/functions';
-import { BytesBuffer } from './helpers/bytes';
-import { IInitialResult, init } from './helpers/deployment';
-import crypto from 'crypto';
-import { BigNumber } from 'ethers';
-import { NFT } from '../typechain';
-import { getContractFactory } from '@nomiclabs/hardhat-ethers/types';
-let ctx: IInitialResult;
-let digests: { s: Buffer[]; h: Buffer[]; v: Buffer };
-const cards = [];
+import hre from 'hardhat';
+import { BigNumber, utils } from 'ethers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { zeroAddress } from './helpers/const';
+import initInfrastructure from './helpers/deployer-infrastructure';
+import initDuelistKing, { IDeployContext } from './helpers/deployer-duelist-king';
+import { craftProof } from './helpers/functions';
+import BytesBuffer from './helpers/bytes';
+
+let context: IDeployContext;
+let accounts: SignerWithAddress[];
+const boxes: string[] = [];
+const openedBoxes: string[] = [];
 
 describe('DuelistKingDistributor', function () {
   this.timeout(5000000);
 
-  it('OracleProxy should able to forward newCampaign() call from oracle to DuelistKingDistributor', async () => {
-    ctx = await init();
-    const {
-      duelistKing: { contractOracleProxy, contractDuelistKingDistributor, oracle },
-    } = ctx;
-    await contractOracleProxy.connect(oracle).safeCall(
-      contractDuelistKingDistributor.address,
-      0,
-      contractDuelistKingDistributor.interface.encodeFunctionData('newCampaign', [
-        {
-          opened: 0,
-          softCap: 1000000,
-          deadline: 0,
-          generation: 0,
-          start: 0,
-          end: 19,
-          distribution: [
-            '0x00000000000000000000000000000001000000000000000600000000000009c4',
-            '0x000000000000000000000000000000020000000100000005000009c400006b6c',
-            '0x00000000000000000000000000000003000000030000000400006b6c00043bfc',
-            '0x00000000000000000000000000000004000000060000000300043bfc000fadac',
-            '0x000000000000000000000000000000050000000a00000002000fadac0026910c',
-            '0x000000000000000000000000000000050000000f000000010026910c004c4b40',
-          ],
+  it('all initialized should be correct', async () => {
+    accounts = await hre.ethers.getSigners();
+    context = await initDuelistKing(
+      await initInfrastructure(hre, {
+        network: hre.network.name,
+        infrastructure: {
+          operator: accounts[0],
+          oracles: [accounts[1]],
         },
-      ]),
+        duelistKing: {
+          operator: accounts[2],
+          oracles: [accounts[3]],
+        },
+      }),
     );
   });
 
-  it('OracleProxy should able to forward openBox() call from oracle to DuelistKingDistributor', async () => {
-    ctx = await init();
+  it('OracleProxy should able to forward newCampaign() call from oracle to DuelistKingDistributor', async () => {
     const {
-      infrastructure: { contractNFT },
-      duelistKing: { contractDuelistKingDistributor, addressOwner, contractOracleProxy, oracle },
-    } = ctx;
-    const result = await contractOracleProxy
-      .connect(oracle)
-      .safeCall(
-        contractDuelistKingDistributor.address,
-        0,
-        contractDuelistKingDistributor.interface.encodeFunctionData('openBox', [1, addressOwner, 10]),
-      );
-    const txReceipt = await result.wait();
-    console.log('\tGas used:', BigNumber.from(txReceipt.gasUsed).toString(), 'Gas');
-    const logs = txReceipt.logs.filter(
-      (l) => ['0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'].indexOf(l.topics[0]) >= 0,
+      infrastructure: { nft },
+      duelistKing: { distributor, oracle },
+      config: { duelistKing },
+    } = context;
+
+    const txResult = await (
+      await oracle
+        .connect(accounts[8])
+        .safeCall(
+          await craftProof(await hre.ethers.getSigner(duelistKing.oracleAddresses[0]), oracle),
+          distributor.address,
+          0,
+          distributor.interface.encodeFunctionData('mintBoxes', [accounts[4].address, 10, 1]),
+        )
+    ).wait();
+
+    console.log(
+      txResult.logs
+        .filter((e) => e.topics[0] === utils.id('Transfer(address,address,uint256)'))
+        .map((e) => nft.interface.decodeEventLog('Transfer', e.data, e.topics))
+        .map((e) => {
+          const { from, to, tokenId } = e;
+          boxes.push(BigNumber.from(tokenId).toHexString());
+          return `Transfer(${[from, to, BigNumber.from(tokenId).toHexString()].join(', ')})`;
+        })
+        .join('\n'),
+      `\n${txResult.gasUsed.toString()} Gas`,
     );
-    for (let i = 0; i < logs.length; i += 1) {
-      const l = logs[i];
-      const {
-        args: { to, tokenId },
-        name,
-      } = contractNFT.interface.parseLog(l);
-      console.log(
-        `\t [${l.address}]\t${await contractNFT.name()}::${name}(${[to, BigNumber.from(tokenId).toHexString()].join(
-          ',',
-        )})`,
-      );
-    }
   });
 
-  it('OracleProxy should able to forward issueGenesis() call from oracle to DuelistKingDistributor', async () => {
-    ctx = await init();
+  it('owner should able to open their boxes', async () => {
     const {
-      infrastructure: { contractNFT },
-      duelistKing: { contractDuelistKingDistributor, addressOwner, contractOracleProxy, oracle },
-    } = ctx;
-    const tx = await contractOracleProxy
-      .connect(oracle)
-      .safeCall(
-        contractDuelistKingDistributor.address,
-        0,
-        contractDuelistKingDistributor.interface.encodeFunctionData('issueGenesisEdittion', [addressOwner, 0]),
-      );
-    const txReceipt = await tx.wait();
-    const logs = txReceipt.logs.filter(
-      (l) => ['0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'].indexOf(l.topics[0]) >= 0,
-    );
-    const {
-      args: { tokenId },
-    } = contractNFT.interface.parseLog(logs[0]);
-
-    console.log('\tTotal supply:', (await contractNFT.totalSupply()).toString());
-    console.log('\tToken URI:', await contractNFT.tokenURI(tokenId));
-
-    for (let i = 0; i < logs.length; i += 1) {
-      const l = logs[i];
-      const {
-        args: { to, tokenId },
-        name,
-      } = contractNFT.interface.parseLog(l);
-      console.log(
-        `\t [${l.address}]\t${await contractNFT.name()}::${name}(${[to, BigNumber.from(tokenId).toHexString()].join(
-          ',',
-        )})`,
-      );
+      infrastructure: { nft },
+      duelistKing: { distributor },
+    } = context;
+    const packedTokenId = BytesBuffer.newInstance();
+    for (let i = 0; i < boxes.length; i += 1) {
+      packedTokenId.writeUint256(boxes[i]);
     }
+
+    const txResult = await (await distributor.connect(accounts[4]).openBoxes(packedTokenId.invoke())).wait();
+    console.log(
+      txResult.logs
+        .filter((e) => e.topics[0] === utils.id('Transfer(address,address,uint256)'))
+        .map((e) => {
+          console.log(e.address);
+          return nft.interface.decodeEventLog('Transfer', e.data, e.topics);
+        })
+        .map((e) => {
+          const { from, to, tokenId } = e;
+          if (from === zeroAddress) openedBoxes.push(BigNumber.from(tokenId).toHexString());
+          return `Transfer(${[from, to, BigNumber.from(tokenId).toHexString()].join(', ')})`;
+        })
+        .join('\n'),
+      `\n${txResult.gasUsed.toString()} Gas`,
+    );
+  });
+
+  it('anyone could able to claim cards for owner', async () => {
+    const {
+      infrastructure: { nft },
+      duelistKing: { distributor },
+    } = context;
+    const packedTokenId = BytesBuffer.newInstance();
+    for (let i = 0; i < openedBoxes.length; i += 1) {
+      packedTokenId.writeUint256(openedBoxes[i]);
+    }
+    console.log(openedBoxes);
+    const txResult = await (
+      await distributor.connect(accounts[5]).claimCards(accounts[4].address, packedTokenId.invoke())
+    ).wait();
+    console.log(
+      txResult.logs
+        .filter((e) => e.topics[0] === utils.id('Transfer(address,address,uint256)'))
+        .map((e) => {
+          console.log(e.address);
+          return nft.interface.decodeEventLog('Transfer', e.data, e.topics);
+        })
+        .map((e) => {
+          const { from, to, tokenId } = e;
+          openedBoxes.push(BigNumber.from(tokenId).toHexString());
+          return `Transfer(${[from, to, BigNumber.from(tokenId).toHexString()].join(', ')})`;
+        })
+        .join('\n'),
+      `\n${txResult.gasUsed.toString()} Gas`,
+    );
   });
 });

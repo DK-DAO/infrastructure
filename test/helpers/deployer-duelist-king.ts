@@ -111,15 +111,21 @@ export default async function init(context: {
     );
 
     const duelistKingCard = await getContractAddress(
-      await press
-        .connect(config.infrastructure.operator)
-        .createNewNFT('DuelistKingCard', 'DKC', 'https://metadata.dkdao.network/dk-card/'),
+      await press.createNewNFT(
+        registryRecords.domain.duelistKing,
+        'DuelistKingCard',
+        'DKC',
+        'https://metadata.dkdao.network/dk-card/',
+      ),
     );
 
     const duelistKingItem = await getContractAddress(
-      await press
-        .connect(config.infrastructure.operator)
-        .createNewNFT('DuelistKingCard', 'DKC', 'https://metadata.dkdao.network/dk-item/'),
+      await press.createNewNFT(
+        registryRecords.domain.duelistKing,
+        'DuelistKingItem',
+        'DKI',
+        'https://metadata.dkdao.network/dk-item/',
+      ),
     );
 
     await printAllEvents(

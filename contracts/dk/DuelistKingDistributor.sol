@@ -46,6 +46,9 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
   // New genesis card
   event NewGenesisCard(address indexed owner, uint256 indexed carId, uint256 indexed nftTokenId);
 
+  // Set minted boxes
+  event SetRemainingBoxes(uint256 indexed phaseId, uint256 indexed remainingBoxes);
+
   constructor(
     address registry_,
     bytes32 domain_,
@@ -114,20 +117,35 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
    ********************************************************/
 
   // Mint boxes
+  function setRemainingBoxes(uint256 phaseId, uint256 numberOfBoxes)
+    external
+    onlyAllowSameDomain('Oracle')
+    returns (bool)
+  {
+    require(
+      _mintedBoxes[phaseId] == 0 && numberOfBoxes > 0 && numberOfBoxes < _capped,
+      "Distributor: Once this set you can't change"
+    );
+    _mintedBoxes[phaseId] = _capped - numberOfBoxes;
+    emit SetRemainingBoxes(phaseId, numberOfBoxes);
+    return true;
+  }
+
+  // Mint boxes
   function mintBoxes(
     address owner,
     uint256 numberOfBoxes,
-    uint256 boxId
+    uint256 phaseId
   ) external onlyAllowSameDomain('Oracle') returns (bool) {
     require(numberOfBoxes > 0 && numberOfBoxes <= 1000, 'Distributor: Invalid number of boxes');
-    require(boxId >= 1, 'Distributor: Invalid box id');
-    require(_mintedBoxes[boxId] > _capped, 'Distributor: We run out of this box');
+    require(phaseId >= 1, 'Distributor: Invalid phase id');
+    require(_mintedBoxes[phaseId] < _capped, 'Distributor: We run out of this box');
     bool isSuccess = true;
     for (uint256 i = 0; i < numberOfBoxes; i += 1) {
-      isSuccess = isSuccess && _issueItem(owner, uint256(0).setType(1).setId(boxId)) > 0;
+      isSuccess = isSuccess && _issueItem(owner, uint256(0).setType(1).setId(phaseId)) > 0;
     }
     require(isSuccess, 'Distributor: We were not able to mint boxes');
-    _mintedBoxes[boxId] += numberOfBoxes;
+    _mintedBoxes[phaseId] += numberOfBoxes;
     return isSuccess;
   }
 
@@ -153,7 +171,7 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
 
   // Open loot boxes
   function _claimCardsInBox(address owner, uint256 boxNftTokenId) private returns (bool) {
-    INFT nftCard = INFT(_registry.getAddress(_domain, 'NFT Item'));
+    INFT nftCard = INFT(_registry.getAddress(_domain, 'NFT Card'));
     // Read entropy from openned card
     uint256 rand = uint256(keccak256(abi.encodePacked(boxNftTokenId.getEntropy())));
     // Box Id is equal to phase of card
@@ -244,8 +262,8 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
    ********************************************************/
 
   // Get remaining box of a phase
-  function getRemainingBox(uint256 boxId) external view returns (uint256) {
-    return _capped - _mintedBoxes[boxId];
+  function getRemainingBox(uint256 phaseId) external view returns (uint256) {
+    return _capped - _mintedBoxes[phaseId];
   }
 
   // Get genesis token id of given card ID

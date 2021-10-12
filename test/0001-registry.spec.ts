@@ -1,14 +1,13 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
 import { registryRecords } from './helpers/const';
-import initInfrastructure, { IConfiguration } from './helpers/deployer-infrastructure';
+import initInfrastructure from './helpers/deployer-infrastructure';
 import initDuelistKing, { IDeployContext } from './helpers/deployer-duelist-king';
 
-let config: IConfiguration;
 let context: IDeployContext;
 
 describe('Registry', () => {
-  it('account[0] must be the owner of registry', async () => {
+  it('all initialized should be correct', async () => {
     const accounts = await hre.ethers.getSigners();
     context = await initDuelistKing(
       await initInfrastructure(hre, {
