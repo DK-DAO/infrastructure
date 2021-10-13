@@ -157,15 +157,11 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
   }
 
   // Issue genesis edition for card creator
-  function issueGenesisCard(
-    address owner,
-    uint256 generation,
-    uint256 id
-  ) external onlyAllowSameDomain('Oracle') returns (uint256) {
+  function issueGenesisCard(address owner, uint256 id) external onlyAllowSameDomain('Oracle') returns (uint256) {
     require(_genesisEdition[id] == 0, 'Distributor: Only one genesis edition will be distributed');
     _cardSerial += 1;
     uint256 cardId = uint256(0x0000000000000000ffff00000000000000000000000000000000000000000000)
-      .setGeneration(generation)
+      .setGeneration(id / 400)
       .setId(id)
       .setSerial(_cardSerial);
     require(INFT(_registry.getAddress(_domain, 'NFT Card')).mint(owner, cardId), 'Distributor: Unable to issue card');
@@ -185,10 +181,11 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
     uint256 rand = uint256(keccak256(abi.encodePacked(boxNftTokenId.getEntropy())));
     // Box Id is equal to phase of card
     uint256 boxId = boxNftTokenId.getId();
-    // 20 phases = 1 gen
-    uint256 generation = boxId / 20;
     // Start point
     uint256 startPoint = boxId * 20 - 20;
+    // 20 cards = 1 phase
+    // 20 phases = 1 gen
+    uint256 generation = startPoint / 400;
     // Serial of card
     uint256 serial = _cardSerial;
     for (uint256 i = 0; i < 5; ) {

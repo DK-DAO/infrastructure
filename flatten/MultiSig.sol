@@ -500,7 +500,7 @@ contract MultiSig is MultiOwner {
         totalSigned += 1;
       }
     }
-    require(_calculatePercent(int256(totalSigned)) > 70, 'MultiSig: Total accept was not greater than 70%');
+    require(_calculatePercent(int256(totalSigned)) >= 70, 'MultiSig: Total signed was not greater than 70%');
     uint256 nonce = txData.readUint256(0);
     address target = txData.readAddress(32);
     bytes memory data = txData.readBytes(52, txData.length - 52);

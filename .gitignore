@@ -109,3 +109,4 @@ coverage.json
 copy-artifact.sh
 .DS_Store
 soljson-*
+.env*

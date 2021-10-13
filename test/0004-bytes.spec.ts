@@ -1,6 +1,6 @@
 import hre from 'hardhat';
 import { expect } from 'chai';
-import { contractDeploy, randInt } from './helpers/functions';
+import { randInt } from './helpers/functions';
 import { BytesTest } from '../typechain';
 import crypto from 'crypto';
 import { BigNumber, Signer } from 'ethers';
