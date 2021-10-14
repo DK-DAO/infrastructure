@@ -145,7 +145,7 @@ describe('MultiSig', function () {
   it('Random guy should not able to vote a proposal', async () => {
     let error = false;
     try {
-      await contractMultiSig.connect(accounts[7]).voteProposal(3, false);
+      await contractMultiSig.connect(accounts[7]).voteNegative(3);
     } catch (e: any) {
       console.log(`\t${e.message}`);
       error = true;

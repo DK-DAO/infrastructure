@@ -1,16 +1,15 @@
+/* eslint-disable global-require */
 import { HardhatUserConfig } from 'hardhat/types';
 import { env } from './env';
 import 'hardhat-typechain';
 import '@nomiclabs/hardhat-ethers';
 import 'hardhat-gas-reporter';
 import 'solidity-coverage';
-import './tasks/deploy';
 
-/*
-import './tasks/create-campaign';
-import './tasks/change-nft';
-import './tasks/live-test-contract';
-*/
+if (env.DUELIST_KING_LOCAL_MNEMONIC === 'baby nose young alone sport inside grain rather undo donor void exotic') {
+  require('./tasks/deploy');
+  require('./tasks/deploy-token');
+}
 
 const compilers = ['0.8.9'].map((item: string) => ({
   version: item,
@@ -30,6 +29,14 @@ const config: HardhatUserConfig = {
       chainId: 137,
       accounts: {
         mnemonic: env.DUELIST_KING_FANTOM_MNEMONIC,
+        path: "m/44'/60'/0'/0",
+      },
+    },
+    binace: {
+      url: env.DUELIST_KING_BINANCE_RPC,
+      chainId: 56,
+      accounts: {
+        mnemonic: env.DUELIST_KING_BINANCE_MNEMONIC,
         path: "m/44'/60'/0'/0",
       },
     },

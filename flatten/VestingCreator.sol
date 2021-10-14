@@ -1233,7 +1233,6 @@ contract Vesting {
 
 // pragma solidity >=0.8.4 <0.9.0;
 
-// import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/access/Ownable.sol';
 // import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/utils/math/SafeMath.sol';
 // import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 // import '/Users/chiro/GitHub/infrastructure/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol';
@@ -1392,9 +1391,11 @@ contract VestingCreator is Ownable {
 
   function createNewVesting(InitTerm memory term) external onlyOwner {
     require(address(_token) != address(0), 'VestingCreator: token was not set');
-
+    // Clone new vesting contract
     VestingContract newVestingContract = VestingContract(_vestingContract.clone());
+    // Approve this contract to transfer given amount
     _token.safeApprove(address(newVestingContract), term.amount);
+    // Init the vesting contract
     newVestingContract.init(
       Vesting.Term({
         genesis: address(this),

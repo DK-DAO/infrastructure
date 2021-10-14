@@ -8,6 +8,9 @@ export interface IEnvironment {
   // Rinkeby network
   DUELIST_KING_RINKEBY_MNEMONIC: string;
   DUELIST_KING_RINKEBY_RPC: string;
+  // Binance
+  DUELIST_KING_BINANCE_MNEMONIC: string;
+  DUELIST_KING_BINANCE_RPC: string;
   // Fantom network
   DUELIST_KING_FANTOM_MNEMONIC: string;
   DUELIST_KING_FANTOM_RPC: string;
@@ -32,6 +35,8 @@ export const env: IEnvironment = fs.existsSync(`${__dirname}/.env`)
       DUELIST_KING_LOCAL_RPC: 'http://localhost:8545',
       DUELIST_KING_RINKEBY_MNEMONIC: '',
       DUELIST_KING_RINKEBY_RPC: '',
+      DUELIST_KING_BINANCE_MNEMONIC: '',
+      DUELIST_KING_BINANCE_RPC: '',
       DUELIST_KING_FANTOM_MNEMONIC: '',
       DUELIST_KING_FANTOM_RPC: '',
       DUELIST_KING_DEPLOY_MNEMONIC: '',

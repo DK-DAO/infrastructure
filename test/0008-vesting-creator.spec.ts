@@ -75,6 +75,27 @@ describe('VestingCreator', function () {
     expect((await dkToken.balanceOf(accounts[8].address)).toNumber()).to.eq(5000);
   });
 
+  it('init can not be called twice for vesting contract', async () => {
+    let error = false;
+    try {
+      await myVestingContract.init({
+        genesis: vestingCreator.address,
+        token: dkToken.address,
+        amount: 5000000,
+        unlockAtTGE: 5000,
+        startCliff: await vestingCreator.getBlockTime(),
+        beneficiary: accounts[8].address,
+        cliffDuration: dayToSec(30),
+        releaseType: 2,
+        vestingDuration: dayToSec(30),
+      });
+    } catch (e: any) {
+      console.log(`\t${e.message}`);
+      error = true;
+    }
+    expect(error).to.eq(true);
+  });
+
   it('Owner of genesis should able to transfer token to another address', async () => {
     vestingCreator.transfer(accounts[9].address, 1000000);
     expect((await dkToken.balanceOf(accounts[9].address)).toNumber()).to.eq(1000000);
