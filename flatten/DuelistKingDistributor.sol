@@ -11,7 +11,7 @@
  */
 library DuelistKingItem {
   // We have 256 bits to store an item's id so we dicide to contain as much as posible data
-  // Entropy         64  bits    Some item need the randomnes value as seed to be openned
+  // Application      64  bits    Some item need the randomnes value as seed to be openned
 
   // Edition:         16  bits    For now, 0-Standard edition 0xffff-Creator edition
   // Generation:      16  bits    Generation of item, now it's Gen 0
@@ -19,8 +19,8 @@ library DuelistKingItem {
   // Type:            16  bits    Type of item
   // Id:              64  bits    Increasement value that unique for each item
   // Serial:          64  bits    Increasement value that count the number of items
-  // 256         192         176             160            144         128       64            0
-  //  |  entropy  |  edition  |  generation   |   rareness   |   type    |   id    |   serial   |
+  // 256             192         176             160            144         128       64            0
+  //  |  application  |  edition  |  generation   |   rareness   |   type    |   id    |   serial   |
   function set(
     uint256 value,
     uint256 shift,
@@ -95,11 +95,11 @@ library DuelistKingItem {
     return get(a, 176, 0xffff);
   }
 
-  function setEntropy(uint256 a, uint256 b) internal pure returns (uint256 c) {
+  function setApplicationId(uint256 a, uint256 b) internal pure returns (uint256 c) {
     return set(a, 192, 0xffffffffffffffff, b);
   }
 
-  function getEntropy(uint256 a) internal pure returns (uint256 c) {
+  function getApplicationId(uint256 a) internal pure returns (uint256 c) {
     return get(a, 192, 0xffffffffffffffff);
   }
 }
@@ -309,6 +309,10 @@ interface INFT {
     uint256 tokenId
   ) external returns (bool);
 
+  function batchMint(address to, uint256[] memory tokenIds) external returns (bool);
+
+  function batchBurn(address to, uint256[] memory tokenIds) external returns (bool);
+
   function ownerOf(uint256 tokenId) external view returns (address);
 
   function mint(address to, uint256 tokenId) external returns (bool);
@@ -392,45 +396,21 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
    * Public section
    ********************************************************/
 
-  // Anyone would able to help owner claim boxes
-  function claimCards(address owner, bytes memory nftIds) external {
-    // Get nft
-    INFT nftItem = INFT(_registry.getAddress(_domain, 'NFT Item'));
-    // Make sure that number of id length is valid
-    require(nftIds.length % 32 == 0, 'Distributor: Invalid length of NFT IDs');
-    for (uint256 i = 0; i < nftIds.length; i += 32) {
-      uint256 nftId = nftIds.readUint256(i);
-      // We only able to claim openned boxes
-      require(nftId.getType() == 1 && nftId.getEntropy() > 0, 'Distributor: Invalid box id');
-      // Claim cards from open boxes
-      require(_claimCardsInBox(owner, nftId), 'Distributor: Unable to claim cards in the box');
-      // Burn claimed box after open
-      require(nftItem.ownerOf(nftId) == owner && nftItem.burn(nftId), 'Distributor: Unable to burn claimed box');
-    }
-  }
-
-  // Only owner able to open boxes
+  // Only owner able to open and claim cards
   function openBoxes(bytes memory nftIds) external {
     INFT nftItem = INFT(_registry.getAddress(_domain, 'NFT Item'));
     address owner = msg.sender;
     require(nftIds.length % 32 == 0, 'Distributor: Invalid length of NFT IDs');
-    uint256 rand = uint256(keccak256(abi.encodePacked(_entropy, owner)));
-    uint256 j = 0;
+    uint256[] memory boxNftIds = new uint256[](nftIds.length / 32);
     for (uint256 i = 0; i < nftIds.length; i += 32) {
       uint256 nftId = nftIds.readUint256(i);
-      require(nftId.getEntropy() == 0, 'Distributor: Only able to open unopened boxes');
-      if (j >= 256) {
-        rand = uint256(keccak256(abi.encodePacked(_entropy)));
-        j = 0;
-      }
+      boxNftIds[i / 32] = nftId;
       require(
-        nftItem.ownerOf(nftId) == owner &&
-          nftItem.burn(nftId) &&
-          nftItem.mint(owner, nftId.setEntropy((rand >> j) & 0xffffffffffffffff)),
-        'Distributor: Unable to burn old box and issue opened box'
+        nftItem.ownerOf(nftId) == owner && _claimCardsInBox(owner, nftId),
+        'Distributor: Unable to burn old box and issue cards'
       );
-      j += 64;
     }
+    require(nftItem.batchBurn(owner, boxNftIds), 'Distributor: Unable to burn opened boxes');
   }
 
   /*******************************************************
@@ -463,18 +443,19 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
     require(_mintedBoxes[phaseId] < _capped, 'Distributor: We run out of this box');
     uint256 itemSerial = _itemSerial;
     uint256 basedBox = uint256(0).setType(1).setId(phaseId);
-    bool isSuccess = true;
+    uint256[] memory boxNftIds = new uint256[](numberOfBoxes);
     for (uint256 i = 0; i < numberOfBoxes; i += 1) {
       itemSerial += 1;
       // Overite item's serial
-      isSuccess =
-        isSuccess &&
-        INFT(_registry.getAddress(_domain, 'NFT Item')).mint(owner, basedBox.setSerial(itemSerial));
+      boxNftIds[i] = basedBox.setSerial(itemSerial);
     }
-    require(isSuccess, 'Distributor: Unable to issue item');
+    require(
+      INFT(_registry.getAddress(_domain, 'NFT Item')).batchMint(owner, boxNftIds),
+      'Distributor: Unable to issue item'
+    );
     _itemSerial = itemSerial;
     _mintedBoxes[phaseId] += numberOfBoxes;
-    return isSuccess;
+    return true;
   }
 
   // Issue genesis edition for card creator
@@ -498,8 +479,10 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
   // Open loot boxes
   function _claimCardsInBox(address owner, uint256 boxNftTokenId) private returns (bool) {
     INFT nftCard = INFT(_registry.getAddress(_domain, 'NFT Card'));
+    // Card nft ids
+    uint256[] memory cardNftIds = new uint256[](5);
     // Read entropy from openned card
-    uint256 rand = uint256(keccak256(abi.encodePacked(boxNftTokenId.getEntropy())));
+    uint256 rand = uint256(keccak256(abi.encodePacked(_entropy)));
     // Box Id is equal to phase of card
     uint256 boxId = boxNftTokenId.getId();
     // Start point
@@ -518,14 +501,12 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
         uint256 card = _caculateCard(startPoint, luckyNumber);
         if (card > 0) {
           serial += 1;
-          require(
-            nftCard.mint(owner, card.setGeneration(generation).setSerial(serial)),
-            'Distributor: Can not mint NFT card'
-          );
+          cardNftIds[i] = card.setGeneration(generation).setSerial(serial);
           i += 1;
         }
       }
     }
+    require(nftCard.batchMint(owner, cardNftIds), 'Distributor: Can not mint NFT card');
     // Update card's serial
     _cardSerial = serial;
     // Update old random with new one

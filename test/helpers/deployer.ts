@@ -1,5 +1,6 @@
 import { Signer, Contract } from 'ethers';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
+import { Registry } from '../../typechain';
 import { stringToBytes32, zeroAddress } from './const';
 import { Singleton } from './singleton';
 
@@ -88,6 +89,11 @@ export class Deployer {
       b32ContractName: stringToBytes32(contractName),
       address: this._contractCache[contractPath].address,
     };
+  }
+
+  public async getAddressInRegistry(domain: string, name: string): Promise<string> {
+    const registry = this.getDeployedContract<Registry>('Infrastructure/Registry');
+    return registry.getAddress(stringToBytes32(domain), stringToBytes32(name));
   }
 
   public async deployTheDivine(): Promise<Contract> {

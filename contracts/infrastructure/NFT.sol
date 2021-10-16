@@ -38,12 +38,35 @@ contract NFT is RegistryUser, ERC721 {
     return _exists(tokenId);
   }
 
+  function batchMint(address to, uint256[] memory tokenIds) external onlyAllowSameDomain('Distributor') returns (bool) {
+    uint256 beforeBalance = balanceOf(to);
+    for (uint256 i = 0; i < tokenIds.length; i += 1) {
+      _mint(to, tokenIds[i]);
+    }
+    uint256 afterBalance = balanceOf(to);
+    _supply += tokenIds.length;
+    require(afterBalance - beforeBalance == tokenIds.length, 'NFT: Minted amount does not correct');
+    return true;
+  }
+
   // Only distributor able to mint new item
   function burn(uint256 tokenId) external onlyAllowSameDomain('Distributor') returns (bool) {
     require(_supply > 0, 'NFT: Underflow detected');
     _supply -= 1;
     _burn(tokenId);
     return !_exists(tokenId);
+  }
+
+  function batchBurn(address to, uint256[] memory tokenIds) external onlyAllowSameDomain('Distributor') returns (bool) {
+    require(_supply >= tokenIds.length, 'NFT: Underflow detected');
+    uint256 beforeBalance = balanceOf(to);
+    for (uint256 i = 0; i < tokenIds.length; i += 1) {
+      _burn(tokenIds[i]);
+    }
+    uint256 afterBalance = balanceOf(to);
+    _supply -= tokenIds.length;
+    require(beforeBalance - afterBalance == tokenIds.length, 'NFT: Burnt amount does not correct');
+    return true;
   }
 
   // Change the base URI

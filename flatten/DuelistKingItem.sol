@@ -11,7 +11,7 @@ pragma solidity >=0.8.4 <0.9.0;
  */
 library DuelistKingItem {
   // We have 256 bits to store an item's id so we dicide to contain as much as posible data
-  // Entropy         64  bits    Some item need the randomnes value as seed to be openned
+  // Application      64  bits    Some item need the randomnes value as seed to be openned
 
   // Edition:         16  bits    For now, 0-Standard edition 0xffff-Creator edition
   // Generation:      16  bits    Generation of item, now it's Gen 0
@@ -19,8 +19,8 @@ library DuelistKingItem {
   // Type:            16  bits    Type of item
   // Id:              64  bits    Increasement value that unique for each item
   // Serial:          64  bits    Increasement value that count the number of items
-  // 256         192         176             160            144         128       64            0
-  //  |  entropy  |  edition  |  generation   |   rareness   |   type    |   id    |   serial   |
+  // 256             192         176             160            144         128       64            0
+  //  |  application  |  edition  |  generation   |   rareness   |   type    |   id    |   serial   |
   function set(
     uint256 value,
     uint256 shift,
@@ -95,11 +95,11 @@ library DuelistKingItem {
     return get(a, 176, 0xffff);
   }
 
-  function setEntropy(uint256 a, uint256 b) internal pure returns (uint256 c) {
+  function setApplicationId(uint256 a, uint256 b) internal pure returns (uint256 c) {
     return set(a, 192, 0xffffffffffffffff, b);
   }
 
-  function getEntropy(uint256 a) internal pure returns (uint256 c) {
+  function getApplicationId(uint256 a) internal pure returns (uint256 c) {
     return get(a, 192, 0xffffffffffffffff);
   }
 }

@@ -60,8 +60,10 @@ task('deploy', 'Deploy all smart contracts')
       await contractTestToken.connect(operator).transfer(accounts[5].address, '5000000000000000000');
     }
     deployer.printReport();
-    console.log(operatorAddress, oracleAddresses.join(','));
-    console.log(duelistKing.operatorAddress, duelistKing.oracleAddresses.join(','));
+    console.log('Infrastructure Operator:  ', operatorAddress);
+    console.log('Infrastructure Oracles:   ', oracleAddresses.join(','));
+    console.log('Duelist King Operator:    ', duelistKing.operatorAddress);
+    console.log('Duelist King Oracles:     ', duelistKing.oracleAddresses.join(','));
   });
 
 export default {};

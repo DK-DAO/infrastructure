@@ -16,6 +16,10 @@ interface INFT {
     uint256 tokenId
   ) external returns (bool);
 
+  function batchMint(address to, uint256[] memory tokenIds) external returns (bool);
+
+  function batchBurn(address to, uint256[] memory tokenIds) external returns (bool);
+
   function ownerOf(uint256 tokenId) external view returns (address);
 
   function mint(address to, uint256 tokenId) external returns (bool);
