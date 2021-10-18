@@ -400,7 +400,7 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
   function openBoxes(bytes memory nftIds) external {
     INFT nftItem = INFT(_registry.getAddress(_domain, 'NFT Item'));
     address owner = msg.sender;
-    require(nftIds.length % 32 == 0, 'Distributor: Invalid length of NFT IDs');
+    require(nftIds.length > 0 && nftIds.length % 32 == 0, 'Distributor: Invalid length of NFT IDs');
     uint256[] memory boxNftIds = new uint256[](nftIds.length / 32);
     for (uint256 i = 0; i < nftIds.length; i += 32) {
       uint256 nftId = nftIds.readUint256(i);
