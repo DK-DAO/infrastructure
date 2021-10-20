@@ -8,6 +8,7 @@ import { DuelistKingToken } from '../typechain';
 task('deploy:token', 'Deploy token and vesting contract').setAction(
   async (_taskArgs: any, hre: HardhatRuntimeEnvironment) => {
     const accounts = await hre.ethers.getSigners();
+    console.log('Genesis:', accounts[0].address);
     const deployer: Deployer = Deployer.getInstance(hre);
     deployer.connect(accounts[0]);
     // const vestingCreator = <VestingCreator>await deployer.contractDeploy('Operator/VestingCreator', []);
@@ -16,7 +17,6 @@ task('deploy:token', 'Deploy token and vesting contract').setAction(
     );
     // await (await vestingCreator.setToken(dkToken.address)).wait();
     deployer.printReport();
-    console.log('Genesis:', accounts[0].address);
     console.log('Balance of genesis:', (await dkToken.balanceOf(accounts[0].address)).div(10n ** 18n).toNumber());
     console.log('Name:', await dkToken.name());
     console.log('Symbol:', await dkToken.symbol());
