@@ -9,6 +9,7 @@ import 'solidity-coverage';
 if (env.DUELIST_KING_LOCAL_MNEMONIC !== 'baby nose young alone sport inside grain rather undo donor void exotic') {
   require('./tasks/deploy');
   require('./tasks/deploy-token');
+  require('./tasks/deploy-timelock');
 }
 
 const compilers = ['0.8.9'].map((item: string) => ({

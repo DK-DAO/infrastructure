@@ -2,11 +2,7 @@
 pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
-interface IERC20 {
-  function balanceOf(address account) external view returns (uint256);
-
-  function transfer(address recipient, uint256 amount) external returns (bool);
-}
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 contract TimeLock {
   address private immutable _owner;

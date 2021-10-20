@@ -15,6 +15,25 @@ export async function unlockSigner(hre: HardhatRuntimeEnvironment, address: stri
   return hre.ethers.provider.getSigner(address);
 }
 
+export function dayToSec(days: number) {
+  return Math.round(days * 86400);
+}
+
+export function monthToSec(month: number) {
+  return month * dayToSec(30);
+}
+
+export async function timeTravel(hre: HardhatRuntimeEnvironment, secs: number) {
+  await hre.network.provider.request({
+    method: 'evm_increaseTime',
+    params: [secs],
+  });
+  await hre.network.provider.request({
+    method: 'evm_mine',
+    params: [],
+  });
+}
+
 export function stringToBytes32(v: string) {
   const buf = Buffer.alloc(32);
   buf.write(v);
