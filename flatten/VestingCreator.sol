@@ -1325,12 +1325,12 @@ contract VestingContract {
     return _availableBalance();
   }
 
-  function totalSuppy() external view returns (uint256) {
+  function totalSupply() external view returns (uint256) {
     return _token.totalSupply();
   }
 
   function name() external view returns (string memory) {
-    return string(abi.encodePacked('Vesing ', _token.name()));
+    return string(abi.encodePacked('Vesting ', _token.name()));
   }
 
   function symbol() external view returns (string memory) {
