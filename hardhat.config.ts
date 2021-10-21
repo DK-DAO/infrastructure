@@ -7,6 +7,7 @@ import 'hardhat-gas-reporter';
 import 'solidity-coverage';
 
 if (env.DUELIST_KING_LOCAL_MNEMONIC !== 'baby nose young alone sport inside grain rather undo donor void exotic') {
+  require('./tasks/print-account');
   require('./tasks/deploy');
   require('./tasks/deploy-token');
   require('./tasks/deploy-timelock');

@@ -5,6 +5,7 @@ import 'hardhat-gas-reporter';
 import 'solidity-coverage';
 import { env } from './env';
 import './tasks/live-test-contract';
+import './tasks/live-test-time-lock';
 
 const compilers = ['0.8.6'].map((item: string) => ({
   version: item,
