@@ -119,6 +119,7 @@ contract TimeLock {
     _beneficiary = beneficiary_;
     _timelock = ifoTime_ + 1 hours + 5 minutes;
     _token = IERC20(token_);
+    emit StartTimeLock(beneficiary_, token_, _timelock);
   }
 
   // Beneficiary could able to withdraw any time after the time lock passed

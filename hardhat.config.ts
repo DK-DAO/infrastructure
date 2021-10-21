@@ -33,7 +33,7 @@ const config: HardhatUserConfig = {
         path: "m/44'/60'/0'/0",
       },
     },
-    binace: {
+    binance: {
       url: env.DUELIST_KING_BINANCE_RPC,
       chainId: 56,
       accounts: {
