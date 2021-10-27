@@ -31,7 +31,7 @@ library Bytes {
 
   // Read address from input bytes buffer
   function readAddress(bytes memory input, uint256 offset) public pure returns (address result) {
-    require(offset + 20 <= input.length, 'Bytes: Our of range, can not read address from bytes');
+    require(offset + 20 <= input.length, 'Bytes: Out of range, can not read address from bytes');
     assembly {
       result := shr(96, mload(add(add(input, 0x20), offset)))
     }
@@ -39,7 +39,7 @@ library Bytes {
 
   // Read uint256 from input bytes buffer
   function readUint256(bytes memory input, uint256 offset) public pure returns (uint256 result) {
-    require(offset + 32 <= input.length, 'Bytes: Our of range, can not read uint256 from bytes');
+    require(offset + 32 <= input.length, 'Bytes: Out of range, can not read uint256 from bytes');
     assembly {
       result := mload(add(add(input, 0x20), offset))
     }
@@ -51,7 +51,7 @@ library Bytes {
     uint256 offset,
     uint256 length
   ) public pure returns (bytes memory) {
-    require(offset + length <= input.length, 'Bytes: Our of range, can not read bytes from bytes');
+    require(offset + length <= input.length, 'Bytes: Out of range, can not read bytes from bytes');
     bytes memory result = new bytes(length);
     assembly {
       // Seek offset to the beginning
