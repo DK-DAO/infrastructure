@@ -98,7 +98,7 @@ task('create:vesting', 'Create vesting contract for each investor')
           };
         },
       );
-
+      let nonce = await accounts[0].getTransactionCount();
       for (let i = 0; i < processData.length; i += 1) {
         const { beneficiary, unlockAtTGE, cliffDuration, startCliff, vestingDuration, releaseType, amount } =
           processData[i];
@@ -119,8 +119,10 @@ task('create:vesting', 'Create vesting contract for each investor')
           await creatorContract.createNewVesting(data, {
             gasLimit: calculatedGas.add(calculatedGas.div(3)),
             gasPrice: gasPrice.add(gasPrice.div(4)),
+            nonce,
           })
         ).wait();
+        nonce += 1;
       }
       return;
     }
