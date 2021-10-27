@@ -1392,9 +1392,10 @@ contract VestingCreator is Ownable {
   function createNewVesting(InitTerm memory term) external onlyOwner {
     require(address(_token) != address(0), 'VestingCreator: token was not set');
     // Clone new vesting contract
-    VestingContract newVestingContract = VestingContract(_vestingContract.clone());
+    address vestingContractAddress = _vestingContract.clone();
+    VestingContract newVestingContract = VestingContract(vestingContractAddress);
     // Approve this contract to transfer given amount
-    _token.safeApprove(address(newVestingContract), term.amount);
+    _token.safeApprove(vestingContractAddress, term.amount);
     // Init the vesting contract
     newVestingContract.init(
       Vesting.Term({
@@ -1409,7 +1410,7 @@ contract VestingCreator is Ownable {
         vestingDuration: term.vestingDuration
       })
     );
-    emit NewVestingContract(address(newVestingContract), term.beneficiary, term.amount);
+    emit NewVestingContract(vestingContractAddress, term.beneficiary, term.amount);
   }
 
   function transfer(address to, uint256 value) external onlyOwner {
