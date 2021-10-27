@@ -41,10 +41,12 @@ task('transfer:token', 'Create vesting contract for each investor')
           console.log('Process', cleanAddress, 'amount:', cleanAmount, 'DKT');
           const calculatedGas = await dkToken.estimateGas.transfer(cleanAddress, cleanAmount);
           // Add 30% gas
-          await dkToken.transfer(cleanAddress, cleanAmount, {
-            gasLimit: calculatedGas.add(calculatedGas.div(3)),
-            gasPrice: gasPrice.add(gasPrice.div(4)),
-          });
+          await (
+            await dkToken.transfer(cleanAddress, cleanAmount, {
+              gasLimit: calculatedGas.add(calculatedGas.div(3)),
+              gasPrice: gasPrice.add(gasPrice.div(4)),
+            })
+          ).wait();
         } else {
           addressLog.push(cleanAddress);
         }

@@ -115,10 +115,12 @@ task('create:vesting', 'Create vesting contract for each investor')
         const gasPrice = await hre.ethers.provider.getGasPrice();
         const calculatedGas = await creatorContract.estimateGas.createNewVesting(data);
         // Add 30% gas
-        await creatorContract.createNewVesting(data, {
-          gasLimit: calculatedGas.add(calculatedGas.div(3)),
-          gasPrice: gasPrice.add(gasPrice.div(4)),
-        });
+        await (
+          await creatorContract.createNewVesting(data, {
+            gasLimit: calculatedGas.add(calculatedGas.div(3)),
+            gasPrice: gasPrice.add(gasPrice.div(4)),
+          })
+        ).wait();
       }
       return;
     }
