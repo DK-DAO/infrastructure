@@ -69,7 +69,7 @@ describe('VestingCreator', function () {
     ];
 
     myVestingContract = <VestingContract>(
-      await deployer.connect(accounts[8]).contractAttach('VestingContract', vestingContract || '')
+      await deployer.connect(accounts[8]).contractAttach('test/VestingContract', vestingContract || '')
     );
     expect((await dkToken.balanceOf(accounts[8].address)).toNumber()).to.eq(5000);
   });

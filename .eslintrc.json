@@ -48,6 +48,7 @@
         }
       ],
       "camelcase": 2,
+      "no-console": 0,
       "arrow-body-style": 0,
       "no-mixed-spaces-and-tabs": 2,
       "max-len": [

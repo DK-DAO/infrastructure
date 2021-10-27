@@ -40,7 +40,6 @@ describe('VestingCreator', function () {
     deployer.connect(accounts[0]);
     vestingCreator = <VestingCreator>await deployer.contractDeploy('test2/VestingCreator', []);
     dkToken = <DuelistKingToken>await deployer.contractDeploy('test2/DuelistKingToken', [], vestingCreator.address);
-    console.log((await dkToken.balanceOf(vestingCreator.address)).toString());
     expect((await dkToken.balanceOf(vestingCreator.address)).div(10n ** 18n).toNumber()).to.eq(10000000);
     await vestingCreator.setToken(dkToken.address);
   });
@@ -70,7 +69,7 @@ describe('VestingCreator', function () {
     ];
 
     myVestingContract = <VestingContract>(
-      await deployer.connect(accounts[8]).contractAttach('VestingContract', vestingContract || '')
+      await deployer.connect(accounts[8]).contractAttach('test2/VestingContract', vestingContract || '')
     );
     expect((await dkToken.balanceOf(accounts[8].address)).toNumber()).to.eq(5000);
   });

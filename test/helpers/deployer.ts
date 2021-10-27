@@ -69,7 +69,7 @@ export class Deployer {
   }
 
   public async contractAttach(contractPath: string, contractAddress: string): Promise<Contract> {
-    const [contractName] = contractPath.split('/');
+    const [, contractName] = contractPath.split('/');
     const instanceFactory = await this._hre.ethers.getContractFactory(contractName, {
       signer: this._signer,
     });

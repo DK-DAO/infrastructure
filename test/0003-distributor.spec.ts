@@ -158,12 +158,12 @@ describe('DuelistKingDistributor', function () {
   it('OracleProxy should able to forward issueGenesisCard() DuelistKingDistributor', async () => {
     const { deployer } = context;
     const nftItem = <NFT>(
-      await deployer.contractAttach('NFT', await deployer.getAddressInRegistry('Duelist King', 'NFT Item'))
+      await deployer.contractAttach('Duelist King/NFT', await deployer.getAddressInRegistry('Duelist King', 'NFT Item'))
     );
     expect((await nftItem.balanceOf(accounts[4].address)).toNumber()).to.eq(0);
     expect((await nftItem.totalSupply()).toNumber()).to.eq(0);
     const nftCard = <NFT>(
-      await deployer.contractAttach('NFT', await deployer.getAddressInRegistry('Duelist King', 'NFT Card'))
+      await deployer.contractAttach('Duelist King/NFT', await deployer.getAddressInRegistry('Duelist King', 'NFT Card'))
     );
     expect((await nftCard.balanceOf(accounts[4].address)).toNumber()).to.gt(0);
     expect((await nftCard.totalSupply()).toNumber()).to.eq((await nftCard.balanceOf(accounts[4].address)).toNumber());
