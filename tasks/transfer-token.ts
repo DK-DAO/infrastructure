@@ -26,7 +26,7 @@ task('transfer:token', 'Create vesting contract for each investor')
     const dataFile = (taskArgs.file || '').trim();
     const tokenAddress = (taskArgs.token || '').trim();
     if (fs.existsSync(dataFile) && hre.ethers.utils.isAddress(tokenAddress)) {
-      const tokenTransferData = parse(fs.readFileSync(dataFile)).slice(1);
+      const tokenTransferData = parse(fs.readFileSync(dataFile));
       const accounts = await hre.ethers.getSigners();
       const deployer: Deployer = Deployer.getInstance(hre);
       deployer.connect(accounts[0]);
