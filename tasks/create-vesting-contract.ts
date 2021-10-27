@@ -112,10 +112,12 @@ task('create:vesting', 'Create vesting contract for each investor')
           releaseType,
           amount: hre.ethers.BigNumber.from(amount).mul(10n ** 18n),
         };
+        const gasPrice = await hre.ethers.provider.getGasPrice();
         const calculatedGas = await creatorContract.estimateGas.createNewVesting(data);
         // Add 30% gas
         await creatorContract.createNewVesting(data, {
           gasLimit: calculatedGas.add(calculatedGas.div(3)),
+          gasPrice: gasPrice.add(gasPrice.div(4)),
         });
       }
       return;

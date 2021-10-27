@@ -35,6 +35,7 @@ task('transfer:token', 'Create vesting contract for each investor')
       for (let i = 0; i < tokenTransferData.length; i += 1) {
         const [address, amount] = tokenTransferData[i];
         const cleanAddress = address.trim();
+        const gasPrice = await hre.ethers.provider.getGasPrice();
         const cleanAmount = hre.ethers.BigNumber.from(toNumber(amount)).mul(10n ** 18n);
         if (hre.ethers.utils.isAddress(cleanAddress)) {
           console.log('Process', cleanAddress, 'amount:', cleanAmount, 'DKT');
@@ -42,6 +43,7 @@ task('transfer:token', 'Create vesting contract for each investor')
           // Add 30% gas
           await dkToken.transfer(cleanAddress, cleanAmount, {
             gasLimit: calculatedGas.add(calculatedGas.div(3)),
+            gasPrice: gasPrice.add(gasPrice.div(4)),
           });
         } else {
           addressLog.push(cleanAddress);
