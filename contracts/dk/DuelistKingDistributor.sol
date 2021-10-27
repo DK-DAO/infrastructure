@@ -115,7 +115,7 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
   ) external onlyAllowSameDomain('Oracle') returns (bool) {
     require(numberOfBoxes > 0 && numberOfBoxes <= 1000, 'Distributor: Invalid number of boxes');
     require(phaseId >= 1, 'Distributor: Invalid phase id');
-    require(_mintedBoxes[phaseId] < _capped, 'Distributor: We run out of this box');
+    require(_mintedBoxes[phaseId] + numberOfBoxes <= _capped, 'Distributor: We run out of this box');
     uint256 itemSerial = _itemSerial;
     uint256 basedBox = uint256(0).setType(1).setId(phaseId);
     uint256[] memory boxNftIds = new uint256[](numberOfBoxes);
