@@ -2,6 +2,7 @@
 /* eslint-disable no-await-in-loop */
 import '@nomiclabs/hardhat-ethers';
 import fs from 'fs';
+import { BigNumber } from 'bignumber.js';
 import { task } from 'hardhat/config';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import Deployer from '../test/helpers/deployer';
@@ -31,12 +32,11 @@ task('transfer:token', 'Create vesting contract for each investor')
       const deployer: Deployer = Deployer.getInstance(hre);
       deployer.connect(accounts[0]);
       const dkToken = <DuelistKingToken>await deployer.contractAttach('Duelist King/DuelistKingToken', tokenAddress);
-
       for (let i = 0; i < tokenTransferData.length; i += 1) {
         const [address, amount] = tokenTransferData[i];
         const cleanAddress = address.trim();
         const gasPrice = await hre.ethers.provider.getGasPrice();
-        const cleanAmount = hre.ethers.BigNumber.from(toNumber(amount)).mul(10n ** 18n);
+        const cleanAmount = hre.ethers.BigNumber.from(new BigNumber(toNumber(amount)).times('1e+18').toString());
         if (hre.ethers.utils.isAddress(cleanAddress)) {
           console.log('Process', cleanAddress, 'amount:', cleanAmount, 'DKT');
           const calculatedGas = await dkToken.estimateGas.transfer(cleanAddress, cleanAmount);
