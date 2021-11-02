@@ -12,14 +12,6 @@ const parse = require('csv-parse/lib/sync');
 
 const addressLog: string[] = [];
 
-function toNumber(v: string): number {
-  v = v.replace(/,/g, '');
-  if (/^[0-9]+$/.test(v)) {
-    return Number.parseInt(v, 10);
-  }
-  throw new Error('Unexpected input');
-}
-
 task('transfer:token', 'Create vesting contract for each investor')
   .addParam('token', 'Token address')
   .addParam('file', 'CSV data file')
@@ -31,22 +23,23 @@ task('transfer:token', 'Create vesting contract for each investor')
       const accounts = await hre.ethers.getSigners();
       const deployer: Deployer = Deployer.getInstance(hre);
       deployer.connect(accounts[0]);
+      let nonce = await accounts[0].getTransactionCount();
       const dkToken = <DuelistKingToken>await deployer.contractAttach('Duelist King/DuelistKingToken', tokenAddress);
       for (let i = 0; i < tokenTransferData.length; i += 1) {
         const [address, amount] = tokenTransferData[i];
         const cleanAddress = address.trim();
         const gasPrice = await hre.ethers.provider.getGasPrice();
-        const cleanAmount = hre.ethers.BigNumber.from(new BigNumber(toNumber(amount)).times('1e+18').toString());
+        const cleanAmount = hre.ethers.BigNumber.from(new BigNumber(amount).times('1e+18').toString());
         if (hre.ethers.utils.isAddress(cleanAddress)) {
           console.log('Process', cleanAddress, 'amount:', cleanAmount, 'DKT');
           const calculatedGas = await dkToken.estimateGas.transfer(cleanAddress, cleanAmount);
           // Add 30% gas
-          await (
-            await dkToken.transfer(cleanAddress, cleanAmount, {
-              gasLimit: calculatedGas.add(calculatedGas.div(3)),
-              gasPrice: gasPrice.add(gasPrice.div(4)),
-            })
-          ).wait();
+          await dkToken.transfer(cleanAddress, cleanAmount, {
+            gasLimit: calculatedGas.add(calculatedGas.div(3)),
+            gasPrice: gasPrice.add(gasPrice.div(4)),
+            nonce,
+          });
+          nonce += 1;
         } else {
           addressLog.push(cleanAddress);
         }
