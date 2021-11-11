@@ -45,11 +45,12 @@ const config: HardhatUserConfig = {
         path: "m/44'/60'/0'/0",
       },
     },
-    rinkeby: {
-      url: env.DUELIST_KING_RINKEBY_RPC,
-      chainId: 4,
+    testnet: {
+      url: env.DUELIST_KING_TESTNET_RPC,
+      // Fantom testnet
+      chainId: 0xfa2,
       accounts: {
-        mnemonic: env.DUELIST_KING_RINKEBY_MNEMONIC,
+        mnemonic: env.DUELIST_KING_TESTNET_MNEMONIC,
         path: "m/44'/60'/0'/0",
       },
     },

@@ -13,7 +13,7 @@
     "node": "hardhat node",
     "test": "hardhat test",
     "deploy:local": "hardhat --network local deploy",
-    "deploy:rinkeby": "hardhat --network rinkeby deploy",
+    "deploy:testnet": "hardhat --network testnet deploy",
     "deploy:fantom": "hardhat --network fantom deploy",
     "flatten": "waffle flatten && node ./clean.js",
     "fork-node": "hardhat --config hardhat-ethfork.config.ts node",
