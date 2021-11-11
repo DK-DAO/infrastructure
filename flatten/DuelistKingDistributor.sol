@@ -552,7 +552,7 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
   }
 
   // Get genesis token id of given card ID
-  function getGenesisEdittion(uint256 cardId) external view returns (uint256) {
+  function getGenesisEdition(uint256 cardId) external view returns (uint256) {
     return _genesisEdition[cardId];
   }
 }
