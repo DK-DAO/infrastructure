@@ -16,7 +16,7 @@ if (env.DUELIST_KING_LOCAL_MNEMONIC !== 'baby nose young alone sport inside grai
   require('./tasks/transfer-token');
 }
 
-const compilers = ['0.8.9'].map((item: string) => ({
+const compilers = ['0.8.10'].map((item: string) => ({
   version: item,
   settings: {
     optimizer: {

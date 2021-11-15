@@ -20,10 +20,10 @@ async function getConfig(hre: HardhatRuntimeEnvironment): Promise<IConfiguration
       network: hre.network.name,
       infrastructure: {
         operator: getWallet(env.DUELIST_KING_DEPLOY_MNEMONIC, 0).connect(hre.ethers.provider),
-        oracles: [getWallet(env.DUELIST_KING_DEPLOY_MNEMONIC, 1).connect(hre.ethers.provider)],
+        oracles: [accounts[0]],
       },
       duelistKing: {
-        operator: accounts[0],
+        operator: getWallet(env.DUELIST_KING_DEPLOY_MNEMONIC, 1).connect(hre.ethers.provider),
         oracles: [accounts[1]],
       },
     };
