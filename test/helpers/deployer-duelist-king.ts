@@ -116,7 +116,7 @@ export default async function init(context: {
         registryRecords.domain.duelistKing,
         'DuelistKingCard',
         'DKC',
-        'https://metadata.dkdao.network/dk-card/',
+        'https://metadata.duelistking.com/card/',
       ),
     );
 
@@ -125,7 +125,7 @@ export default async function init(context: {
         registryRecords.domain.duelistKing,
         'DuelistKingItem',
         'DKI',
-        'https://metadata.dkdao.network/dk-item/',
+        'https://metadata.duelistking.com/item/',
       ),
     );
 

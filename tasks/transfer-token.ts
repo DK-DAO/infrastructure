@@ -12,6 +12,14 @@ const parse = require('csv-parse/lib/sync');
 
 const addressLog: string[] = [];
 
+function toHexString(bn: BigNumber): string {
+  let hexString = bn.toString(16).replace(/0x/gi, '');
+  if (hexString.length % 2 !== 0) {
+    hexString = hexString.padStart(hexString.length + 1, '0');
+  }
+  return `0x${hexString}`;
+}
+
 task('transfer:token', 'Create vesting contract for each investor')
   .addParam('token', 'Token address')
   .addParam('file', 'CSV data file')
@@ -29,9 +37,15 @@ task('transfer:token', 'Create vesting contract for each investor')
         const [address, amount] = tokenTransferData[i];
         const cleanAddress = address.trim();
         const gasPrice = await hre.ethers.provider.getGasPrice();
-        const cleanAmount = hre.ethers.BigNumber.from(new BigNumber(amount).times('1e+18').toString());
+        const cleanAmount = hre.ethers.BigNumber.from(toHexString(new BigNumber(amount).times('1e+18')));
         if (hre.ethers.utils.isAddress(cleanAddress)) {
-          console.log('Process', cleanAddress, 'amount:', cleanAmount, 'DKT');
+          console.log(
+            'Process',
+            cleanAddress,
+            'amount:',
+            cleanAmount.div(hre.ethers.BigNumber.from(10).pow(18)),
+            'DKT',
+          );
           const calculatedGas = await dkToken.estimateGas.transfer(cleanAddress, cleanAmount);
           // Add 30% gas
           await (

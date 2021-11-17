@@ -58,6 +58,7 @@ task('deploy', 'Deploy all smart contracts')
       await contractTestToken.connect(operator).transfer(accounts[5].address, '400000000000000000000');
       await contractTestToken.connect(operator).transfer(accounts[5].address, '10000000000000000000');
       await contractTestToken.connect(operator).transfer(accounts[5].address, '5000000000000000000');
+      console.log('Watching address:         ', accounts[5].address);
     }
     deployer.printReport();
     console.log('Infrastructure Operator:  ', operatorAddress);
