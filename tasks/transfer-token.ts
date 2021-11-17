@@ -43,7 +43,7 @@ task('transfer:token', 'Create vesting contract for each investor')
             'Process',
             cleanAddress,
             'amount:',
-            cleanAmount.div(hre.ethers.BigNumber.from(10).pow(18)),
+            cleanAmount.div(hre.ethers.BigNumber.from(10).pow(18)).toString(),
             'DKT',
           );
           const calculatedGas = await dkToken.estimateGas.transfer(cleanAddress, cleanAmount);
