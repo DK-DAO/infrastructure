@@ -1,10 +1,11 @@
 // Dependency file: @openzeppelin/contracts/utils/Context.sol
 
 // SPDX-License-Identifier: MIT
+// OpenZeppelin Contracts v4.4.0 (utils/Context.sol)
 
 // pragma solidity ^0.8.0;
 
-/*
+/**
  * @dev Provides information about the current execution context, including the
  * sender of the transaction and its data. While these are generally available
  * via msg.sender and msg.data, they should not be accessed in such a direct
@@ -27,6 +28,7 @@ abstract contract Context {
 
 // Dependency file: @openzeppelin/contracts/access/Ownable.sol
 
+// OpenZeppelin Contracts v4.4.0 (access/Ownable.sol)
 
 // pragma solidity ^0.8.0;
 
@@ -53,7 +55,7 @@ abstract contract Ownable is Context {
      * @dev Initializes the contract setting the deployer as the initial owner.
      */
     constructor() {
-        _setOwner(_msgSender());
+        _transferOwnership(_msgSender());
     }
 
     /**
@@ -79,7 +81,7 @@ abstract contract Ownable is Context {
      * thereby removing any functionality that is only available to the owner.
      */
     function renounceOwnership() public virtual onlyOwner {
-        _setOwner(address(0));
+        _transferOwnership(address(0));
     }
 
     /**
@@ -88,10 +90,14 @@ abstract contract Ownable is Context {
      */
     function transferOwnership(address newOwner) public virtual onlyOwner {
         require(newOwner != address(0), "Ownable: new owner is the zero address");
-        _setOwner(newOwner);
+        _transferOwnership(newOwner);
     }
 
-    function _setOwner(address newOwner) private {
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     * Internal function without access restriction.
+     */
+    function _transferOwnership(address newOwner) internal virtual {
         address oldOwner = _owner;
         _owner = newOwner;
         emit OwnershipTransferred(oldOwner, newOwner);
@@ -101,6 +107,7 @@ abstract contract Ownable is Context {
 
 // Dependency file: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
+// OpenZeppelin Contracts v4.4.0 (token/ERC20/IERC20.sol)
 
 // pragma solidity ^0.8.0;
 
@@ -185,6 +192,7 @@ interface IERC20 {
 
 // Dependency file: @openzeppelin/contracts/utils/Address.sol
 
+// OpenZeppelin Contracts v4.4.0 (utils/Address.sol)
 
 // pragma solidity ^0.8.0;
 
@@ -315,7 +323,7 @@ library Address {
         require(isContract(target), "Address: call to non-contract");
 
         (bool success, bytes memory returndata) = target.call{value: value}(data);
-        return _verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResult(success, returndata, errorMessage);
     }
 
     /**
@@ -342,7 +350,7 @@ library Address {
         require(isContract(target), "Address: static call to non-contract");
 
         (bool success, bytes memory returndata) = target.staticcall(data);
-        return _verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResult(success, returndata, errorMessage);
     }
 
     /**
@@ -369,14 +377,20 @@ library Address {
         require(isContract(target), "Address: delegate call to non-contract");
 
         (bool success, bytes memory returndata) = target.delegatecall(data);
-        return _verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResult(success, returndata, errorMessage);
     }
 
-    function _verifyCallResult(
+    /**
+     * @dev Tool to verifies that a low level call was successful, and revert if it wasn't, either by bubbling the
+     * revert reason using the provided one.
+     *
+     * _Available since v4.3._
+     */
+    function verifyCallResult(
         bool success,
         bytes memory returndata,
         string memory errorMessage
-    ) private pure returns (bytes memory) {
+    ) internal pure returns (bytes memory) {
         if (success) {
             return returndata;
         } else {

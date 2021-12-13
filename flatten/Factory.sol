@@ -1,6 +1,7 @@
 // Dependency file: @openzeppelin/contracts/proxy/Clones.sol
 
 // SPDX-License-Identifier: MIT
+// OpenZeppelin Contracts v4.4.0 (proxy/Clones.sol)
 
 // pragma solidity ^0.8.0;
 

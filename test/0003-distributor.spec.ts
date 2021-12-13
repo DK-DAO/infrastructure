@@ -1,10 +1,11 @@
 import hre from 'hardhat';
+import { randomBytes } from 'crypto';
 import { BigNumber, utils } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { zeroAddress } from './helpers/const';
 import initInfrastructure from './helpers/deployer-infrastructure';
 import initDuelistKing, { IDeployContext } from './helpers/deployer-duelist-king';
-import { craftProof } from './helpers/functions';
+import { craftProof, getUint128Random } from './helpers/functions';
 import BytesBuffer from './helpers/bytes';
 import Card from './helpers/card';
 import { expect } from 'chai';
@@ -13,6 +14,7 @@ import { NFT } from '../typechain';
 let context: IDeployContext;
 let accounts: SignerWithAddress[];
 let boxes: string[] = [];
+let cards: string[] = [];
 
 describe('DuelistKingDistributor', function () {
   this.timeout(5000000);
@@ -140,12 +142,14 @@ describe('DuelistKingDistributor', function () {
     }
 
     const txResult = await (await distributor.connect(accounts[4]).openBoxes(packedTokenId.invoke())).wait();
+    const txTransferLogs = txResult.logs
+      .filter((e) => e.topics[0] === utils.id('Transfer(address,address,uint256)'))
+      .map((e) => {
+        return nft.interface.decodeEventLog('Transfer', e.data, e.topics);
+      });
+    cards = [...txTransferLogs.map((e) => e.tokenId)];
     console.log(
-      txResult.logs
-        .filter((e) => e.topics[0] === utils.id('Transfer(address,address,uint256)'))
-        .map((e) => {
-          return nft.interface.decodeEventLog('Transfer', e.data, e.topics);
-        })
+      txTransferLogs
         .map((e) => {
           const { from, to, tokenId } = e;
           return `Transfer(${[from, to, BigNumber.from(tokenId).toHexString()].join(', ')})`;
@@ -222,7 +226,7 @@ describe('DuelistKingDistributor', function () {
           await craftProof(await hre.ethers.getSigner(duelistKing.oracleAddresses[0]), oracle),
           distributor.address,
           0,
-          distributor.interface.encodeFunctionData('mintBoxes', [accounts[4].address, 500, 2]),
+          distributor.interface.encodeFunctionData('mintBoxes', [accounts[4].address, 100, 2]),
         )
     ).wait();
 
@@ -235,6 +239,53 @@ describe('DuelistKingDistributor', function () {
           const nftTokenId = BigNumber.from(tokenId).toHexString();
           if (from === zeroAddress) boxes.push(nftTokenId);
           return `Transfer(${[from, to, nftTokenId].join(', ')})`;
+        })
+        .join('\n'),
+      `\n${txResult.gasUsed.toString()} Gas`,
+    );
+  });
+
+  it('OracleProxy should able to forward upgradeCard() to DuelistKingDistributor', async () => {
+    const {
+      infrastructure: { nft },
+      duelistKing: { distributor, oracle },
+      config: { duelistKing },
+    } = context;
+    boxes = [];
+    const txResult = await (
+      await oracle
+        .connect(accounts[8])
+        .safeCall(
+          await craftProof(await hre.ethers.getSigner(duelistKing.oracleAddresses[0]), oracle),
+          distributor.address,
+          0,
+          distributor.interface.encodeFunctionData('upgradeCard', [cards[0], randomBytes(32), 500000000]),
+        )
+    ).wait();
+
+    console.log(
+      txResult.logs
+        .filter((e) =>
+          [
+            utils.id('Transfer(address,address,uint256)'),
+            utils.id('CardUpgradeFailed(address,uint256)'),
+            utils.id('CardUpgradeSuccessful(address,uint256,uint256)'),
+          ].includes(e.topics[0]),
+        )
+        .map((e) => {
+          if (e.topics[0] === utils.id('CardUpgradeFailed(address,uint256)')) {
+            const { owner, oldCardId } = distributor.interface.decodeEventLog('CardUpgradeFailed', e.data, e.topics);
+            return `CardUpgradeFailed(${[owner, oldCardId.toHexString()].join(',')})`;
+          } else if (e.topics[0] === utils.id('CardUpgradeSuccessful(address,uint256,uint256)')) {
+            const { owner, oldCardId, newCardId } = distributor.interface.decodeEventLog(
+              'CardUpgradeSuccessful',
+              e.data,
+              e.topics,
+            );
+            return `CardUpgradeSuccessful${[owner, oldCardId.toHexString(), newCardId.toHexString()].join(',')}`;
+          }
+          const { from, to, tokenId } = nft.interface.decodeEventLog('Transfer', e.data, e.topics);
+          return `Transfer(${[from, to, tokenId.toHexString()].join(',')})`;
         })
         .join('\n'),
       `\n${txResult.gasUsed.toString()} Gas`,

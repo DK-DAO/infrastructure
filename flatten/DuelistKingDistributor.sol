@@ -374,6 +374,12 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
   // Set minted boxes
   event SetRemainingBoxes(uint256 indexed phaseId, uint256 indexed remainingBoxes);
 
+  // Upgrade successful
+  event CardUpgradeSuccessful(address owner, uint256 oldCardId, uint256 newCardId);
+
+  // Upgrade failed
+  event CardUpgradeFailed(address owner, uint256 oldCardId);
+
   constructor(
     address registry_,
     bytes32 domain_,
@@ -417,7 +423,7 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
    * Oracle section
    ********************************************************/
 
-  // Mint boxes
+  // Set remaining boxes
   function setRemainingBoxes(uint256 phaseId, uint256 numberOfBoxes)
     external
     onlyAllowSameDomain('Oracle')
@@ -432,6 +438,31 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
     return true;
   }
 
+  // Upgrade card
+  function upgradeCard(
+    uint256 nftId,
+    uint256 randomValue,
+    uint256 successTarget
+  ) external onlyAllowSameDomain('Oracle') returns (bool) {
+    INFT nftCard = INFT(_registry.getAddress(_domain, 'NFT Card'));
+    require(successTarget <= 1000000000, 'Distrubutor: Target must less than 1 billion');
+    address owner = nftCard.ownerOf(nftId);
+    require(owner != address(0), 'Distributor: Invalid token owner');
+    uint256 rand = uint256(keccak256(abi.encodePacked(_entropy, randomValue)));
+    if (rand % 1000000000 <= successTarget) {
+      _cardSerial += 1;
+      uint256 newCardNftId = nftId.setType(nftId.getType() + 1).setSerial(_cardSerial);
+      // Burn old card
+      nftCard.burn(nftId);
+      // Mint new card
+      nftCard.mint(owner, newCardNftId);
+      emit CardUpgradeSuccessful(owner, nftId, newCardNftId);
+      return true;
+    }
+    emit CardUpgradeFailed(owner, nftId);
+    return false;
+  }
+
   // Mint boxes
   function mintBoxes(
     address owner,
@@ -442,7 +473,7 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
     require(phaseId >= 1, 'Distributor: Invalid phase id');
     require(_mintedBoxes[phaseId] + numberOfBoxes <= _capped, 'Distributor: We run out of this box');
     uint256 itemSerial = _itemSerial;
-    uint256 basedBox = uint256(0).setType(1).setId(phaseId);
+    uint256 basedBox = uint256(0).setId(phaseId);
     uint256[] memory boxNftIds = new uint256[](numberOfBoxes);
     for (uint256 i = 0; i < numberOfBoxes; i += 1) {
       itemSerial += 1;

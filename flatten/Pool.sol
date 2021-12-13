@@ -1,6 +1,7 @@
 // Dependency file: @openzeppelin/contracts/utils/Address.sol
 
 // SPDX-License-Identifier: MIT
+// OpenZeppelin Contracts v4.4.0 (utils/Address.sol)
 
 // pragma solidity ^0.8.0;
 
@@ -131,7 +132,7 @@ library Address {
         require(isContract(target), "Address: call to non-contract");
 
         (bool success, bytes memory returndata) = target.call{value: value}(data);
-        return _verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResult(success, returndata, errorMessage);
     }
 
     /**
@@ -158,7 +159,7 @@ library Address {
         require(isContract(target), "Address: static call to non-contract");
 
         (bool success, bytes memory returndata) = target.staticcall(data);
-        return _verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResult(success, returndata, errorMessage);
     }
 
     /**
@@ -185,14 +186,20 @@ library Address {
         require(isContract(target), "Address: delegate call to non-contract");
 
         (bool success, bytes memory returndata) = target.delegatecall(data);
-        return _verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResult(success, returndata, errorMessage);
     }
 
-    function _verifyCallResult(
+    /**
+     * @dev Tool to verifies that a low level call was successful, and revert if it wasn't, either by bubbling the
+     * revert reason using the provided one.
+     *
+     * _Available since v4.3._
+     */
+    function verifyCallResult(
         bool success,
         bytes memory returndata,
         string memory errorMessage
-    ) private pure returns (bytes memory) {
+    ) internal pure returns (bytes memory) {
         if (success) {
             return returndata;
         } else {
@@ -214,6 +221,7 @@ library Address {
 
 // Dependency file: @openzeppelin/contracts/utils/introspection/IERC165.sol
 
+// OpenZeppelin Contracts v4.4.0 (utils/introspection/IERC165.sol)
 
 // pragma solidity ^0.8.0;
 
@@ -241,6 +249,7 @@ interface IERC165 {
 
 // Dependency file: @openzeppelin/contracts/token/ERC721/IERC721.sol
 
+// OpenZeppelin Contracts v4.4.0 (token/ERC721/IERC721.sol)
 
 // pragma solidity ^0.8.0;
 
@@ -386,6 +395,7 @@ interface IERC721 is IERC165 {
 
 // Dependency file: @openzeppelin/contracts/token/ERC721/IERC721Receiver.sol
 
+// OpenZeppelin Contracts v4.4.0 (token/ERC721/IERC721Receiver.sol)
 
 // pragma solidity ^0.8.0;
 
@@ -415,6 +425,7 @@ interface IERC721Receiver {
 
 // Dependency file: @openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol
 
+// OpenZeppelin Contracts v4.4.0 (token/ERC721/extensions/IERC721Metadata.sol)
 
 // pragma solidity ^0.8.0;
 
@@ -444,10 +455,11 @@ interface IERC721Metadata is IERC721 {
 
 // Dependency file: @openzeppelin/contracts/utils/Context.sol
 
+// OpenZeppelin Contracts v4.4.0 (utils/Context.sol)
 
 // pragma solidity ^0.8.0;
 
-/*
+/**
  * @dev Provides information about the current execution context, including the
  * sender of the transaction and its data. While these are generally available
  * via msg.sender and msg.data, they should not be accessed in such a direct
@@ -470,6 +482,7 @@ abstract contract Context {
 
 // Dependency file: @openzeppelin/contracts/utils/Strings.sol
 
+// OpenZeppelin Contracts v4.4.0 (utils/Strings.sol)
 
 // pragma solidity ^0.8.0;
 
@@ -539,6 +552,7 @@ library Strings {
 
 // Dependency file: @openzeppelin/contracts/utils/introspection/ERC165.sol
 
+// OpenZeppelin Contracts v4.4.0 (utils/introspection/ERC165.sol)
 
 // pragma solidity ^0.8.0;
 
@@ -570,6 +584,7 @@ abstract contract ERC165 is IERC165 {
 
 // Dependency file: @openzeppelin/contracts/token/ERC721/ERC721.sol
 
+// OpenZeppelin Contracts v4.4.0 (token/ERC721/ERC721.sol)
 
 // pragma solidity ^0.8.0;
 
@@ -704,10 +719,7 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
      * @dev See {IERC721-setApprovalForAll}.
      */
     function setApprovalForAll(address operator, bool approved) public virtual override {
-        require(operator != _msgSender(), "ERC721: approve to caller");
-
-        _operatorApprovals[_msgSender()][operator] = approved;
-        emit ApprovalForAll(_msgSender(), operator, approved);
+        _setApprovalForAll(_msgSender(), operator, approved);
     }
 
     /**
@@ -928,6 +940,21 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
     }
 
     /**
+     * @dev Approve `operator` to operate on all of `owner` tokens
+     *
+     * Emits a {ApprovalForAll} event.
+     */
+    function _setApprovalForAll(
+        address owner,
+        address operator,
+        bool approved
+    ) internal virtual {
+        require(owner != operator, "ERC721: approve to caller");
+        _operatorApprovals[owner][operator] = approved;
+        emit ApprovalForAll(owner, operator, approved);
+    }
+
+    /**
      * @dev Internal function to invoke {IERC721Receiver-onERC721Received} on a target address.
      * The call is not executed if the target address is not a contract.
      *
@@ -945,7 +972,7 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
     ) private returns (bool) {
         if (to.isContract()) {
             try IERC721Receiver(to).onERC721Received(_msgSender(), from, tokenId, _data) returns (bytes4 retval) {
-                return retval == IERC721Receiver(to).onERC721Received.selector;
+                return retval == IERC721Receiver.onERC721Received.selector;
             } catch (bytes memory reason) {
                 if (reason.length == 0) {
                     revert("ERC721: transfer to non ERC721Receiver implementer");
@@ -984,6 +1011,7 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata {
 
 // Dependency file: @openzeppelin/contracts/access/Ownable.sol
 
+// OpenZeppelin Contracts v4.4.0 (access/Ownable.sol)
 
 // pragma solidity ^0.8.0;
 
@@ -1010,7 +1038,7 @@ abstract contract Ownable is Context {
      * @dev Initializes the contract setting the deployer as the initial owner.
      */
     constructor() {
-        _setOwner(_msgSender());
+        _transferOwnership(_msgSender());
     }
 
     /**
@@ -1036,7 +1064,7 @@ abstract contract Ownable is Context {
      * thereby removing any functionality that is only available to the owner.
      */
     function renounceOwnership() public virtual onlyOwner {
-        _setOwner(address(0));
+        _transferOwnership(address(0));
     }
 
     /**
@@ -1045,10 +1073,14 @@ abstract contract Ownable is Context {
      */
     function transferOwnership(address newOwner) public virtual onlyOwner {
         require(newOwner != address(0), "Ownable: new owner is the zero address");
-        _setOwner(newOwner);
+        _transferOwnership(newOwner);
     }
 
-    function _setOwner(address newOwner) private {
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     * Internal function without access restriction.
+     */
+    function _transferOwnership(address newOwner) internal virtual {
         address oldOwner = _owner;
         _owner = newOwner;
         emit OwnershipTransferred(oldOwner, newOwner);

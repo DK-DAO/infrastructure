@@ -55,7 +55,7 @@ task('deploy', 'Deploy all smart contracts')
     if (hre.network.name === 'local') {
       const accounts = await hre.ethers.getSigners();
       const contractTestToken = <TestToken>await deployer.connect(operator).contractDeploy('Test/TestToken', []);
-      await contractTestToken.connect(operator).transfer(accounts[5].address, '400000000000000000000');
+      await contractTestToken.connect(operator).transfer(accounts[5].address, '500000000000000000000');
       await contractTestToken.connect(operator).transfer(accounts[5].address, '10000000000000000000');
       await contractTestToken.connect(operator).transfer(accounts[5].address, '5000000000000000000');
       console.log('Watching address:         ', accounts[5].address);

@@ -1,6 +1,7 @@
 // Dependency file: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
 // SPDX-License-Identifier: MIT
+// OpenZeppelin Contracts v4.4.0 (token/ERC20/IERC20.sol)
 
 // pragma solidity ^0.8.0;
 
@@ -85,6 +86,7 @@ interface IERC20 {
 
 // Dependency file: @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
 
+// OpenZeppelin Contracts v4.4.0 (token/ERC20/extensions/IERC20Metadata.sol)
 
 // pragma solidity ^0.8.0;
 
@@ -115,10 +117,11 @@ interface IERC20Metadata is IERC20 {
 
 // Dependency file: @openzeppelin/contracts/utils/Context.sol
 
+// OpenZeppelin Contracts v4.4.0 (utils/Context.sol)
 
 // pragma solidity ^0.8.0;
 
-/*
+/**
  * @dev Provides information about the current execution context, including the
  * sender of the transaction and its data. While these are generally available
  * via msg.sender and msg.data, they should not be accessed in such a direct
@@ -141,6 +144,7 @@ abstract contract Context {
 
 // Dependency file: @openzeppelin/contracts/token/ERC20/ERC20.sol
 
+// OpenZeppelin Contracts v4.4.0 (token/ERC20/ERC20.sol)
 
 // pragma solidity ^0.8.0;
 
@@ -159,9 +163,10 @@ abstract contract Context {
  * https://forum.zeppelin.solutions/t/how-to-implement-erc20-supply-mechanisms/226[How
  * to implement supply mechanisms].
  *
- * We have followed general OpenZeppelin guidelines: functions revert instead
- * of returning `false` on failure. This behavior is nonetheless conventional
- * and does not conflict with the expectations of ERC20 applications.
+ * We have followed general OpenZeppelin Contracts guidelines: functions revert
+ * instead returning `false` on failure. This behavior is nonetheless
+ * conventional and does not conflict with the expectations of ERC20
+ * applications.
  *
  * Additionally, an {Approval} event is emitted on calls to {transferFrom}.
  * This allows applications to reconstruct the allowance for all accounts just
@@ -214,7 +219,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     /**
      * @dev Returns the number of decimals used to get its user representation.
      * For example, if `decimals` equals `2`, a balance of `505` tokens should
-     * be displayed to a user as `5,05` (`505 / 10 ** 2`).
+     * be displayed to a user as `5.05` (`505 / 10 ** 2`).
      *
      * Tokens usually opt for a value of 18, imitating the relationship between
      * Ether and Wei. This is the value {ERC20} uses, unless this function is
