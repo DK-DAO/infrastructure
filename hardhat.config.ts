@@ -17,7 +17,7 @@ if (env.DUELIST_KING_LOCAL_MNEMONIC !== 'baby nose young alone sport inside grai
   require('./tasks/open-boxes');
 }
 
-const compilers = ['0.8.10'].map((item: string) => ({
+const compilers = ['0.8.7'].map((item: string) => ({
   version: item,
   settings: {
     optimizer: {

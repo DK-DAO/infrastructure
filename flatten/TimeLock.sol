@@ -95,7 +95,7 @@ contract TimeLock {
 
   address private immutable _beneficiary;
 
-  uint256 private immutable _timelock;
+  uint256 private _timelock;
 
   IERC20 private immutable _token;
 
