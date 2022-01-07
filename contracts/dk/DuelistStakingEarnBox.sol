@@ -39,7 +39,7 @@ contract StakingEarnBoxDKT {
 
   mapping(uint256 => mapping(address => UserStakingSlot)) private _userStakingSlot;
 
-  // New campaign created event
+  // New created campaign event
   event NewCampaign(uint64 indexed startDate, uint64 indexed endDate, uint64 numberOfLockDays, uint256 maxAmountOfToken, uint256 maxNumberOfBoxes, address indexed tokenAddress);
 
  // Staking event
@@ -64,12 +64,10 @@ contract StakingEarnBoxDKT {
   function createNewStakingCampaign(StakingCampaign memory _newCampaign) external onlyOwner{
     require(_newCampaign.startDate > block.timestamp, 'Staking: Start date should be a future date');
     require(_newCampaign.endDate > block.timestamp, 'Staking: End date should be a future date');
-    uint256 duration = (_newCampaign.endDate - _newCampaign.startDate) / (1 days);
+    uint64 duration = (_newCampaign.endDate - _newCampaign.startDate) / (1 days);
     require(duration >= 1 days, 'Staking: Duration must be at least 1 day');
     require(_newCampaign.numberOfLockDays <= duration, 'Staking: Number of lock days should be less than duration event days');
 
-    // Convert numberOfLockDays to timestamp
-    _newCampaign.numberOfLockDays *= (1 days);
     _newCampaign.returnRate = uint128((_newCampaign.maxNumberOfBoxes * 1000000) / (_newCampaign.maxAmountOfToken * duration));
     _campaignStorage[totalCampaign] = _newCampaign;
     totalCampaign += 1;
@@ -118,7 +116,8 @@ contract StakingEarnBoxDKT {
 
     // User unstack before lockTime and in duration event
     // will be paid for penalty fee
-    if (block.timestamp - currentUserStakingSlot.startStakingDate < _currentCampaign.numberOfLockDays && block.timestamp <= _currentCampaign.endDate) {
+    uint64 stackingDuration = uint64((block.timestamp - currentUserStakingSlot.startStakingDate) / (1 days));
+    if (stackingDuration < _currentCampaign.numberOfLockDays && block.timestamp <= _currentCampaign.endDate) {
       currentToken.safeTransferFrom(address(this), msg.sender, currentUserStakingSlot.stakingAmountOfToken * 98 / 100);
 
       currentUserStakingSlot.stakedAmountOfBoxes = 0;
