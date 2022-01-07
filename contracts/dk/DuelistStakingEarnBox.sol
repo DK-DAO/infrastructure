@@ -52,16 +52,16 @@ contract StakingEarnBoxDKT {
   // requirements
 
   modifier onlyOwner() {
-    require(msg.sender == _owner);
+    require(msg.sender == _owner, 'Staking: Only owner can create a new campaign');
     _;
   }
 
   function createNewStakingCampaign(StakingCampaign memory _newCampaign) external onlyOwner{
-    require(_newCampaign.startDate > block.timestamp);
-    require(_newCampaign.endDate > block.timestamp);
+    require(_newCampaign.startDate > block.timestamp, 'Staking: Start date should be a future date');
+    require(_newCampaign.endDate > block.timestamp, 'Staking: End date should be a future date');
     uint256 duration = (_newCampaign.endDate - _newCampaign.startDate) / (1 days);
-    require(duration > 1 days);
-    require(_newCampaign.numberOfLockDays <= duration);
+    require(duration >= 1 days, 'Staking: Duration must be at least 1 day');
+    require(_newCampaign.numberOfLockDays <= duration, 'Staking: Number of lock days should be less than duration staking days');
 
     // Convert numberOfLockDays to timestamp
     _newCampaign.numberOfLockDays *= (1 days);
@@ -76,9 +76,9 @@ contract StakingEarnBoxDKT {
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaingId][msg.sender];
     ERC20 currentToken = ERC20(tokenAddress);
 
-    require(block.timestamp >= _currentCampaign.startDate);
-    require(block.timestamp < _currentCampaign.endDate);
-    require(currentUserStakingSlot.stakingAmountOfToken + _amountOfToken <= _currentCampaign.limitStakingAmountForUser);
+    require(block.timestamp >= _currentCampaign.startDate, 'Staking: This staking event has not yet starting');
+    require(block.timestamp < _currentCampaign.endDate, 'Staking: This stacking event has been expired');
+    require(currentUserStakingSlot.stakingAmountOfToken + _amountOfToken <= _currentCampaign.limitStakingAmountForUser, 'Staking: Token limit per user exceeded');
 
     // Require a new user stack before endDate minus numberOfLockDays
     if (currentUserStakingSlot.stakingAmountOfToken == 0) {
@@ -93,7 +93,7 @@ contract StakingEarnBoxDKT {
     require(afterBalance - beforeBalance == _amountOfToken);
 
     _currentCampaign.stakedAmountOfToken += _amountOfToken;
-    require(_currentCampaign.stakedAmountOfToken <= _currentCampaign.maxAmountOfToken);
+    require(_currentCampaign.stakedAmountOfToken <= _currentCampaign.maxAmountOfToken, 'Staking: Token limit exceeded');
     _campaignStorage[_campaingId] = _currentCampaign;
 
     currentUserStakingSlot.stakedAmountOfBoxes += currentUserStakingSlot.stakingAmountOfToken * (block.timestamp - currentUserStakingSlot.latestStakingDate) * _currentCampaign.returnRate;
@@ -111,8 +111,8 @@ contract StakingEarnBoxDKT {
     address tokenAddress = _currentCampaign.tokenAddress;
     ERC20 currentToken = ERC20(tokenAddress);
     
-    require(currentUserStakingSlot.stakingAmountOfToken > 0);
-    require(msg.sender == senderAddress);
+    require(currentUserStakingSlot.stakingAmountOfToken > 0, 'Staking: No token to be unstacked');
+    require(msg.sender == senderAddress, 'Staking: Require owner to unstack');
 
     // User unstack before lockTime 
     // will be paid for penalty fee
