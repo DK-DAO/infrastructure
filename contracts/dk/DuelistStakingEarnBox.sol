@@ -43,8 +43,8 @@ contract StakingEarnBoxDKT {
   // Unstaking event
   event Unstaking(address indexed owner, uint256 indexed amount, uint256 indexed unStakeTime);
 
-  constructor(){
-    _owner = msg.sender;
+  constructor(address owner_){
+    _owner = owner_;
   }
 
   // Right now, the security is onlyOwner
