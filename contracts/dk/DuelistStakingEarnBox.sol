@@ -14,7 +14,7 @@ contract StakingEarnBoxDKT {
   struct StakingCampaign {
     uint64 startDate;
     uint64 endDate;
-    uint256 returnRate;
+    uint128 returnRate;
     uint256 maxAmountOfToken;
     uint256 stakedAmountOfToken;
     uint256 limitStakingAmountForUser;
@@ -68,7 +68,7 @@ contract StakingEarnBoxDKT {
 
     // Convert numberOfLockDays to timestamp
     _newCampaign.numberOfLockDays *= (1 days);
-    _newCampaign.returnRate = (_newCampaign.maxNumberOfBoxes * 1000000) / (_newCampaign.maxAmountOfToken * duration);
+    _newCampaign.returnRate = uint128((_newCampaign.maxNumberOfBoxes * 1000000) / (_newCampaign.maxAmountOfToken * duration));
     _campaignStorage[totalCampaign] = _newCampaign;
     totalCampaign += 1;
     emit NewCampaign(_newCampaign.startDate,_newCampaign.endDate, _newCampaign.numberOfLockDays , _newCampaign.maxAmountOfToken,  _newCampaign.maxNumberOfBoxes, _newCampaign.tokenAddress);
