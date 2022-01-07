@@ -12,22 +12,22 @@ contract StakingEarnBoxDKT {
  */
 
   struct StakingCampaign {
-    uint256 startDate;
-    uint256 endDate;
+    uint64 startDate;
+    uint64 endDate;
     uint256 returnRate;
     uint256 maxAmountOfToken;
     uint256 stakedAmountOfToken;
     uint256 limitStakingAmountForUser;
     address tokenAddress;
     uint256 maxNumberOfBoxes;
-    uint256 numberOfLockDays;
+    uint64 numberOfLockDays;
   }
 
   struct UserStakingSlot {
     uint256 stakingAmountOfToken;
     uint256 stakedAmountOfBoxes;
-    uint256 startStakingDate;
-    uint256 latestStakingDate;
+    uint64 startStakingDate;
+    uint64 latestStakingDate;
   }
 
   address private _owner;
@@ -36,6 +36,9 @@ contract StakingEarnBoxDKT {
   mapping(uint256 => StakingCampaign) private _campaignStorage;
 
   mapping(uint256 => mapping(address => UserStakingSlot)) private _userStakingSlot;
+
+  // New campaign created event
+  event NewCampaign(uint64 indexed startDate, uint64 indexed endDate, uint64 numberOfLockDays, uint256 maxAmountOfToken, uint256 maxNumberOfBoxes, address indexed tokenAddress);
 
  // Staking event
   event Staking(address indexed owner, uint256 indexed amount, uint256 indexed startStakingDate);
@@ -68,6 +71,7 @@ contract StakingEarnBoxDKT {
     _newCampaign.returnRate = (_newCampaign.maxNumberOfBoxes * 1000000) / (_newCampaign.maxAmountOfToken * duration);
     _campaignStorage[totalCampaign] = _newCampaign;
     totalCampaign += 1;
+    emit NewCampaign(_newCampaign.startDate,_newCampaign.endDate, _newCampaign.numberOfLockDays , _newCampaign.maxAmountOfToken,  _newCampaign.maxNumberOfBoxes, _newCampaign.tokenAddress);
   }
 
   function staking(uint256 _campaingId, uint256 _amountOfToken) external returns(bool) {
@@ -83,8 +87,8 @@ contract StakingEarnBoxDKT {
     // Require a new user stack before endDate minus numberOfLockDays
     if (currentUserStakingSlot.stakingAmountOfToken == 0) {
       require(block.timestamp + _currentCampaign.numberOfLockDays <= _currentCampaign.endDate);
-      currentUserStakingSlot.startStakingDate = block.timestamp;
-      currentUserStakingSlot.latestStakingDate = block.timestamp;
+      currentUserStakingSlot.startStakingDate = uint64(block.timestamp);
+      currentUserStakingSlot.latestStakingDate = uint64(block.timestamp);
     }
 
     uint256 beforeBalance = currentToken.balanceOf(address(this));
@@ -97,7 +101,7 @@ contract StakingEarnBoxDKT {
     _campaignStorage[_campaingId] = _currentCampaign;
 
     currentUserStakingSlot.stakedAmountOfBoxes += currentUserStakingSlot.stakingAmountOfToken * (block.timestamp - currentUserStakingSlot.latestStakingDate) * _currentCampaign.returnRate;
-    currentUserStakingSlot.latestStakingDate = block.timestamp;
+    currentUserStakingSlot.latestStakingDate = uint64(block.timestamp);
     currentUserStakingSlot.stakingAmountOfToken += _amountOfToken;
 
     _userStakingSlot[_campaingId][msg.sender] = currentUserStakingSlot;
