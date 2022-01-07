@@ -35,7 +35,7 @@ contract StakingEarnBoxDKT {
 
   mapping(uint256 => StakingCampaign) private _campaignStorage;
 
-  mapping(uint256 => mapping(address => UserStakingSlot)) _userStakingSlot;
+  mapping(uint256 => mapping(address => UserStakingSlot)) private _userStakingSlot;
 
  // Staking event
   event Staking(address indexed owner, uint256 indexed amount, uint256 indexed startStakingDate);
