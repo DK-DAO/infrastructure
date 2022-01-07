@@ -2,16 +2,17 @@
 pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
-import "../dao/ERC20.sol";
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
 
 contract StakingEarnBoxDKT {
-  
+  using SafeERC20 for ERC20;
+
 /**
  * numberOfLockDays is a number of days that
  * user must be stack before unstacking without penalty
  */
-
   struct StakingCampaign {
     uint64 startDate;
     uint64 endDate;
@@ -19,7 +20,7 @@ contract StakingEarnBoxDKT {
     uint256 maxAmountOfToken;
     uint256 stakedAmountOfToken;
     uint256 limitStakingAmountForUser;
-    ERC20 tokenAddress;
+    address tokenAddress;
     uint256 maxNumberOfBoxes;
     uint64 numberOfLockDays;
   }
@@ -39,7 +40,7 @@ contract StakingEarnBoxDKT {
   mapping(uint256 => mapping(address => UserStakingSlot)) private _userStakingSlot;
 
   // New campaign created event
-  event NewCampaign(uint64 indexed startDate, uint64 indexed endDate, uint64 numberOfLockDays, uint256 maxAmountOfToken, uint256 maxNumberOfBoxes, ERC20 indexed tokenAddress);
+  event NewCampaign(uint64 indexed startDate, uint64 indexed endDate, uint64 numberOfLockDays, uint256 maxAmountOfToken, uint256 maxNumberOfBoxes, address indexed tokenAddress);
 
  // Staking event
   event Staking(address indexed owner, uint256 indexed amount, uint256 indexed startStakingDate);
@@ -65,7 +66,7 @@ contract StakingEarnBoxDKT {
     require(_newCampaign.endDate > block.timestamp, 'Staking: End date should be a future date');
     uint256 duration = (_newCampaign.endDate - _newCampaign.startDate) / (1 days);
     require(duration >= 1 days, 'Staking: Duration must be at least 1 day');
-    require(_newCampaign.numberOfLockDays <= duration, 'Staking: Number of lock days should be less than duration staking days');
+    require(_newCampaign.numberOfLockDays <= duration, 'Staking: Number of lock days should be less than duration event days');
 
     // Convert numberOfLockDays to timestamp
     _newCampaign.numberOfLockDays *= (1 days);
@@ -84,15 +85,13 @@ contract StakingEarnBoxDKT {
     require(block.timestamp < _currentCampaign.endDate, 'Staking: This stacking event has been expired');
     require(currentUserStakingSlot.stakingAmountOfToken + _amountOfToken <= _currentCampaign.limitStakingAmountForUser, 'Staking: Token limit per user exceeded');
 
-    // Require a new user stack before endDate minus numberOfLockDays
     if (currentUserStakingSlot.stakingAmountOfToken == 0) {
-      require(block.timestamp + _currentCampaign.numberOfLockDays <= _currentCampaign.endDate);
       currentUserStakingSlot.startStakingDate = uint64(block.timestamp);
       currentUserStakingSlot.latestStakingDate = uint64(block.timestamp);
     }
 
     uint256 beforeBalance = currentToken.balanceOf(address(this));
-    require(currentToken.transferFrom(msg.sender, address(this), _amountOfToken));
+    currentToken.safeTransferFrom(msg.sender, address(this), _amountOfToken);
     uint256 afterBalance = currentToken.balanceOf(address(this));
     require(afterBalance - beforeBalance == _amountOfToken);
 
@@ -117,10 +116,11 @@ contract StakingEarnBoxDKT {
     require(currentUserStakingSlot.stakingAmountOfToken > 0, 'Staking: No token to be unstacked');
     require(msg.sender == senderAddress, 'Staking: Require owner to unstack');
 
-    // User unstack before lockTime 
+    // User unstack before lockTime and in duration event
     // will be paid for penalty fee
-    if (block.timestamp - currentUserStakingSlot.startStakingDate < _currentCampaign.numberOfLockDays) {
-      currentToken.transferFrom(address(this), msg.sender, currentUserStakingSlot.stakingAmountOfToken * 98 / 100);
+    if (block.timestamp - currentUserStakingSlot.startStakingDate < _currentCampaign.numberOfLockDays && block.timestamp <= _currentCampaign.endDate) {
+      currentToken.safeTransferFrom(address(this), msg.sender, currentUserStakingSlot.stakingAmountOfToken * 98 / 100);
+      
 
       currentUserStakingSlot.stakedAmountOfBoxes = 0;
       currentUserStakingSlot.stakingAmountOfToken = 0;
@@ -132,7 +132,7 @@ contract StakingEarnBoxDKT {
 
     // TODO: Issue boxes to user here
     // mintBoxes()
-    currentToken.transferFrom(address(this), msg.sender, currentUserStakingSlot.stakingAmountOfToken);
+    currentToken.safeTransferFrom(address(this), msg.sender, currentUserStakingSlot.stakingAmountOfToken);
 
     currentUserStakingSlot.stakedAmountOfBoxes = 0;
     currentUserStakingSlot.stakingAmountOfToken = 0;
