@@ -73,7 +73,7 @@ contract StakingEarnBoxDKT {
     _newCampaign.returnRate = uint128((_newCampaign.maxNumberOfBoxes * 1000000) / (_newCampaign.maxAmountOfToken * duration));
     _campaignStorage[totalCampaign] = _newCampaign;
     totalCampaign += 1;
-    emit NewCampaign(_newCampaign.startDate,_newCampaign.endDate, _newCampaign.numberOfLockDays , _newCampaign.maxAmountOfToken,  _newCampaign.maxNumberOfBoxes, _newCampaign.tokenAddress);
+    emit NewCampaign(_newCampaign.startDate, _newCampaign.endDate, _newCampaign.numberOfLockDays , _newCampaign.maxAmountOfToken,  _newCampaign.maxNumberOfBoxes, _newCampaign.tokenAddress);
   }
 
   function staking(uint256 _campaingId, uint256 _amountOfToken) external returns(bool) {
@@ -93,7 +93,7 @@ contract StakingEarnBoxDKT {
     uint256 beforeBalance = currentToken.balanceOf(address(this));
     currentToken.safeTransferFrom(msg.sender, address(this), _amountOfToken);
     uint256 afterBalance = currentToken.balanceOf(address(this));
-    require(afterBalance - beforeBalance == _amountOfToken);
+    require(afterBalance - beforeBalance == _amountOfToken, 'Stacking: Invalid token transfer');
 
     _currentCampaign.stakedAmountOfToken += _amountOfToken;
     require(_currentCampaign.stakedAmountOfToken <= _currentCampaign.maxAmountOfToken, 'Staking: Token limit exceeded');
@@ -120,7 +120,6 @@ contract StakingEarnBoxDKT {
     // will be paid for penalty fee
     if (block.timestamp - currentUserStakingSlot.startStakingDate < _currentCampaign.numberOfLockDays && block.timestamp <= _currentCampaign.endDate) {
       currentToken.safeTransferFrom(address(this), msg.sender, currentUserStakingSlot.stakingAmountOfToken * 98 / 100);
-      
 
       currentUserStakingSlot.stakedAmountOfBoxes = 0;
       currentUserStakingSlot.stakingAmountOfToken = 0;
