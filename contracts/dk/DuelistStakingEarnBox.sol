@@ -27,7 +27,7 @@ contract StakingEarnBoxDKT {
     uint256 stakingAmountOfToken;
     uint256 stakedAmountOfBoxes;
     uint256 startStakingDate;
-    uint256 lastestStakingDate;
+    uint256 latestStakingDate;
   }
 
   address private _owner;
@@ -84,7 +84,7 @@ contract StakingEarnBoxDKT {
     if (currentUserStakingSlot.stakingAmountOfToken == 0) {
       require(block.timestamp + _currentCampaign.numberOfLockDays <= _currentCampaign.endDate);
       currentUserStakingSlot.startStakingDate = block.timestamp;
-      currentUserStakingSlot.lastestStakingDate = block.timestamp;
+      currentUserStakingSlot.latestStakingDate = block.timestamp;
     }
 
     uint256 beforeBalance = currentToken.balanceOf(address(this));
@@ -96,8 +96,8 @@ contract StakingEarnBoxDKT {
     require(_currentCampaign.stakedAmountOfToken <= _currentCampaign.maxAmountOfToken);
     _campaignStorage[_campaingId] = _currentCampaign;
 
-    currentUserStakingSlot.stakedAmountOfBoxes += currentUserStakingSlot.stakingAmountOfToken * (block.timestamp - currentUserStakingSlot.lastestStakingDate) * _currentCampaign.returnRate;
-    currentUserStakingSlot.lastestStakingDate = block.timestamp;
+    currentUserStakingSlot.stakedAmountOfBoxes += currentUserStakingSlot.stakingAmountOfToken * (block.timestamp - currentUserStakingSlot.latestStakingDate) * _currentCampaign.returnRate;
+    currentUserStakingSlot.latestStakingDate = block.timestamp;
     currentUserStakingSlot.stakingAmountOfToken += _amountOfToken;
 
     _userStakingSlot[_campaingId][msg.sender] = currentUserStakingSlot;
@@ -114,6 +114,8 @@ contract StakingEarnBoxDKT {
     require(currentUserStakingSlot.stakingAmountOfToken > 0);
     require(msg.sender == senderAddress);
 
+    // User unstack before lockTime 
+    // will be paid for penalty fee
     if (block.timestamp - currentUserStakingSlot.startStakingDate < _currentCampaign.numberOfLockDays) {
       currentToken.transferFrom(address(this), msg.sender, currentUserStakingSlot.stakingAmountOfToken * 98 / 100);
 
