@@ -4,8 +4,9 @@ pragma abicoder v2;
 
 import "../dao/ERC20.sol";
 
-contract StakingEarnBoxDKT {
 
+contract StakingEarnBoxDKT {
+  
 /**
  * numberOfLockDays is a number of days that
  * user must be stack before unstacking without penalty
@@ -18,7 +19,7 @@ contract StakingEarnBoxDKT {
     uint256 maxAmountOfToken;
     uint256 stakedAmountOfToken;
     uint256 limitStakingAmountForUser;
-    address tokenAddress;
+    ERC20 tokenAddress;
     uint256 maxNumberOfBoxes;
     uint64 numberOfLockDays;
   }
@@ -38,7 +39,7 @@ contract StakingEarnBoxDKT {
   mapping(uint256 => mapping(address => UserStakingSlot)) private _userStakingSlot;
 
   // New campaign created event
-  event NewCampaign(uint64 indexed startDate, uint64 indexed endDate, uint64 numberOfLockDays, uint256 maxAmountOfToken, uint256 maxNumberOfBoxes, address indexed tokenAddress);
+  event NewCampaign(uint64 indexed startDate, uint64 indexed endDate, uint64 numberOfLockDays, uint256 maxAmountOfToken, uint256 maxNumberOfBoxes, ERC20 indexed tokenAddress);
 
  // Staking event
   event Staking(address indexed owner, uint256 indexed amount, uint256 indexed startStakingDate);
@@ -76,9 +77,8 @@ contract StakingEarnBoxDKT {
 
   function staking(uint256 _campaingId, uint256 _amountOfToken) external returns(bool) {
     StakingCampaign memory _currentCampaign = _campaignStorage[_campaingId];
-    address tokenAddress = _currentCampaign.tokenAddress;
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaingId][msg.sender];
-    ERC20 currentToken = ERC20(tokenAddress);
+    ERC20 currentToken = ERC20(_currentCampaign.tokenAddress);
 
     require(block.timestamp >= _currentCampaign.startDate, 'Staking: This staking event has not yet starting');
     require(block.timestamp < _currentCampaign.endDate, 'Staking: This stacking event has been expired');
@@ -112,8 +112,7 @@ contract StakingEarnBoxDKT {
   function unStaking(uint256 _campaingId, address senderAddress) external returns(bool) {
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaingId][msg.sender];
     StakingCampaign memory _currentCampaign = _campaignStorage[_campaingId];
-    address tokenAddress = _currentCampaign.tokenAddress;
-    ERC20 currentToken = ERC20(tokenAddress);
+    ERC20 currentToken = ERC20(_currentCampaign.tokenAddress);
     
     require(currentUserStakingSlot.stakingAmountOfToken > 0, 'Staking: No token to be unstacked');
     require(msg.sender == senderAddress, 'Staking: Require owner to unstack');
