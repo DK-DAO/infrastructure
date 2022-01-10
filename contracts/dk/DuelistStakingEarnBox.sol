@@ -78,7 +78,6 @@ contract StakingEarnBoxDKT {
     require(_newCampaign.startDate > block.timestamp, 'Staking: Start date should be a future date');
     require(_newCampaign.endDate > block.timestamp, 'Staking: End date should be a future date');
     uint64 duration = (_newCampaign.endDate - _newCampaign.startDate) / (1 days);
-    console.log('zzzzz', duration, 1 days, _newCampaign.startDate);
     require(duration >= 1, 'Staking: Duration must be at least 1 day');
     require(
       _newCampaign.numberOfLockDays <= duration,
