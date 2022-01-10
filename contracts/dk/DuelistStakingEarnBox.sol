@@ -4,10 +4,12 @@ pragma abicoder v2;
 
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import '@openzeppelin/contracts/utils/Address.sol';
 
 
 contract StakingEarnBoxDKT {
   using SafeERC20 for ERC20;
+  using Address for address;
 
 /**
  * numberOfLockDays is a number of days that
@@ -67,6 +69,7 @@ contract StakingEarnBoxDKT {
     uint64 duration = (_newCampaign.endDate - _newCampaign.startDate) / (1 days);
     require(duration >= 1 days, 'Staking: Duration must be at least 1 day');
     require(_newCampaign.numberOfLockDays <= duration, 'Staking: Number of lock days should be less than duration event days');
+    require(_newCampaign.tokenAddress.isContract(), 'Staking: Token address is not a smart contract');
 
     _newCampaign.returnRate = uint128((_newCampaign.maxNumberOfBoxes * 1000000) / (_newCampaign.maxAmountOfToken * duration));
     _campaignStorage[totalCampaign] = _newCampaign;
