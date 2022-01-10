@@ -75,8 +75,13 @@ contract StakingEarnBoxDKT {
   }
 
   function createNewStakingCampaign(StakingCampaign memory _newCampaign) external onlyOwner {
-    require(_newCampaign.startDate > block.timestamp, 'Staking: Start date should be a future date');
-    require(_newCampaign.endDate > block.timestamp, 'Staking: End date should be a future date');
+    require(
+      _newCampaign.startDate > block.timestamp &&
+        _newCampaign.endDate > _newCampaign.startDate &&
+        // maximum campaign duration is 90 days
+        _newCampaign.endDate < _newCampaign.startDate + 90 days,
+      'Invalid startDate or endDate'
+    );
     uint64 duration = (_newCampaign.endDate - _newCampaign.startDate) / (1 days);
     require(duration >= 1, 'Staking: Duration must be at least 1 day');
     require(
@@ -111,9 +116,13 @@ contract StakingEarnBoxDKT {
         campaign.returnRate) / 1000000;
   }
 
-  function staking(uint256 _campaingId, uint256 _amountOfToken) external returns (bool) {
-    StakingCampaign memory _currentCampaign = _campaignStorage[_campaingId];
-    UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaingId][msg.sender];
+  function getCurrentUserReward(uint256 _campaignId) public view returns (uint256) {
+    return _userStakingSlot[_campaignId][msg.sender].stakedAmountOfBoxes;
+  }
+
+  function staking(uint256 _campaignId, uint256 _amountOfToken) external returns (bool) {
+    StakingCampaign memory _currentCampaign = _campaignStorage[_campaignId];
+    UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaignId][msg.sender];
     ERC20 currentToken = ERC20(_currentCampaign.tokenAddress);
 
     require(block.timestamp >= _currentCampaign.startDate, 'Staking: This staking event has not yet starting');
@@ -135,20 +144,20 @@ contract StakingEarnBoxDKT {
 
     _currentCampaign.stakedAmountOfToken += _amountOfToken;
     require(_currentCampaign.stakedAmountOfToken <= _currentCampaign.maxAmountOfToken, 'Staking: Token limit exceeded');
-    _campaignStorage[_campaingId] = _currentCampaign;
+    _campaignStorage[_campaignId] = _currentCampaign;
 
     currentUserStakingSlot.stakedAmountOfBoxes += calculatePendingBoxes(currentUserStakingSlot, _currentCampaign);
     currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
     currentUserStakingSlot.stakingAmountOfToken += _amountOfToken;
 
-    _userStakingSlot[_campaingId][msg.sender] = currentUserStakingSlot;
+    _userStakingSlot[_campaignId][msg.sender] = currentUserStakingSlot;
     emit Staking(msg.sender, _amountOfToken, block.timestamp);
     return true;
   }
 
-  function unStaking(uint256 _campaingId, address senderAddress) external returns (bool) {
-    UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaingId][msg.sender];
-    StakingCampaign memory _currentCampaign = _campaignStorage[_campaingId];
+  function unStaking(uint256 _campaignId, address senderAddress) external returns (bool) {
+    UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaignId][msg.sender];
+    StakingCampaign memory _currentCampaign = _campaignStorage[_campaignId];
     ERC20 currentToken = ERC20(_currentCampaign.tokenAddress);
 
     require(currentUserStakingSlot.stakingAmountOfToken > 0, 'Staking: No token to be unstacked');
@@ -166,7 +175,7 @@ contract StakingEarnBoxDKT {
 
       currentUserStakingSlot.stakedAmountOfBoxes = 0;
       currentUserStakingSlot.stakingAmountOfToken = 0;
-      _userStakingSlot[_campaingId][msg.sender] = currentUserStakingSlot;
+      _userStakingSlot[_campaignId][msg.sender] = currentUserStakingSlot;
       emit Unstaking(msg.sender, currentUserStakingSlot.stakingAmountOfToken, block.timestamp);
       return true;
     }
@@ -177,7 +186,7 @@ contract StakingEarnBoxDKT {
 
     currentUserStakingSlot.stakedAmountOfBoxes = 0;
     currentUserStakingSlot.stakingAmountOfToken = 0;
-    _userStakingSlot[_campaingId][msg.sender] = currentUserStakingSlot;
+    _userStakingSlot[_campaignId][msg.sender] = currentUserStakingSlot;
     emit Unstaking(msg.sender, currentUserStakingSlot.stakingAmountOfToken, block.timestamp);
     return true;
   }
