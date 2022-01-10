@@ -70,6 +70,10 @@ contract StakingEarnBoxDKT {
     _;
   }
 
+  function getOwnerAddress() public view returns (address) {
+    return _owner;
+  }
+
   function createNewStakingCampaign(StakingCampaign memory _newCampaign) external onlyOwner {
     require(_newCampaign.startDate > block.timestamp, 'Staking: Start date should be a future date');
     require(_newCampaign.endDate > block.timestamp, 'Staking: End date should be a future date');

@@ -1,21 +1,23 @@
 import { expect } from 'chai';
-import { ethers } from 'hardhat';
+import hre, { ethers } from 'hardhat';
+import { TestToken, MultiSig } from '../typechain';
+import Deployer from './helpers/deployer';
+
+let stackingContract: any, contractTestToken: TestToken;
 
 describe('Staking', function () {
-  it("Should return the new greeting once it's changed", async function () {
+  it('Initialize', async function () {
+    const deployer: Deployer = Deployer.getInstance(hre);
+    contractTestToken = <TestToken>await deployer.contractDeploy('test/TestToken', []);
     const accounts = await ethers.getSigners();
     const Staking = await ethers.getContractFactory('StakingEarnBoxDKT');
-    const staking = await Staking.deploy(accounts[0].address);
-    await staking.deployed();
-
-    expect(await staking.greet()).to.equal(accounts[0].address);
+    stackingContract = await Staking.deploy(accounts[0].address);
+    await stackingContract.deployed();
+    expect(await stackingContract.getOwnerAddress()).to.equal(accounts[0].address);
   });
 
   it('should return campaign something when created', async function () {
-    const accounts = await ethers.getSigners();
-    const Staking = await ethers.getContractFactory('StakingEarnBoxDKT');
-    const staking = await Staking.deploy(accounts[0].address);
-    const blocktime = await staking.getBlockTime();
+    const blocktime = await stackingContract.getBlockTime();
     const config = {
       startDate: blocktime.add(Math.round(1 * 86400)),
       endDate: blocktime.add(Math.round(30 * 86400)),
@@ -23,11 +25,12 @@ describe('Staking', function () {
       maxAmountOfToken: 4000000,
       stakedAmountOfToken: 0,
       limitStakingAmountForUser: 500,
-      tokenAddress: '0xa6f79B60359f141df90A0C745125B131cAAfFD12',
+      tokenAddress: contractTestToken.address,
       maxNumberOfBoxes: 32000,
       numberOfLockDays: 15,
     };
-    const r = await (await staking.createNewStakingCampaign(config)).wait();
+
+    const r = await (await stackingContract.createNewStakingCampaign(config)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'NewCampaign');
     expect(filteredEvents.length).to.equal(1);
   });
