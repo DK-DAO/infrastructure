@@ -24,6 +24,7 @@ contract StakingEarnBoxDKT {
     uint256 limitStakingAmountForUser;
     address tokenAddress;
     uint256 maxNumberOfBoxes;
+    uint256 rewardPhaseBoxId;
     uint64 numberOfLockDays;
   }
 
@@ -57,6 +58,9 @@ contract StakingEarnBoxDKT {
   // Unstaking event
   event Unstaking(address indexed owner, uint256 indexed amount, uint256 indexed unStakeTime);
 
+  // Issue box to user evnt
+  event IssueBoxes(address indexed owner, uint256 indexed rewardPhaseBoxId, uint256 indexed numberOfBoxes);
+
   constructor(address owner_) {
     _owner = owner_;
   }
@@ -88,6 +92,7 @@ contract StakingEarnBoxDKT {
       _newCampaign.numberOfLockDays <= duration,
       'Staking: Number of lock days should be less than duration event days'
     );
+    require(_newCampaign.rewardPhaseBoxId >= 1, 'Invalid phase id');
     require(_newCampaign.tokenAddress.isContract(), 'Staking: Token address is not a smart contract');
 
     _newCampaign.returnRate = uint128(
@@ -155,13 +160,20 @@ contract StakingEarnBoxDKT {
     return true;
   }
 
-  function unStaking(uint256 _campaignId, address senderAddress) external returns (bool) {
+  function issueBoxes(
+    address owner,
+    uint256 rewardPhaseBoxId,
+    uint256 numberOfBoxes
+  ) private {
+    emit IssueBoxes(owner, rewardPhaseBoxId, numberOfBoxes);
+  }
+
+  function unStaking(uint256 _campaignId) external returns (bool) {
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaignId][msg.sender];
     StakingCampaign memory _currentCampaign = _campaignStorage[_campaignId];
     ERC20 currentToken = ERC20(_currentCampaign.tokenAddress);
 
     require(currentUserStakingSlot.stakingAmountOfToken > 0, 'Staking: No token to be unstacked');
-    require(msg.sender == senderAddress, 'Staking: Require owner to unstack');
 
     // User unstack before lockTime and in duration event
     // will be paid for penalty fee
@@ -181,8 +193,8 @@ contract StakingEarnBoxDKT {
       return true;
     }
 
-    // TODO: Issue boxes to user here
-    // mintBoxes()
+    issueBoxes(msg.sender, _currentCampaign.rewardPhaseBoxId, currentUserStakingSlot.stakedAmountOfBoxes);
+
     currentToken.safeTransferFrom(address(this), msg.sender, currentUserStakingSlot.stakingAmountOfToken);
 
     currentUserStakingSlot.stakedAmountOfBoxes = 0;
