@@ -165,7 +165,8 @@ contract StakingEarnBoxDKT {
 
     // User unstack before lockTime and in duration event
     // will be paid for penalty fee
-    uint64 stackingDuration = uint64((block.timestamp - currentUserStakingSlot.startStakingDate) / (1 days));
+    uint64 lastDate = uint64(block.timestamp) > _currentCampaign.endDate ? _currentCampaign.endDate : uint64(block.timestamp);
+    uint64 stackingDuration = (lastDate - currentUserStakingSlot.startStakingDate) / (1 days);
     if (stackingDuration < _currentCampaign.numberOfLockDays && block.timestamp <= _currentCampaign.endDate) {
       currentToken.safeTransferFrom(
         address(this),
