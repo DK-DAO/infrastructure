@@ -5,11 +5,12 @@ import Deployer from './helpers/deployer';
 
 let stakingContract: any, contractTestToken: TestToken;
 
-describe('Staking', function () {
+describe.only('Staking', function () {
   it('Initialize', async function () {
     const deployer: Deployer = Deployer.getInstance(hre);
-    contractTestToken = <TestToken>await deployer.contractDeploy('test/TestToken', []);
     const accounts = await ethers.getSigners();
+    deployer.connect(accounts[0]);
+    contractTestToken = <TestToken>await deployer.contractDeploy('test/TestToken', []);
     const Staking = await ethers.getContractFactory('StakingEarnBoxDKT');
     stakingContract = await Staking.deploy(accounts[0].address);
     await stakingContract.deployed();
