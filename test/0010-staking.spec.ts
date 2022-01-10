@@ -3,7 +3,7 @@ import hre, { ethers } from 'hardhat';
 import { TestToken, MultiSig } from '../typechain';
 import Deployer from './helpers/deployer';
 
-let stackingContract: any, contractTestToken: TestToken;
+let stakingContract: any, contractTestToken: TestToken;
 
 describe('Staking', function () {
   it('Initialize', async function () {
@@ -11,13 +11,13 @@ describe('Staking', function () {
     contractTestToken = <TestToken>await deployer.contractDeploy('test/TestToken', []);
     const accounts = await ethers.getSigners();
     const Staking = await ethers.getContractFactory('StakingEarnBoxDKT');
-    stackingContract = await Staking.deploy(accounts[0].address);
-    await stackingContract.deployed();
-    expect(await stackingContract.getOwnerAddress()).to.equal(accounts[0].address);
+    stakingContract = await Staking.deploy(accounts[0].address);
+    await stakingContract.deployed();
+    expect(await stakingContract.getOwnerAddress()).to.equal(accounts[0].address);
   });
 
   it('should return campaign something when created', async function () {
-    const blocktime = await stackingContract.getBlockTime();
+    const blocktime = await stakingContract.getBlockTime();
     const config = {
       startDate: blocktime.add(Math.round(1 * 86400)),
       endDate: blocktime.add(Math.round(30 * 86400)),
@@ -30,7 +30,7 @@ describe('Staking', function () {
       numberOfLockDays: 15,
     };
 
-    const r = await (await stackingContract.createNewStakingCampaign(config)).wait();
+    const r = await (await stakingContract.createNewStakingCampaign(config)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'NewCampaign');
     expect(filteredEvents.length).to.equal(1);
   });
