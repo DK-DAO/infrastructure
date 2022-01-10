@@ -31,7 +31,7 @@ contract StakingEarnBoxDKT {
     uint256 stakingAmountOfToken;
     uint256 stakedAmountOfBoxes;
     uint64 startStakingDate;
-    uint64 latestStakingDate;
+    uint64 lastStakingDate;
   }
 
   address private _owner;
@@ -77,6 +77,10 @@ contract StakingEarnBoxDKT {
     emit NewCampaign(_newCampaign.startDate, _newCampaign.endDate, _newCampaign.numberOfLockDays , _newCampaign.maxAmountOfToken,  _newCampaign.maxNumberOfBoxes, _newCampaign.tokenAddress);
   }
 
+  function calculatePendingBoxes(UserStakingSlot memory userStakingSlot, StakingCampaign memory campaign) private view returns(uint256) {
+    return userStakingSlot.stakingAmountOfToken * (block.timestamp - userStakingSlot.lastStakingDate) * campaign.returnRate / 1000000;
+  }
+
   function staking(uint256 _campaingId, uint256 _amountOfToken) external returns(bool) {
     StakingCampaign memory _currentCampaign = _campaignStorage[_campaingId];
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaingId][msg.sender];
@@ -88,7 +92,7 @@ contract StakingEarnBoxDKT {
 
     if (currentUserStakingSlot.stakingAmountOfToken == 0) {
       currentUserStakingSlot.startStakingDate = uint64(block.timestamp);
-      currentUserStakingSlot.latestStakingDate = uint64(block.timestamp);
+      currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
     }
 
     uint256 beforeBalance = currentToken.balanceOf(address(this));
@@ -100,8 +104,8 @@ contract StakingEarnBoxDKT {
     require(_currentCampaign.stakedAmountOfToken <= _currentCampaign.maxAmountOfToken, 'Staking: Token limit exceeded');
     _campaignStorage[_campaingId] = _currentCampaign;
 
-    currentUserStakingSlot.stakedAmountOfBoxes += currentUserStakingSlot.stakingAmountOfToken * (block.timestamp - currentUserStakingSlot.latestStakingDate) * _currentCampaign.returnRate;
-    currentUserStakingSlot.latestStakingDate = uint64(block.timestamp);
+    currentUserStakingSlot.stakedAmountOfBoxes += calculatePendingBoxes(currentUserStakingSlot, _currentCampaign);
+    currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
     currentUserStakingSlot.stakingAmountOfToken += _amountOfToken;
 
     _userStakingSlot[_campaingId][msg.sender] = currentUserStakingSlot;
