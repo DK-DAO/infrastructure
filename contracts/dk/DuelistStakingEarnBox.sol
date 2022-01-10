@@ -75,10 +75,8 @@ contract StakingEarnBoxDKT {
   }
 
   function createNewStakingCampaign(StakingCampaign memory _newCampaign) external onlyOwner {
-    require(_newCampaign.startDate > block.timestamp, 'Staking: Start date should be a future date');
-    require(_newCampaign.endDate > block.timestamp, 'Staking: End date should be a future date');
+    require(_newCampaign.startDate > block.timestamp && _newCampaign.endDate > _newCampaign.startDate, 'Staking: Invalid timeline format');
     uint64 duration = (_newCampaign.endDate - _newCampaign.startDate) / (1 days);
-    console.log('zzzzz', duration, 1 days, _newCampaign.startDate);
     require(duration >= 1, 'Staking: Duration must be at least 1 day');
     require(
       _newCampaign.numberOfLockDays <= duration,
@@ -157,7 +155,8 @@ contract StakingEarnBoxDKT {
 
     // User unstack before lockTime and in duration event
     // will be paid for penalty fee
-    uint64 stackingDuration = uint64((block.timestamp - currentUserStakingSlot.startStakingDate) / (1 days));
+    uint64 lastDate = uint64(block.timestamp) > _currentCampaign.endDate ? _currentCampaign.endDate : uint64(block.timestamp);
+    uint64 stackingDuration = (lastDate - currentUserStakingSlot.startStakingDate) / (1 days);
     if (stackingDuration < _currentCampaign.numberOfLockDays && block.timestamp <= _currentCampaign.endDate) {
       currentToken.safeTransferFrom(
         address(this),
