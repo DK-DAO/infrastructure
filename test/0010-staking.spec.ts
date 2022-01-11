@@ -8,7 +8,7 @@ chai.use(solidity);
 
 let stakingContract: any, contractTestToken: TestToken;
 
-describe('Staking', function () {
+describe.only('Staking', function () {
   it('Initialize', async function () {
     const deployer: Deployer = Deployer.getInstance(hre);
     const accounts = await ethers.getSigners();
@@ -32,6 +32,7 @@ describe('Staking', function () {
       limitStakingAmountForUser: 500,
       tokenAddress: accounts[1].address,
       maxNumberOfBoxes: 32000,
+      rewardPhaseBoxId: 3,
       numberOfLockDays: 15,
     };
 
@@ -51,6 +52,7 @@ describe('Staking', function () {
       limitStakingAmountForUser: 500,
       tokenAddress: contractTestToken.address,
       maxNumberOfBoxes: 32000,
+      rewardPhaseBoxId: 3,
       numberOfLockDays: 15,
     };
 
