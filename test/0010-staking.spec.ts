@@ -7,7 +7,7 @@ import Deployer from './helpers/deployer';
 chai.use(solidity);
 
 let stakingContract: any, contractTestToken: TestToken;
-let stakingAccount: any;
+let user1: any, user2: any, user3: any;
 
 function dayToSec(days: number) {
   return Math.round(days * 86400);
@@ -28,7 +28,9 @@ describe.only('Staking', function () {
   it('Initialize', async function () {
     const deployer: Deployer = Deployer.getInstance(hre);
     const accounts = await ethers.getSigners();
-    stakingAccount = accounts[2];
+    user1 = accounts[1];
+    user2 = accounts[2];
+    user3 = accounts[3];
     deployer.connect(accounts[0]);
     contractTestToken = <TestToken>await deployer.contractDeploy('test/TestToken', []);
     const Staking = await ethers.getContractFactory('StakingEarnBoxDKT');
@@ -100,28 +102,58 @@ describe.only('Staking', function () {
   });
 
   it('should be revert because a new user staking before event date', async function () {
-    await contractTestToken.transfer(stakingAccount.address, 1000);
-    await contractTestToken.connect(stakingAccount).approve(stakingContract.address, 1000);
-    expect(stakingContract.connect(stakingAccount).staking(0, 200)).to.be.revertedWith(
+    await contractTestToken.transfer(user1.address, 1000);
+    await contractTestToken.transfer(user2.address, 400);
+    await contractTestToken.transfer(user3.address, 1000);
+    await contractTestToken.connect(user1).approve(stakingContract.address, 1000);
+    await contractTestToken.connect(user2).approve(stakingContract.address, 400);
+    await contractTestToken.connect(user3).approve(stakingContract.address, 1000);
+    expect(stakingContract.connect(user1).staking(0, 200)).to.be.revertedWith(
       'StakingContract: This staking event has not yet starting',
     );
+  });
+
+  it('should NOT be able to unstack with empty account before event date', async function () {
+    expect(stakingContract.connect(user1).unStaking(0)).to.be.revertedWith('StakingContract: No token to be unstacked');
   });
 
   it('Time travel to start staking date', async function () {
     await timeTravel(dayToSec(1));
   });
 
+  it('should NOT be able to unstack with empty account after event date', async function () {
+    expect(stakingContract.connect(user1).unStaking(0)).to.be.revertedWith('StakingContract: No token to be unstacked');
+  });
+
   it('should be revert because a new user staking hit limit', async function () {
-    await expect(stakingContract.connect(stakingAccount).staking(0, 501)).to.be.revertedWith(
+    await expect(stakingContract.connect(user1).staking(0, 501)).to.be.revertedWith(
       'StakingContract: Token limit per user exceeded',
     );
   });
 
-  it('User should stake 400 tokens successfully', async function () {
-    const r = await (await stakingContract.connect(stakingAccount).staking(0, 400)).wait();
+  it('user1: should stake 400 tokens successfully', async function () {
+    const r = await (await stakingContract.connect(user1).staking(0, 400)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
     expect(filteredEvents.length).to.equal(1);
-    expect(await stakingContract.connect(stakingAccount).getCurrentUserStakingAmount(0)).to.equal(400);
+    expect(await stakingContract.connect(user1).getCurrentUserStakingAmount(0)).to.equal(400);
+  });
+
+  it('user2: should NOT be able to stake 500 Tokens', async function () {
+    expect(stakingContract.connect(user2).staking(0, 500)).to.be.revertedWith('StakingContract: Insufficient balance');
+  });
+
+  it('user2: should be able to stake 400 Tokens', async function () {
+    const r = await (await stakingContract.connect(user2).staking(0, 400)).wait();
+    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
+    expect(filteredEvents.length).to.equal(1);
+    expect(await stakingContract.connect(user2).getCurrentUserStakingAmount(0)).to.equal(400);
+  });
+
+  it('user3: should be able to stake 300 Tokens', async function () {
+    const r = await (await stakingContract.connect(user3).staking(0, 300)).wait();
+    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
+    expect(filteredEvents.length).to.equal(1);
+    expect(await stakingContract.connect(user3).getCurrentUserStakingAmount(0)).to.equal(300);
   });
 
   it('Time travel to next 10 days', async function () {
@@ -136,29 +168,47 @@ describe.only('Staking', function () {
    * RoundedBoxNumber: 10
    * TotalSum = 10
    */
-  it('user reward after 10 days should be 10', async function () {
-    expect(await stakingContract.connect(stakingAccount).getCurrentUserReward(0)).to.equals(10);
+  it('User1 & user2: should be able to reward 10 boxes after 10 days ', async function () {
+    expect(await stakingContract.connect(user1).getCurrentUserReward(0)).to.equals(10);
   });
 
-  it('should NOT be able to claim boxes', async function () {
-    expect(stakingContract.connect(stakingAccount).claimBoxes(0, 2)).to.be.revertedWith(
+  it('user2: should be able to unstake with penalty', async function () {
+    await stakingContract.connect(user2).unStaking(0);
+    expect(await contractTestToken.balanceOf(user2.address)).to.equals(400 * 0.98);
+    expect(await stakingContract.connect(user2).getCurrentUserStakingAmount(0)).to.equal(0);
+  });
+
+  /**
+   * After unstaking before due, user cannot claim any boxes
+   */
+  it('user2: should NOT be able to claim any boxes', async function () {
+    expect(await stakingContract.connect(user2).getCurrentUserReward(0)).to.equal(0);
+    expect(stakingContract.connect(user2).claimBoxes(0, 10)).to.be.revertedWith('StakingContract: Insufficient boxes');
+  });
+
+  it('User1: should NOT be able to claim boxes', async function () {
+    expect(stakingContract.connect(user1).claimBoxes(0, 2)).to.be.revertedWith(
       'StakingContract: Unable to claim with less then 15 staking days',
     );
   });
 
-  it('Should be failed when restake 101 token at date 10 (limitStakingAmountForUser = 500)', async function () {
-    expect(stakingContract.connect(stakingAccount).staking(0, 101)).to.be.revertedWith(
+  it('User1: Should be failed when restake 101 token at date 10 (limitStakingAmountForUser = 500)', async function () {
+    expect(stakingContract.connect(user1).staking(0, 101)).to.be.revertedWith(
       'StakingContract: Token limit per user exceeded',
     );
   });
 
-  it('user should stake 100 tokens more successfully', async function () {
-    await stakingContract.connect(stakingAccount).staking(0, 100);
-    expect(await stakingContract.connect(stakingAccount).getCurrentUserStakingAmount(0)).to.equal(500);
+  it('user1 should stake 100 tokens more successfully', async function () {
+    await stakingContract.connect(user1).staking(0, 100);
+    expect(await stakingContract.connect(user1).getCurrentUserStakingAmount(0)).to.equal(500);
   });
 
   it('Time travel to next 5 days', async function () {
     await timeTravel(dayToSec(5));
+  });
+
+  it('user2: should NOT be able to earn any boxes after 5 days', async function () {
+    expect(await stakingContract.connect(user2).getCurrentUserReward(0)).to.equal(0);
   });
   /**
    * New pending box
@@ -170,19 +220,15 @@ describe.only('Staking', function () {
    * TotalSum+=6 = 16
    */
   it('user reward after 15 days should be 16', async function () {
-    expect(await stakingContract.connect(stakingAccount).getCurrentUserReward(0)).to.equals(16);
+    expect(await stakingContract.connect(user1).getCurrentUserReward(0)).to.equals(16);
   });
 
   it('should NOT be able to claim 20 boxes', async function () {
-    expect(stakingContract.connect(stakingAccount).claimBoxes(0, 20)).to.be.revertedWith(
-      'StakingContract: Insufficient balance',
-    );
+    expect(stakingContract.connect(user1).claimBoxes(0, 20)).to.be.revertedWith('StakingContract: Insufficient boxes');
   });
 
   it('should NOT be able to claim 0 boxes', async function () {
-    expect(stakingContract.connect(stakingAccount).claimBoxes(0, 0)).to.be.revertedWith(
-      'StakingContract: Minimum 1 box',
-    );
+    expect(stakingContract.connect(user1).claimBoxes(0, 0)).to.be.revertedWith('StakingContract: Minimum 1 box');
   });
 
   /**
@@ -190,21 +236,51 @@ describe.only('Staking', function () {
    * claim = 10
    * newSum = 6
    */
-  it('should be able to claim 10 boxes', async function () {
-    const r = await (await stakingContract.connect(stakingAccount).claimBoxes(0, 10)).wait();
+  it('user1: should be able to claim 10 boxes', async function () {
+    const r = await (await stakingContract.connect(user1).claimBoxes(0, 10)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'IssueBoxes');
     expect(filteredEvents.length).to.equal(1);
     const eventArgs = filteredEvents[0].args;
-    expect(eventArgs.owner).to.equals(stakingAccount.address);
+    expect(eventArgs.owner).to.equals(user1.address);
     // TODO: update variable constant for rewardPhaseBoxId
     expect(eventArgs.rewardPhaseBoxId).to.equals(3);
     expect(eventArgs.numberOfBoxes).to.equals(10);
-    expect(await stakingContract.connect(stakingAccount).getCurrentUserReward(0)).to.equals(6);
+    expect(await stakingContract.connect(user1).getCurrentUserReward(0)).to.equals(6);
   });
 
-  it('should NOT be able to claim 10 boxes', async function () {
-    expect(stakingContract.connect(stakingAccount).claimBoxes(0, 10)).to.be.revertedWith(
-      'StakingContract: Insufficient balance',
-    );
+  it('user1: should NOT be able to claim 10 boxes', async function () {
+    expect(stakingContract.connect(user1).claimBoxes(0, 10)).to.be.revertedWith('StakingContract: Insufficient boxes');
+  });
+
+  it('user3: should be able to unstake without penalty', async function () {
+    expect(await contractTestToken.balanceOf(user3.address)).to.equals(700);
+    await stakingContract.connect(user3).unStaking(0);
+    expect(await stakingContract.connect(user3).getCurrentUserStakingAmount(0)).to.equals(0);
+    expect(await contractTestToken.balanceOf(user3.address)).to.equals(1000);
+  });
+
+  it('user3: should be able to claimBoxes after unstaking', async function () {
+    const r = await (await stakingContract.connect(user3).claimBoxes(0, 3)).wait();
+    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'IssueBoxes');
+    expect(filteredEvents.length).to.equal(1);
+    const eventArgs = filteredEvents[0].args;
+    expect(eventArgs.owner).to.equals(user3.address);
+    // TODO: update variable constant for rewardPhaseBoxId
+    expect(eventArgs.rewardPhaseBoxId).to.equals(3);
+    expect(eventArgs.numberOfBoxes).to.equals(3);
+    // remaining = currentBoxes - 3
+    expect(await stakingContract.connect(user3).getCurrentUserReward(0)).to.equals(8);
+  });
+
+  it('Time travel to next 15 days', async function () {
+    await timeTravel(dayToSec(5));
+  });
+
+  it('user3: should NOT be earn any more boxes after unstaking', async function () {
+    expect(await stakingContract.connect(user3).getCurrentUserReward(0)).to.equals(8);
+  });
+
+  it('user2: should NOT be able to earn any boxes after 20 days since unstaking event', async function () {
+    expect(await stakingContract.connect(user2).getCurrentUserReward(0)).to.equal(0);
   });
 });
