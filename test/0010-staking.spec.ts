@@ -54,6 +54,27 @@ describe.only('Staking', function () {
     );
   });
 
+  it('should be failed because of non onwner creating a new campaign', async function () {
+    const blocktime = await stakingContract.getBlockTime();
+    const accounts = await ethers.getSigners();
+    const config = {
+      startDate: blocktime.add(Math.round(1 * 86400)),
+      endDate: blocktime.add(Math.round(30 * 86400)),
+      returnRate: 1,
+      maxAmountOfToken: 4000000,
+      stakedAmountOfToken: 0,
+      limitStakingAmountForUser: 500,
+      tokenAddress: contractTestToken.address,
+      maxNumberOfBoxes: 32000,
+      rewardPhaseBoxId: 3,
+      numberOfLockDays: 15,
+    };
+
+    await expect(stakingContract.connect(accounts[3]).createNewStakingCampaign(config)).to.be.revertedWith(
+      'Staking: Only owner can create a new campaign',
+    );
+  });
+
   it('should return campaign something when created', async function () {
     const blocktime = await stakingContract.getBlockTime();
     const config = {
@@ -75,8 +96,8 @@ describe.only('Staking', function () {
   });
 
   it('should be revert because a new user staking before event date', async function () {
-    await contractTestToken.connect(stakingAccount).approve(stakingContract.address, 500);
     await contractTestToken.transfer(stakingAccount.address, 1000);
+    await contractTestToken.connect(stakingAccount).approve(stakingContract.address, 1000);
     await expect(stakingContract.connect(stakingAccount).staking(0, 200)).to.be.revertedWith(
       'Staking: This staking event has not yet starting',
     );
@@ -90,10 +111,18 @@ describe.only('Staking', function () {
   });
 
   it('User should stake 400 tokens successfully', async function () {
-    await contractTestToken.connect(stakingAccount).approve(stakingContract.address, 500);
     const r = await (await stakingContract.connect(stakingAccount).staking(0, 400)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
     expect(filteredEvents.length).to.equal(1);
     expect(await stakingContract.connect(stakingAccount).getCurrentUserStakingAmount(0)).to.equal(400);
+  });
+
+  it('Should be failed when restake 101 token at date 10 (limitStakingAmountForUser = 500)', async function () {
+    await timeTravel(dayToSec(7));
+    await expect(stakingContract.connect(stakingAccount).staking(0, 101)).to.be.revertedWith(
+      'Staking: Token limit per user exceeded',
+    );
+    console.log(await stakingContract.connect(stakingAccount).getCurrentUserStakingAmount(0));
+    console.log(await stakingContract.connect(stakingAccount).getCurrentUserReward(0));
   });
 });
