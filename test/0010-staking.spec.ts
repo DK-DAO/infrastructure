@@ -185,15 +185,26 @@ describe.only('Staking', function () {
     );
   });
 
+  /**
+   * TotalSum = 16
+   * claim = 10
+   * newSum = 6
+   */
   it('should be able to claim 10 boxes', async function () {
     const r = await (await stakingContract.connect(stakingAccount).claimBoxes(0, 10)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'IssueBoxes');
     expect(filteredEvents.length).to.equal(1);
     const eventArgs = filteredEvents[0].args;
     expect(eventArgs.owner).to.equals(stakingAccount.address);
-    // TODO: update variable constance
+    // TODO: update variable constant for rewardPhaseBoxId
     expect(eventArgs.rewardPhaseBoxId).to.equals(3);
     expect(eventArgs.numberOfBoxes).to.equals(10);
     expect(await stakingContract.connect(stakingAccount).getCurrentUserReward(0)).to.equals(6);
+  });
+
+  it('should NOT be able to claim 10 boxes', async function () {
+    expect(stakingContract.connect(stakingAccount).claimBoxes(0, 10)).to.be.revertedWith(
+      'StakingContract: Insufficient balance',
+    );
   });
 });
