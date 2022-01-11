@@ -8,6 +8,17 @@ chai.use(solidity);
 
 let stakingContract: any, contractTestToken: TestToken;
 
+function dayToSec(days: number) {
+  return Math.round(days * 86400);
+}
+
+async function timeTravel(secs: number) {
+  await hre.network.provider.request({
+    method: 'evm_increaseTime',
+    params: [secs],
+  });
+}
+
 describe.only('Staking', function () {
   it('Initialize', async function () {
     const deployer: Deployer = Deployer.getInstance(hre);
@@ -65,7 +76,7 @@ describe.only('Staking', function () {
     const accounts = await ethers.getSigners();
     await contractTestToken.transfer(accounts[2].address, '100000000000000000000');
 
-    await expect(stakingContract.staking(0, '20000000000000000000')).to.be.revertedWith(
+    await expect(stakingContract.connect(accounts[2]).staking(0, '20000000000000000000')).to.be.revertedWith(
       'Staking: This staking event has not yet starting',
     );
   });
