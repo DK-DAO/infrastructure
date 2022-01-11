@@ -7,6 +7,7 @@ import Deployer from './helpers/deployer';
 chai.use(solidity);
 
 let stakingContract: any, contractTestToken: TestToken;
+let stakingAccount: any;
 
 function dayToSec(days: number) {
   return Math.round(days * 86400);
@@ -23,6 +24,7 @@ describe.only('Staking', function () {
   it('Initialize', async function () {
     const deployer: Deployer = Deployer.getInstance(hre);
     const accounts = await ethers.getSigners();
+    stakingAccount = accounts[2];
     deployer.connect(accounts[0]);
     contractTestToken = <TestToken>await deployer.contractDeploy('test/TestToken', []);
     const Staking = await ethers.getContractFactory('StakingEarnBoxDKT');
@@ -73,11 +75,25 @@ describe.only('Staking', function () {
   });
 
   it('should be revert because a new user staking before event date', async function () {
-    const accounts = await ethers.getSigners();
-    await contractTestToken.transfer(accounts[2].address, '100000000000000000000');
+    await contractTestToken.transfer(stakingAccount.address, 1000);
 
-    await expect(stakingContract.connect(accounts[2]).staking(0, '20000000000000000000')).to.be.revertedWith(
+    await expect(stakingContract.connect(stakingAccount).staking(0, 200)).to.be.revertedWith(
       'Staking: This staking event has not yet starting',
     );
+  });
+
+  it('should be revert because a new user staking hit limit', async function () {
+    await timeTravel(dayToSec(3));
+    await expect(stakingContract.connect(stakingAccount).staking(0, 501)).to.be.revertedWith(
+      'Staking: Token limit per user exceeded',
+    );
+  });
+
+  it('should be successful', async function () {
+    await contractTestToken.connect(stakingAccount).approve(stakingContract.address, 500);
+    const r = await (await stakingContract.connect(stakingAccount).staking(0, 400)).wait();
+    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
+    expect(filteredEvents.length).to.equal(1);
+    expect(await stakingContract.connect(stakingAccount).getCurrentUserStakingAmount(0)).to.equal(400);
   });
 });

@@ -125,6 +125,10 @@ contract StakingEarnBoxDKT {
     return _userStakingSlot[_campaignId][msg.sender].stakedAmountOfBoxes;
   }
 
+  function getCurrentUserStakingAmount(uint256 _campaignId) public view returns (uint256) {
+    return _userStakingSlot[_campaignId][msg.sender].stakingAmountOfToken;
+  }
+
   function staking(uint256 _campaignId, uint256 _amountOfToken) external returns (bool) {
     StakingCampaign memory _currentCampaign = _campaignStorage[_campaignId];
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaignId][msg.sender];
@@ -142,10 +146,10 @@ contract StakingEarnBoxDKT {
       currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
     }
 
-    uint256 beforeBalance = currentToken.balanceOf(address(this));
+    uint256 beforeBalance = currentToken.balanceOf(msg.sender);
     currentToken.safeTransferFrom(msg.sender, address(this), _amountOfToken);
-    uint256 afterBalance = currentToken.balanceOf(address(this));
-    require(afterBalance - beforeBalance == _amountOfToken, 'Stacking: Invalid token transfer');
+    uint256 afterBalance = currentToken.balanceOf(msg.sender);
+    require(beforeBalance - afterBalance == _amountOfToken, 'Stacking: Invalid token transfer');
 
     _currentCampaign.stakedAmountOfToken += _amountOfToken;
     require(_currentCampaign.stakedAmountOfToken <= _currentCampaign.maxAmountOfToken, 'Staking: Token limit exceeded');
