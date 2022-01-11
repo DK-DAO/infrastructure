@@ -143,10 +143,10 @@ contract StakingEarnBoxDKT {
       currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
     }
 
-    uint256 beforeBalance = currentToken.balanceOf(msg.sender);
+    uint256 beforeBalance = currentToken.balanceOf(address(this));
     currentToken.safeTransferFrom(msg.sender, address(this), _amountOfToken);
-    uint256 afterBalance = currentToken.balanceOf(msg.sender);
-    require(beforeBalance - afterBalance == _amountOfToken, 'Stacking: Invalid token transfer');
+    uint256 afterBalance = currentToken.balanceOf(address(this));
+    require(afterBalance - beforeBalance == _amountOfToken, 'Stacking: Invalid token transfer');
 
     _currentCampaign.stakedAmountOfToken += _amountOfToken;
     require(_currentCampaign.stakedAmountOfToken <= _currentCampaign.maxAmountOfToken, 'Staking: Token limit exceeded');
