@@ -60,4 +60,13 @@ describe.only('Staking', function () {
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'NewCampaign');
     expect(filteredEvents.length).to.equal(1);
   });
+
+  it('should be revert because a new user staking before event date', async function () {
+    const accounts = await ethers.getSigners();
+    await contractTestToken.transfer(accounts[2].address, '100000000000000000000');
+
+    await expect(stakingContract.staking(0, '20000000000000000000')).to.be.revertedWith(
+      'Staking: This staking event has not yet starting',
+    );
+  });
 });
