@@ -18,6 +18,10 @@ async function timeTravel(secs: number) {
     method: 'evm_increaseTime',
     params: [secs],
   });
+  await hre.network.provider.request({
+    method: 'evm_mine',
+    params: [],
+  });
 }
 
 describe.only('Staking', function () {
@@ -78,10 +82,10 @@ describe.only('Staking', function () {
   it('should return campaign something when created', async function () {
     const blocktime = await stakingContract.getBlockTime();
     const config = {
-      startDate: blocktime.add(Math.round(1 * 86400)),
-      endDate: blocktime.add(Math.round(30 * 86400)),
+      startDate: blocktime.add(dayToSec(1)),
+      endDate: blocktime.add(dayToSec(31)),
       returnRate: 1,
-      maxAmountOfToken: 4000000,
+      maxAmountOfToken: 400000,
       stakedAmountOfToken: 0,
       limitStakingAmountForUser: 500,
       tokenAddress: contractTestToken.address,
@@ -98,13 +102,16 @@ describe.only('Staking', function () {
   it('should be revert because a new user staking before event date', async function () {
     await contractTestToken.transfer(stakingAccount.address, 1000);
     await contractTestToken.connect(stakingAccount).approve(stakingContract.address, 1000);
-    await expect(stakingContract.connect(stakingAccount).staking(0, 200)).to.be.revertedWith(
+    expect(stakingContract.connect(stakingAccount).staking(0, 200)).to.be.revertedWith(
       'Staking: This staking event has not yet starting',
     );
   });
 
+  it('Time travel to start staking date', async function () {
+    await timeTravel(dayToSec(1));
+  });
+
   it('should be revert because a new user staking hit limit', async function () {
-    await timeTravel(dayToSec(3));
     await expect(stakingContract.connect(stakingAccount).staking(0, 501)).to.be.revertedWith(
       'Staking: Token limit per user exceeded',
     );
@@ -117,12 +124,46 @@ describe.only('Staking', function () {
     expect(await stakingContract.connect(stakingAccount).getCurrentUserStakingAmount(0)).to.equal(400);
   });
 
+  it('Time travel to next 10 days', async function () {
+    await timeTravel(dayToSec(10));
+  });
+
+  /**
+   * Rate: 0.266%
+   * Amount: 400
+   * Duration: 10 days
+   * RawBoxNumber: 400*0.2666%*10 ~ 10.64
+   * RoundedBoxNumber: 10
+   * TotalSum = 10
+   */
+  it('user reward after 10 days should be 10', async function () {
+    expect(await stakingContract.connect(stakingAccount).getCurrentUserReward(0)).to.equals(10);
+  });
+
   it('Should be failed when restake 101 token at date 10 (limitStakingAmountForUser = 500)', async function () {
-    await timeTravel(dayToSec(7));
-    await expect(stakingContract.connect(stakingAccount).staking(0, 101)).to.be.revertedWith(
+    expect(stakingContract.connect(stakingAccount).staking(0, 101)).to.be.revertedWith(
       'Staking: Token limit per user exceeded',
     );
-    console.log(await stakingContract.connect(stakingAccount).getCurrentUserStakingAmount(0));
-    console.log(await stakingContract.connect(stakingAccount).getCurrentUserReward(0));
+  });
+
+  it('user should stake 100 tokens more successfully', async function () {
+    await stakingContract.connect(stakingAccount).staking(0, 100);
+    expect(await stakingContract.connect(stakingAccount).getCurrentUserStakingAmount(0)).to.equal(500);
+  });
+
+  it('Time travel to next 5 days', async function () {
+    await timeTravel(dayToSec(5));
+  });
+  /**
+   * New pending box
+   * Rate: 0.266%
+   * Amount: 500
+   * Duration: 5 days
+   * RawBoxNumber: 500*0.2666%*5 = 6.65
+   * RoundedBoxNumber: 6
+   * TotalSum+=6 = 16
+   */
+  it('user reward after 15 days should be 16', async function () {
+    expect(await stakingContract.connect(stakingAccount).getCurrentUserReward(0)).to.equals(16);
   });
 });

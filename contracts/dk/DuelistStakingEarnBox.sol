@@ -113,13 +113,14 @@ contract StakingEarnBoxDKT {
     returns (uint256)
   {
     return
-      (userStakingSlot.stakingAmountOfToken *
-        (block.timestamp - userStakingSlot.lastStakingDate) *
+      (((userStakingSlot.stakingAmountOfToken * (block.timestamp - userStakingSlot.lastStakingDate)) / (1 days)) *
         campaign.returnRate) / 1000000;
   }
 
   function getCurrentUserReward(uint256 _campaignId) public view returns (uint256) {
-    return _userStakingSlot[_campaignId][msg.sender].stakedAmountOfBoxes;
+    StakingCampaign memory _currentCampaign = _campaignStorage[_campaignId];
+    UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaignId][msg.sender];
+    return currentUserStakingSlot.stakedAmountOfBoxes + calculatePendingBoxes(currentUserStakingSlot, _currentCampaign);
   }
 
   function getCurrentUserStakingAmount(uint256 _campaignId) public view returns (uint256) {
