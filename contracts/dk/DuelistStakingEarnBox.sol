@@ -5,7 +5,6 @@ pragma abicoder v2;
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
-import 'hardhat/console.sol';
 
 contract StakingEarnBoxDKT {
   using SafeERC20 for ERC20;
@@ -70,7 +69,7 @@ contract StakingEarnBoxDKT {
   // requirements
 
   modifier onlyOwner() {
-    require(msg.sender == _owner, 'Staking: Only owner can create a new campaign');
+    require(msg.sender == _owner, 'StakingContract: Only owner can create a new campaign');
     _;
   }
 
@@ -81,16 +80,16 @@ contract StakingEarnBoxDKT {
   function createNewStakingCampaign(StakingCampaign memory _newCampaign) external onlyOwner {
     require(
       _newCampaign.startDate > block.timestamp && _newCampaign.endDate > _newCampaign.startDate,
-      'Staking: Invalid timeline format'
+      'StakingContract: Invalid timeline format'
     );
     uint64 duration = (_newCampaign.endDate - _newCampaign.startDate) / (1 days);
-    require(duration >= 1, 'Staking: Duration must be at least 1 day');
+    require(duration >= 1, 'StakingContract: Duration must be at least 1 day');
     require(
       _newCampaign.numberOfLockDays <= duration,
-      'Staking: Number of lock days should be less than duration event days'
+      'StakingContract: Number of lock days should be less than duration event days'
     );
     require(_newCampaign.rewardPhaseBoxId >= 1, 'Invalid phase id');
-    require(_newCampaign.tokenAddress.isContract(), 'Staking: Token address is not a smart contract');
+    require(_newCampaign.tokenAddress.isContract(), 'StakingContract: Token address is not a smart contract');
 
     _newCampaign.returnRate = uint128(
       (_newCampaign.maxNumberOfBoxes * 1000000) / (_newCampaign.maxAmountOfToken * duration)
@@ -133,11 +132,11 @@ contract StakingEarnBoxDKT {
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaignId][msg.sender];
     ERC20 currentToken = ERC20(_currentCampaign.tokenAddress);
 
-    require(block.timestamp >= _currentCampaign.startDate, 'Staking: This staking event has not yet starting');
-    require(block.timestamp < _currentCampaign.endDate, 'Staking: This stacking event has been expired');
+    require(block.timestamp >= _currentCampaign.startDate, 'StakingContract: This staking event has not yet starting');
+    require(block.timestamp < _currentCampaign.endDate, 'StakingContract: This stacking event has been expired');
     require(
       currentUserStakingSlot.stakingAmountOfToken + _amountOfToken <= _currentCampaign.limitStakingAmountForUser,
-      'Staking: Token limit per user exceeded'
+      'StakingContract: Token limit per user exceeded'
     );
 
     if (currentUserStakingSlot.stakingAmountOfToken == 0) {
@@ -148,10 +147,13 @@ contract StakingEarnBoxDKT {
     uint256 beforeBalance = currentToken.balanceOf(address(this));
     currentToken.safeTransferFrom(msg.sender, address(this), _amountOfToken);
     uint256 afterBalance = currentToken.balanceOf(address(this));
-    require(afterBalance - beforeBalance == _amountOfToken, 'Stacking: Invalid token transfer');
+    require(afterBalance - beforeBalance == _amountOfToken, 'StakingContract: Invalid token transfer');
 
     _currentCampaign.stakedAmountOfToken += _amountOfToken;
-    require(_currentCampaign.stakedAmountOfToken <= _currentCampaign.maxAmountOfToken, 'Staking: Token limit exceeded');
+    require(
+      _currentCampaign.stakedAmountOfToken <= _currentCampaign.maxAmountOfToken,
+      'StakingContract: Token limit exceeded'
+    );
     _campaignStorage[_campaignId] = _currentCampaign;
 
     currentUserStakingSlot.stakedAmountOfBoxes += calculatePendingBoxes(currentUserStakingSlot, _currentCampaign);
@@ -201,7 +203,7 @@ contract StakingEarnBoxDKT {
     StakingCampaign memory _currentCampaign = _campaignStorage[_campaignId];
     ERC20 currentToken = ERC20(_currentCampaign.tokenAddress);
 
-    require(currentUserStakingSlot.stakingAmountOfToken > 0, 'Staking: No token to be unstacked');
+    require(currentUserStakingSlot.stakingAmountOfToken > 0, 'StakingContract: No token to be unstacked');
 
     // User unstack before lockTime and in duration event
     // will be paid for penalty fee and no reward box

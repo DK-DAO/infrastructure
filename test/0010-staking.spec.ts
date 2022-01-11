@@ -54,7 +54,7 @@ describe.only('Staking', function () {
     };
 
     await expect(stakingContract.createNewStakingCampaign(config)).to.be.revertedWith(
-      'Staking: Token address is not a smart contract',
+      'StakingContract: Token address is not a smart contract',
     );
   });
 
@@ -75,7 +75,7 @@ describe.only('Staking', function () {
     };
 
     await expect(stakingContract.connect(accounts[3]).createNewStakingCampaign(config)).to.be.revertedWith(
-      'Staking: Only owner can create a new campaign',
+      'StakingContract: Only owner can create a new campaign',
     );
   });
 
@@ -103,7 +103,7 @@ describe.only('Staking', function () {
     await contractTestToken.transfer(stakingAccount.address, 1000);
     await contractTestToken.connect(stakingAccount).approve(stakingContract.address, 1000);
     expect(stakingContract.connect(stakingAccount).staking(0, 200)).to.be.revertedWith(
-      'Staking: This staking event has not yet starting',
+      'StakingContract: This staking event has not yet starting',
     );
   });
 
@@ -113,7 +113,7 @@ describe.only('Staking', function () {
 
   it('should be revert because a new user staking hit limit', async function () {
     await expect(stakingContract.connect(stakingAccount).staking(0, 501)).to.be.revertedWith(
-      'Staking: Token limit per user exceeded',
+      'StakingContract: Token limit per user exceeded',
     );
   });
 
@@ -148,7 +148,7 @@ describe.only('Staking', function () {
 
   it('Should be failed when restake 101 token at date 10 (limitStakingAmountForUser = 500)', async function () {
     expect(stakingContract.connect(stakingAccount).staking(0, 101)).to.be.revertedWith(
-      'Staking: Token limit per user exceeded',
+      'StakingContract: Token limit per user exceeded',
     );
   });
 
