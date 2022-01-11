@@ -75,8 +75,8 @@ describe.only('Staking', function () {
   });
 
   it('should be revert because a new user staking before event date', async function () {
+    await contractTestToken.connect(stakingAccount).approve(stakingContract.address, 500);
     await contractTestToken.transfer(stakingAccount.address, 1000);
-
     await expect(stakingContract.connect(stakingAccount).staking(0, 200)).to.be.revertedWith(
       'Staking: This staking event has not yet starting',
     );

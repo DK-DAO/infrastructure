@@ -177,7 +177,7 @@ contract StakingEarnBoxDKT {
     require(currentUserStakingSlot.stakingAmountOfToken > 0, 'Staking: No token to be unstacked');
 
     // User unstack before lockTime and in duration event
-    // will be paid for penalty fee
+    // will be paid for penalty fee and no reward box
     uint64 lastDate = uint64(block.timestamp) > _currentCampaign.endDate
       ? _currentCampaign.endDate
       : uint64(block.timestamp);
@@ -196,11 +196,8 @@ contract StakingEarnBoxDKT {
       return true;
     }
 
-    issueBoxes(msg.sender, _currentCampaign.rewardPhaseBoxId, currentUserStakingSlot.stakedAmountOfBoxes);
-
     currentToken.safeTransferFrom(address(this), msg.sender, currentUserStakingSlot.stakingAmountOfToken);
 
-    currentUserStakingSlot.stakedAmountOfBoxes = 0;
     currentUserStakingSlot.stakingAmountOfToken = 0;
     _userStakingSlot[_campaignId][msg.sender] = currentUserStakingSlot;
     emit Unstaking(msg.sender, currentUserStakingSlot.stakingAmountOfToken, block.timestamp);
