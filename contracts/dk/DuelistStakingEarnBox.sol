@@ -170,6 +170,31 @@ contract StakingEarnBoxDKT {
     emit IssueBoxes(owner, rewardPhaseBoxId, numberOfBoxes);
   }
 
+  function claimBoxes(uint256 _campaignId, uint256 _noBoxes) external returns (bool) {
+    UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaignId][msg.sender];
+    StakingCampaign memory _currentCampaign = _campaignStorage[_campaignId];
+    require(_noBoxes >= 1, 'StakingContract: Minimum 1 box');
+    // Validate number of boxes to be claimed
+    uint256 currentReward = getCurrentUserReward(_campaignId);
+    require(_noBoxes <= currentReward, 'StakingContract: Insufficient balance');
+
+    // Validate claim duration
+    require(
+      block.timestamp >= currentUserStakingSlot.startStakingDate + (_currentCampaign.numberOfLockDays * (1 days)) ||
+        block.timestamp >= _currentCampaign.endDate,
+      'StakingContract: Unable to claim with less then 15 staking days'
+    );
+
+    // Issue box
+    issueBoxes(msg.sender, _currentCampaign.rewardPhaseBoxId, _noBoxes);
+
+    // Update user data
+    currentUserStakingSlot.stakedAmountOfBoxes = currentReward - _noBoxes;
+    currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
+    _userStakingSlot[_campaignId][msg.sender] = currentUserStakingSlot;
+    return true;
+  }
+
   function unStaking(uint256 _campaignId) external returns (bool) {
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaignId][msg.sender];
     StakingCampaign memory _currentCampaign = _campaignStorage[_campaignId];

@@ -140,6 +140,12 @@ describe.only('Staking', function () {
     expect(await stakingContract.connect(stakingAccount).getCurrentUserReward(0)).to.equals(10);
   });
 
+  it('should NOT be able to claim boxes', async function () {
+    expect(stakingContract.connect(stakingAccount).claimBoxes(0, 2)).to.be.revertedWith(
+      'StakingContract: Unable to claim with less then 15 staking days',
+    );
+  });
+
   it('Should be failed when restake 101 token at date 10 (limitStakingAmountForUser = 500)', async function () {
     expect(stakingContract.connect(stakingAccount).staking(0, 101)).to.be.revertedWith(
       'Staking: Token limit per user exceeded',
@@ -165,5 +171,29 @@ describe.only('Staking', function () {
    */
   it('user reward after 15 days should be 16', async function () {
     expect(await stakingContract.connect(stakingAccount).getCurrentUserReward(0)).to.equals(16);
+  });
+
+  it('should NOT be able to claim 20 boxes', async function () {
+    expect(stakingContract.connect(stakingAccount).claimBoxes(0, 20)).to.be.revertedWith(
+      'StakingContract: Insufficient balance',
+    );
+  });
+
+  it('should NOT be able to claim 0 boxes', async function () {
+    expect(stakingContract.connect(stakingAccount).claimBoxes(0, 0)).to.be.revertedWith(
+      'StakingContract: Minimum 1 box',
+    );
+  });
+
+  it('should be able to claim 10 boxes', async function () {
+    const r = await (await stakingContract.connect(stakingAccount).claimBoxes(0, 10)).wait();
+    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'IssueBoxes');
+    expect(filteredEvents.length).to.equal(1);
+    const eventArgs = filteredEvents[0].args;
+    expect(eventArgs.owner).to.equals(stakingAccount.address);
+    // TODO: update variable constance
+    expect(eventArgs.rewardPhaseBoxId).to.equals(3);
+    expect(eventArgs.numberOfBoxes).to.equals(10);
+    expect(await stakingContract.connect(stakingAccount).getCurrentUserReward(0)).to.equals(6);
   });
 });
