@@ -89,7 +89,7 @@ describe.only('Staking', function () {
     );
   });
 
-  it('should be successful', async function () {
+  it('User should stake 400 tokens successfully', async function () {
     await contractTestToken.connect(stakingAccount).approve(stakingContract.address, 500);
     const r = await (await stakingContract.connect(stakingAccount).staking(0, 400)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
