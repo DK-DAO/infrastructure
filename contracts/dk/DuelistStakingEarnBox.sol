@@ -112,8 +112,9 @@ contract StakingEarnBoxDKT {
     view
     returns (uint256)
   {
+    uint64 currentTimestamp = uint64(block.timestamp) > campaign.endDate ? campaign.endDate : uint64(block.timestamp);
     return
-      (((userStakingSlot.stakingAmountOfToken * (block.timestamp - userStakingSlot.lastStakingDate)) / (1 days)) *
+      (((userStakingSlot.stakingAmountOfToken * (currentTimestamp - userStakingSlot.lastStakingDate)) / (1 days)) *
         campaign.returnRate) / 1000000;
   }
 
@@ -204,10 +205,10 @@ contract StakingEarnBoxDKT {
 
     // User unstack before lockTime and in duration event
     // will be paid for penalty fee and no reward box
-    uint64 lastDate = uint64(block.timestamp) > _currentCampaign.endDate
+    uint64 currentTimestamp = uint64(block.timestamp) > _currentCampaign.endDate
       ? _currentCampaign.endDate
       : uint64(block.timestamp);
-    uint64 stackingDuration = (lastDate - currentUserStakingSlot.startStakingDate) / (1 days);
+    uint64 stackingDuration = (currentTimestamp - currentUserStakingSlot.startStakingDate) / (1 days);
     if (stackingDuration < _currentCampaign.numberOfLockDays && block.timestamp <= _currentCampaign.endDate) {
       currentToken.safeTransferFrom(
         address(this),
