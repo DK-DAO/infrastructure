@@ -166,10 +166,11 @@ describe.only('Staking', function () {
    * Duration: 10 days
    * RawBoxNumber: 400*0.2666%*10 ~ 10.64
    * RoundedBoxNumber: 10
-   * TotalSum = 10
+   * Total = 10.64
+   * ViewTotalSum = 10
    */
   it('User1 & user2: should be able to reward 10 boxes after 10 days ', async function () {
-    expect(await stakingContract.connect(user1).getCurrentUserReward(0)).to.equals(10);
+    expect(await stakingContract.connect(user1).viewUserReward(0)).to.equals(10);
   });
 
   it('user2: should be able to unstake with penalty', async function () {
@@ -182,7 +183,7 @@ describe.only('Staking', function () {
    * After unstaking before due, user cannot claim any boxes
    */
   it('user2: should NOT be able to claim any boxes', async function () {
-    expect(await stakingContract.connect(user2).getCurrentUserReward(0)).to.equal(0);
+    expect(await stakingContract.connect(user2).viewUserReward(0)).to.equal(0);
     expect(stakingContract.connect(user2).claimBoxes(0, 10)).to.be.revertedWith('StakingContract: Insufficient boxes');
   });
 
@@ -208,7 +209,7 @@ describe.only('Staking', function () {
   });
 
   it('user2: should NOT be able to earn any boxes after 5 days', async function () {
-    expect(await stakingContract.connect(user2).getCurrentUserReward(0)).to.equal(0);
+    expect(await stakingContract.connect(user2).viewUserReward(0)).to.equal(0);
   });
   /**
    * New pending box
@@ -217,10 +218,11 @@ describe.only('Staking', function () {
    * Duration: 5 days
    * RawBoxNumber: 500*0.2666%*5 = 6.65
    * RoundedBoxNumber: 6
-   * TotalSum+=6 = 16
+   * TotalSum = 10.64 + 6.65 = 17.29
+   * ViewTotalSum = 17
    */
-  it('user reward after 15 days should be 16', async function () {
-    expect(await stakingContract.connect(user1).getCurrentUserReward(0)).to.equals(16);
+  it('user reward after 15 days should be 17', async function () {
+    expect(await stakingContract.connect(user1).viewUserReward(0)).to.equals(17);
   });
 
   it('should NOT be able to claim 20 boxes', async function () {
@@ -232,9 +234,10 @@ describe.only('Staking', function () {
   });
 
   /**
-   * TotalSum = 16
+   * TotalSum = 17.29
    * claim = 10
-   * newSum = 6
+   * newSum = 7.29
+   * ViewNewSum = 7
    */
   it('user1: should be able to claim 10 boxes', async function () {
     const r = await (await stakingContract.connect(user1).claimBoxes(0, 10)).wait();
@@ -245,7 +248,7 @@ describe.only('Staking', function () {
     // TODO: update variable constant for rewardPhaseBoxId
     expect(eventArgs.rewardPhaseBoxId).to.equals(3);
     expect(eventArgs.numberOfBoxes).to.equals(10);
-    expect(await stakingContract.connect(user1).getCurrentUserReward(0)).to.equals(6);
+    expect(await stakingContract.connect(user1).viewUserReward(0)).to.equals(7);
   });
 
   it('user1: should NOT be able to claim 10 boxes', async function () {
@@ -269,7 +272,7 @@ describe.only('Staking', function () {
     expect(eventArgs.rewardPhaseBoxId).to.equals(3);
     expect(eventArgs.numberOfBoxes).to.equals(3);
     // remaining = currentBoxes - 3
-    expect(await stakingContract.connect(user3).getCurrentUserReward(0)).to.equals(8);
+    expect(await stakingContract.connect(user3).viewUserReward(0)).to.equals(8);
   });
 
   it('Time travel to next 15 days', async function () {
@@ -277,10 +280,10 @@ describe.only('Staking', function () {
   });
 
   it('user3: should NOT be earn any more boxes after unstaking', async function () {
-    expect(await stakingContract.connect(user3).getCurrentUserReward(0)).to.equals(8);
+    expect(await stakingContract.connect(user3).viewUserReward(0)).to.equals(8);
   });
 
   it('user2: should NOT be able to earn any boxes after 20 days since unstaking event', async function () {
-    expect(await stakingContract.connect(user2).getCurrentUserReward(0)).to.equal(0);
+    expect(await stakingContract.connect(user2).viewUserReward(0)).to.equal(0);
   });
 });

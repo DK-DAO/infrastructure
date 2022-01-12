@@ -36,6 +36,7 @@ contract StakingEarnBoxDKT {
 
   address private _owner;
   uint256 private totalCampaign;
+  uint32 constant transferRate = 1000000;
 
   mapping(uint256 => StakingCampaign) private _campaignStorage;
 
@@ -92,7 +93,7 @@ contract StakingEarnBoxDKT {
     require(_newCampaign.tokenAddress.isContract(), 'StakingContract: Token address is not a smart contract');
 
     _newCampaign.returnRate = uint128(
-      (_newCampaign.maxNumberOfBoxes * 1000000) / (_newCampaign.maxAmountOfToken * duration)
+      (_newCampaign.maxNumberOfBoxes * transferRate) / (_newCampaign.maxAmountOfToken * duration)
     );
     _campaignStorage[totalCampaign] = _newCampaign;
     totalCampaign += 1;
@@ -112,15 +113,18 @@ contract StakingEarnBoxDKT {
     returns (uint256)
   {
     uint64 currentTimestamp = uint64(block.timestamp) > campaign.endDate ? campaign.endDate : uint64(block.timestamp);
-    return
-      (((userStakingSlot.stakingAmountOfToken * (currentTimestamp - userStakingSlot.lastStakingDate)) / (1 days)) *
-        campaign.returnRate) / 1000000;
+    return (((userStakingSlot.stakingAmountOfToken * (currentTimestamp - userStakingSlot.lastStakingDate)) / (1 days)) *
+      campaign.returnRate);
   }
 
-  function getCurrentUserReward(uint256 _campaignId) public view returns (uint256) {
+  function getCurrentUserReward(uint256 _campaignId) private view returns (uint256) {
     StakingCampaign memory _currentCampaign = _campaignStorage[_campaignId];
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaignId][msg.sender];
     return currentUserStakingSlot.stakedAmountOfBoxes + calculatePendingBoxes(currentUserStakingSlot, _currentCampaign);
+  }
+
+  function viewUserReward(uint256 _campaignId) public view returns (uint256) {
+    return getCurrentUserReward(_campaignId) / transferRate;
   }
 
   function getCurrentUserStakingAmount(uint256 _campaignId) public view returns (uint256) {
@@ -181,7 +185,7 @@ contract StakingEarnBoxDKT {
     require(_noBoxes >= 1, 'StakingContract: Minimum 1 box');
     // Validate number of boxes to be claimed
     uint256 currentReward = getCurrentUserReward(_campaignId);
-    require(_noBoxes <= currentReward, 'StakingContract: Insufficient boxes');
+    require(_noBoxes <= currentReward / transferRate, 'StakingContract: Insufficient boxes');
 
     // Validate claim duration
     require(
@@ -194,7 +198,7 @@ contract StakingEarnBoxDKT {
     issueBoxes(msg.sender, _currentCampaign.rewardPhaseBoxId, _noBoxes);
 
     // Update user data
-    currentUserStakingSlot.stakedAmountOfBoxes = currentReward - _noBoxes;
+    currentUserStakingSlot.stakedAmountOfBoxes = currentReward - _noBoxes * transferRate;
     currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
     _userStakingSlot[_campaignId][msg.sender] = currentUserStakingSlot;
     return true;
