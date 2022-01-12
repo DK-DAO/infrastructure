@@ -23,6 +23,7 @@ export const registryRecords = {
     distributor: stringToBytes32('Distributor'),
     factory: stringToBytes32('Factory'),
     press: stringToBytes32('Press'),
+    staking: stringToBytes32('Staking'),
   },
 };
 

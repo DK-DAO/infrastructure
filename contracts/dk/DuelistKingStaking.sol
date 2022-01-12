@@ -5,8 +5,9 @@ pragma abicoder v2;
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
+import '../libraries/RegistryUser.sol';
 
-contract DuelistKingStaking {
+contract DuelistKingStaking is RegistryUser {
   using SafeERC20 for ERC20;
   using Address for address;
 
@@ -78,7 +79,7 @@ contract DuelistKingStaking {
     return _owner;
   }
 
-  function createNewStakingCampaign(StakingCampaign memory _newCampaign) external onlyOwner {
+  function createNewStakingCampaign(StakingCampaign memory _newCampaign) external onlyAllowSameDomain('Operator') {
     require(
       _newCampaign.startDate > block.timestamp && _newCampaign.endDate > _newCampaign.startDate,
       'StakingContract: Invalid timeline format'
