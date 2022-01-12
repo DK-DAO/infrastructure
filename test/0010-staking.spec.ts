@@ -113,16 +113,16 @@ describe.only('Staking', function () {
     );
   });
 
-  it('should NOT be able to unstack with empty account before event date', async function () {
-    expect(stakingContract.connect(user1).unStaking(0)).to.be.revertedWith('StakingContract: No token to be unstacked');
+  it('should NOT be able to unstake with empty account before event date', async function () {
+    expect(stakingContract.connect(user1).unStaking(0)).to.be.revertedWith('StakingContract: No token to be unstaked');
   });
 
   it('Time travel to start staking date', async function () {
     await timeTravel(dayToSec(1));
   });
 
-  it('should NOT be able to unstack with empty account after event date', async function () {
-    expect(stakingContract.connect(user1).unStaking(0)).to.be.revertedWith('StakingContract: No token to be unstacked');
+  it('should NOT be able to unstake with empty account after event date', async function () {
+    expect(stakingContract.connect(user1).unStaking(0)).to.be.revertedWith('StakingContract: No token to be unstaked');
   });
 
   it('should be revert because a new user staking hit limit', async function () {

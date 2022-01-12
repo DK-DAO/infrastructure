@@ -12,7 +12,7 @@ contract DuelistKingStaking {
 
   /**
    * numberOfLockDays is a number of days that
-   * user must be stack before unstacking without penalty
+   * user must be stake before unstaking without penalty
    */
   struct StakingCampaign {
     uint64 startDate;
@@ -137,7 +137,7 @@ contract DuelistKingStaking {
     ERC20 currentToken = ERC20(_currentCampaign.tokenAddress);
 
     require(block.timestamp >= _currentCampaign.startDate, 'StakingContract: This staking event has not yet starting');
-    require(block.timestamp < _currentCampaign.endDate, 'StakingContract: This stacking event has been expired');
+    require(block.timestamp < _currentCampaign.endDate, 'StakingContract: This staking event has been expired');
     require(
       currentUserStakingSlot.stakingAmountOfToken + _amountOfToken <= _currentCampaign.limitStakingAmountForUser,
       'StakingContract: Token limit per user exceeded'
@@ -209,15 +209,15 @@ contract DuelistKingStaking {
     StakingCampaign memory _currentCampaign = _campaignStorage[_campaignId];
     ERC20 currentToken = ERC20(_currentCampaign.tokenAddress);
 
-    require(currentUserStakingSlot.stakingAmountOfToken > 0, 'StakingContract: No token to be unstacked');
+    require(currentUserStakingSlot.stakingAmountOfToken > 0, 'StakingContract: No token to be unstaked');
 
-    // User unstack before lockTime and in duration event
+    // User unstake before lockTime and in duration event
     // will be paid for penalty fee and no reward box
     uint64 currentTimestamp = uint64(block.timestamp) > _currentCampaign.endDate
       ? _currentCampaign.endDate
       : uint64(block.timestamp);
-    uint64 stackingDuration = (currentTimestamp - currentUserStakingSlot.startStakingDate) / (1 days);
-    if (stackingDuration < _currentCampaign.numberOfLockDays && block.timestamp <= _currentCampaign.endDate) {
+    uint64 stakingDuration = (currentTimestamp - currentUserStakingSlot.startStakingDate) / (1 days);
+    if (stakingDuration < _currentCampaign.numberOfLockDays && block.timestamp <= _currentCampaign.endDate) {
       currentToken.safeTransfer(msg.sender, (currentUserStakingSlot.stakingAmountOfToken * 98) / 100);
       currentUserStakingSlot.stakedAmountOfBoxes = 0;
       currentUserStakingSlot.stakingAmountOfToken = 0;
