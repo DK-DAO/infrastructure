@@ -6,7 +6,7 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
 
-contract StakingEarnBoxDKT {
+contract DuelistKingStaking {
   using SafeERC20 for ERC20;
   using Address for address;
 

@@ -33,7 +33,7 @@ describe.only('Staking', function () {
     user3 = accounts[3];
     deployer.connect(accounts[0]);
     contractTestToken = <TestToken>await deployer.contractDeploy('test/TestToken', []);
-    const Staking = await ethers.getContractFactory('StakingEarnBoxDKT');
+    const Staking = await ethers.getContractFactory('DuelistKingStaking');
     stakingContract = await Staking.deploy(accounts[0].address);
     await stakingContract.deployed();
     expect(await stakingContract.getOwnerAddress()).to.equal(accounts[0].address);
