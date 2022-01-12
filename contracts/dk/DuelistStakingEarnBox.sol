@@ -185,7 +185,7 @@ contract StakingEarnBoxDKT {
     require(
       block.timestamp >= currentUserStakingSlot.startStakingDate + (_currentCampaign.numberOfLockDays * (1 days)) ||
         block.timestamp >= _currentCampaign.endDate,
-      'StakingContract: Unable to claim with less then 15 staking days'
+      'StakingContract: Unable to claim boxes before locked time'
     );
 
     // Issue box
