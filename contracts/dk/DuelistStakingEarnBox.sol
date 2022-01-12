@@ -144,6 +144,8 @@ contract StakingEarnBoxDKT {
       currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
     }
 
+    require(currentToken.balanceOf(msg.sender) >= _amountOfToken, 'StakingContract: Insufficient balance');
+
     uint256 beforeBalance = currentToken.balanceOf(address(this));
     currentToken.safeTransferFrom(msg.sender, address(this), _amountOfToken);
     uint256 afterBalance = currentToken.balanceOf(address(this));
@@ -179,7 +181,7 @@ contract StakingEarnBoxDKT {
     require(_noBoxes >= 1, 'StakingContract: Minimum 1 box');
     // Validate number of boxes to be claimed
     uint256 currentReward = getCurrentUserReward(_campaignId);
-    require(_noBoxes <= currentReward, 'StakingContract: Insufficient balance');
+    require(_noBoxes <= currentReward, 'StakingContract: Insufficient boxes');
 
     // Validate claim duration
     require(
@@ -212,12 +214,7 @@ contract StakingEarnBoxDKT {
       : uint64(block.timestamp);
     uint64 stackingDuration = (currentTimestamp - currentUserStakingSlot.startStakingDate) / (1 days);
     if (stackingDuration < _currentCampaign.numberOfLockDays && block.timestamp <= _currentCampaign.endDate) {
-      currentToken.safeTransferFrom(
-        address(this),
-        msg.sender,
-        (currentUserStakingSlot.stakingAmountOfToken * 98) / 100
-      );
-
+      currentToken.safeTransfer(msg.sender, (currentUserStakingSlot.stakingAmountOfToken * 98) / 100);
       currentUserStakingSlot.stakedAmountOfBoxes = 0;
       currentUserStakingSlot.stakingAmountOfToken = 0;
       _userStakingSlot[_campaignId][msg.sender] = currentUserStakingSlot;
@@ -225,7 +222,8 @@ contract StakingEarnBoxDKT {
       return true;
     }
 
-    currentToken.safeTransferFrom(address(this), msg.sender, currentUserStakingSlot.stakingAmountOfToken);
+    currentUserStakingSlot.stakedAmountOfBoxes += calculatePendingBoxes(currentUserStakingSlot, _currentCampaign);
+    currentToken.safeTransfer(msg.sender, currentUserStakingSlot.stakingAmountOfToken);
 
     currentUserStakingSlot.stakingAmountOfToken = 0;
     _userStakingSlot[_campaignId][msg.sender] = currentUserStakingSlot;
