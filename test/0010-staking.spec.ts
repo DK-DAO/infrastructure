@@ -3,11 +3,14 @@ import hre, { ethers } from 'hardhat';
 import { TestToken } from '../typechain';
 import { solidity } from 'ethereum-waffle';
 import Deployer from './helpers/deployer';
+import initDuelistKing, { IDeployContext } from './helpers/deployer-duelist-king';
+import initInfrastructure from './helpers/deployer-infrastructure';
 
 chai.use(solidity);
 
 let stakingContract: any, contractTestToken: TestToken;
 let user1: any, user2: any, user3: any;
+let context: IDeployContext;
 
 function dayToSec(days: number) {
   return Math.round(days * 86400);
@@ -25,18 +28,37 @@ async function timeTravel(secs: number) {
 }
 
 describe.only('Staking', function () {
-  it('Initialize', async function () {
-    const deployer: Deployer = Deployer.getInstance(hre);
+  this.beforeAll('Before init', async function () {
     const accounts = await ethers.getSigners();
-    user1 = accounts[1];
-    user2 = accounts[2];
-    user3 = accounts[3];
-    deployer.connect(accounts[0]);
-    contractTestToken = <TestToken>await deployer.contractDeploy('test/TestToken', []);
-    const Staking = await ethers.getContractFactory('DuelistKingStaking');
-    stakingContract = await Staking.deploy(accounts[0].address);
-    await stakingContract.deployed();
-    expect(await stakingContract.getOwnerAddress()).to.equal(accounts[0].address);
+    const deployer: Deployer = Deployer.getInstance(hre);
+
+    contractTestToken = <TestToken>await deployer.connect(accounts[0]).contractDeploy('test/TestToken', []);
+
+    context = await initDuelistKing(
+      await initInfrastructure(hre, {
+        network: hre.network.name,
+        infrastructure: {
+          operator: accounts[0],
+          oracles: [accounts[1]],
+        },
+        duelistKing: {
+          operator: accounts[2],
+          oracles: [accounts[3]],
+        },
+      }),
+    );
+  });
+
+  it('Initialize', async function () {
+    const accounts = await ethers.getSigners();
+    const {
+      duelistKing: { duelistKingStaking },
+      config: { duelistKing },
+    } = context;
+    stakingContract = duelistKingStaking;
+    user1 = accounts[4];
+    user2 = accounts[5];
+    user3 = accounts[6];
   });
 
   it('should be failed when create a new campaign because token address is not a smart contract', async function () {
@@ -77,7 +99,7 @@ describe.only('Staking', function () {
     };
 
     await expect(stakingContract.connect(accounts[3]).createNewStakingCampaign(config)).to.be.revertedWith(
-      'StakingContract: Only owner can create a new campaign',
+      'UserRegistry: Only allow call from same domain',
     );
   });
 

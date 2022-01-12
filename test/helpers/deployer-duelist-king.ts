@@ -18,6 +18,7 @@ export interface IDeployContext {
   duelistKing: {
     oracle: OracleProxy;
     distributor: DuelistKingDistributor;
+    duelistKingStaking: DuelistKingStaking;
   };
 }
 
@@ -183,6 +184,7 @@ export default async function init(context: {
     duelistKing: {
       oracle: duelistKingOracleProxy,
       distributor,
+      duelistKingStaking,
     },
   };
 }

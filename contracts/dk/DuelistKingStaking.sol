@@ -62,8 +62,8 @@ contract DuelistKingStaking is RegistryUser {
   // Issue box to user evnt
   event IssueBoxes(address indexed owner, uint256 indexed rewardPhaseBoxId, uint256 indexed numberOfBoxes);
 
-  constructor(address owner_) {
-    _owner = owner_;
+  constructor(address registry_, bytes32 domain_) {
+    _registryUserInit(registry_, domain_);
   }
 
   // Right now, the security is onlyOwner
