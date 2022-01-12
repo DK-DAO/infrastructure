@@ -188,7 +188,7 @@ describe.only('Staking', function () {
 
   it('User1: should NOT be able to claim boxes', async function () {
     expect(stakingContract.connect(user1).claimBoxes(0, 2)).to.be.revertedWith(
-      'StakingContract: Unable to claim with less then 15 staking days',
+      'StakingContract: Unable to claim boxes before locked time',
     );
   });
 
