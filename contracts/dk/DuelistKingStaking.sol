@@ -66,19 +66,6 @@ contract DuelistKingStaking is RegistryUser {
     _registryUserInit(registry_, domain_);
   }
 
-  // Right now, the security is onlyOwner
-  // will be improve it later on base on business / technical
-  // requirements
-
-  modifier onlyOwner() {
-    require(msg.sender == _owner, 'StakingContract: Only owner can create a new campaign');
-    _;
-  }
-
-  function getOwnerAddress() public view returns (address) {
-    return _owner;
-  }
-
   function createNewStakingCampaign(StakingCampaign memory _newCampaign) external onlyAllowSameDomain('Operator') {
     require(
       _newCampaign.startDate > block.timestamp && _newCampaign.endDate > _newCampaign.startDate,

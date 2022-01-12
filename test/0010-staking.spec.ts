@@ -53,7 +53,6 @@ describe.only('Staking', function () {
     const accounts = await ethers.getSigners();
     const {
       duelistKing: { duelistKingStaking },
-      config: { duelistKing },
     } = context;
     stakingContract = duelistKingStaking;
     user1 = accounts[4];
