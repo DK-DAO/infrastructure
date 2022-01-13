@@ -205,8 +205,12 @@ contract DuelistKingStaking is RegistryUser {
       ? _currentCampaign.endDate
       : uint64(block.timestamp);
     uint64 stakingDuration = (currentTimestamp - currentUserStakingSlot.startStakingDate) / (1 days);
+    // TODO: refactor the logic here, should follow the clean orders
     if (stakingDuration < _currentCampaign.numberOfLockDays && block.timestamp <= _currentCampaign.endDate) {
-      currentToken.safeTransfer(msg.sender, (currentUserStakingSlot.stakingAmountOfToken * 98) / 100);
+      uint256 penaltyAmount = (currentUserStakingSlot.stakingAmountOfToken * 2) / 100;
+      currentToken.safeTransfer(msg.sender, currentUserStakingSlot.stakingAmountOfToken - penaltyAmount);
+      // remove user staking amount from the pool
+      _currentCampaign.stakedAmountOfToken -= currentUserStakingSlot.stakingAmountOfToken;
       currentUserStakingSlot.stakedAmountOfBoxes = 0;
       currentUserStakingSlot.stakingAmountOfToken = 0;
       _userStakingSlot[_campaignId][msg.sender] = currentUserStakingSlot;
@@ -217,6 +221,8 @@ contract DuelistKingStaking is RegistryUser {
     currentUserStakingSlot.stakedAmountOfBoxes += calculatePendingBoxes(currentUserStakingSlot, _currentCampaign);
     currentToken.safeTransfer(msg.sender, currentUserStakingSlot.stakingAmountOfToken);
 
+    // remove user staking amount from the pool
+    _currentCampaign.stakedAmountOfToken -= currentUserStakingSlot.stakingAmountOfToken;
     currentUserStakingSlot.stakingAmountOfToken = 0;
     _userStakingSlot[_campaignId][msg.sender] = currentUserStakingSlot;
     emit Unstaking(msg.sender, currentUserStakingSlot.stakingAmountOfToken, block.timestamp);
@@ -225,5 +231,21 @@ contract DuelistKingStaking is RegistryUser {
 
   function getBlockTime() public view returns (uint256) {
     return block.timestamp;
+  }
+
+  function getTotalPenaltyAmount(uint256 campaignId) public view returns (uint256) {
+    StakingCampaign memory _currentCampaign = _campaignStorage[campaignId];
+    ERC20 currentToken = ERC20(_currentCampaign.tokenAddress);
+    return currentToken.balanceOf(address(this)) - _currentCampaign.stakedAmountOfToken;
+  }
+
+  function withdrawPenaltyPot(uint256 campaignId, address beneficiary) external returns (bool) {
+    // TODO: check beneficiary is one of address in registry
+    StakingCampaign memory _currentCampaign = _campaignStorage[campaignId];
+    ERC20 currentToken = ERC20(_currentCampaign.tokenAddress);
+    uint256 withdrawingAmount = currentToken.balanceOf(address(this)) - _currentCampaign.stakedAmountOfToken;
+    require(withdrawingAmount > 0, 'StakingContract: Invalid penalty pot');
+    currentToken.safeTransfer(beneficiary, withdrawingAmount);
+    return true;
   }
 }
