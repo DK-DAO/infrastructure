@@ -1,7 +1,7 @@
 import Deployer from './deployer';
 import { registryRecords } from './const';
 import { IConfigurationExtend } from './deployer-infrastructure';
-import { NFT, Registry, RNG, Press, OracleProxy, DuelistKingDistributor, DuelistKingStaking } from '../../typechain';
+import { NFT, Registry, RNG, Press, OracleProxy, DuelistKingDistributor } from '../../typechain';
 import { ContractTransaction } from '@ethersproject/contracts';
 import { printAllEvents } from './functions';
 
