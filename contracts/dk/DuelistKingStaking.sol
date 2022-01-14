@@ -66,7 +66,10 @@ contract DuelistKingStaking is RegistryUser {
     _registryUserInit(registry_, domain_);
   }
 
-  function createNewStakingCampaign(StakingCampaign memory _newCampaign) external onlyAllowSameDomain('Operator') {
+  function createNewStakingCampaign(StakingCampaign memory _newCampaign)
+    external
+    onlyAllowSameDomain('StakingOperator')
+  {
     require(
       _newCampaign.startDate > block.timestamp && _newCampaign.endDate > _newCampaign.startDate,
       'StakingContract: Invalid timeline format'

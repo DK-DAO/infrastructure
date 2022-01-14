@@ -18,7 +18,6 @@ export interface IDeployContext {
   duelistKing: {
     oracle: OracleProxy;
     distributor: DuelistKingDistributor;
-    duelistKingStaking: DuelistKingStaking;
   };
 }
 
@@ -71,15 +70,6 @@ export default async function init(context: {
     )
   );
 
-  const duelistKingStaking = <DuelistKingStaking>(
-    await deployer.contractDeploy(
-      'Duelist King/DuelistKingStaking',
-      [],
-      registry.address,
-      registryRecords.domain.duelistKing,
-    )
-  );
-
   // Init project
   await deployer.safeExecute(async () => {
     // The real oracle that we searching for
@@ -95,7 +85,6 @@ export default async function init(context: {
           registryRecords.domain.duelistKing,
           registryRecords.domain.duelistKing,
           registryRecords.domain.duelistKing,
-          registryRecords.domain.duelistKing,
         ],
         [
           // Infrastructure
@@ -107,7 +96,6 @@ export default async function init(context: {
           registryRecords.name.distributor,
           registryRecords.name.oracle,
           registryRecords.name.operator,
-          registryRecords.name.staking,
         ],
         [
           // Infrastructure
@@ -119,7 +107,6 @@ export default async function init(context: {
           distributor.address,
           duelistKingOracleProxy.address,
           config.duelistKing.operatorAddress,
-          duelistKingStaking.address,
         ],
       ),
     );
@@ -184,7 +171,6 @@ export default async function init(context: {
     duelistKing: {
       oracle: duelistKingOracleProxy,
       distributor,
-      duelistKingStaking,
     },
   };
 }

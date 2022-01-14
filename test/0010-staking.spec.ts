@@ -1,10 +1,11 @@
 import chai, { expect } from 'chai';
 import hre, { ethers } from 'hardhat';
-import { TestToken } from '../typechain';
+import { DuelistKingStaking, IRegistry, TestToken } from '../typechain';
 import { solidity } from 'ethereum-waffle';
 import Deployer from './helpers/deployer';
 import initDuelistKing, { IDeployContext } from './helpers/deployer-duelist-king';
 import initInfrastructure from './helpers/deployer-infrastructure';
+import { registryRecords } from './helpers/const';
 
 chai.use(solidity);
 
@@ -30,31 +31,28 @@ async function timeTravel(secs: number) {
 describe.only('Staking', function () {
   this.beforeAll('Before init', async function () {
     const accounts = await ethers.getSigners();
+    const infrastructureOperator = accounts[0];
+    const stakingOperator = accounts[1];
     const deployer: Deployer = Deployer.getInstance(hre);
 
     contractTestToken = <TestToken>await deployer.connect(accounts[0]).contractDeploy('test/TestToken', []);
 
-    context = await initDuelistKing(
-      await initInfrastructure(hre, {
-        network: hre.network.name,
-        infrastructure: {
-          operator: accounts[0],
-          oracles: [accounts[1]],
-        },
-        duelistKing: {
-          operator: accounts[2],
-          oracles: [accounts[3]],
-        },
-      }),
+    const registry = <IRegistry>(
+      await deployer.connect(infrastructureOperator).contractDeploy('Infrastructure/Registry', [])
+    );
+
+    // Register a new operator in registry contract
+    await registry.set(registryRecords.domain.duelistKing, registryRecords.name.staking, stakingOperator.address);
+
+    stakingContract = <DuelistKingStaking>(
+      await deployer
+        .connect(stakingOperator)
+        .contractDeploy('Duelist King/DuelistKingStaking', [], registry.address, registryRecords.domain.duelistKing)
     );
   });
 
   it('Initialize', async function () {
     const accounts = await ethers.getSigners();
-    const {
-      duelistKing: { duelistKingStaking },
-    } = context;
-    stakingContract = duelistKingStaking;
     user1 = accounts[4];
     user2 = accounts[5];
     user3 = accounts[6];
