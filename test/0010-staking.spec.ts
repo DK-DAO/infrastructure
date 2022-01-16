@@ -3,15 +3,12 @@ import hre, { ethers } from 'hardhat';
 import { DuelistKingStaking, IRegistry, TestToken } from '../typechain';
 import { solidity } from 'ethereum-waffle';
 import Deployer from './helpers/deployer';
-import initDuelistKing, { IDeployContext } from './helpers/deployer-duelist-king';
-import initInfrastructure from './helpers/deployer-infrastructure';
 import { registryRecords } from './helpers/const';
 
 chai.use(solidity);
 
 let stakingContract: any, contractTestToken: TestToken;
 let user1: any, user2: any, user3: any;
-let context: IDeployContext;
 
 function dayToSec(days: number) {
   return Math.round(days * 86400);
@@ -256,7 +253,7 @@ describe.only('Staking', function () {
    */
   it('user1: should be able to claim 17 boxes', async function () {
     const r = await (await stakingContract.connect(user1).claimBoxes(0)).wait();
-    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'IssueBoxes');
+    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimRewardBox');
     expect(filteredEvents.length).to.equal(1);
     const eventArgs = filteredEvents[0].args;
     expect(eventArgs.owner).to.equals(user1.address);
@@ -273,7 +270,7 @@ describe.only('Staking', function () {
   it('user3: should be able to unstake without penalty', async function () {
     expect(await contractTestToken.balanceOf(user3.address)).to.equals(700);
     const r = await (await stakingContract.connect(user3).unStaking(0)).wait();
-    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'IssueBoxes');
+    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimRewardBox');
     const eventArgs = filteredEvents[0].args;
     expect(filteredEvents.length).to.equal(1);
     expect(await stakingContract.connect(user3).viewUserReward(0)).to.equals(0);

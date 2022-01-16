@@ -7,14 +7,16 @@ import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
 import '../libraries/RegistryUser.sol';
 
+/**
+ * Duelist King Staking
+ * Name: DuelistKingStaking
+ * Doamin: Duelist King
+ */
+
 contract DuelistKingStaking is RegistryUser {
   using SafeERC20 for ERC20;
   using Address for address;
 
-  /**
-   * numberOfLockDays is a number of days that
-   * user must be stake before unstaking without penalty
-   */
   struct StakingCampaign {
     uint64 startDate;
     uint64 endDate;
@@ -37,7 +39,7 @@ contract DuelistKingStaking is RegistryUser {
 
   address private _owner;
   uint256 private totalCampaign;
-  uint32 constant transferRate = 1000000;
+  uint32 constant decimal = 1000000;
 
   mapping(uint256 => StakingCampaign) private _campaignStorage;
 
@@ -53,67 +55,15 @@ contract DuelistKingStaking is RegistryUser {
   event Unstaking(address indexed owner, uint256 indexed amount, uint256 indexed unStakeTime);
 
   // Issue box to user evnt
-  event IssueBoxes(address indexed owner, uint256 indexed rewardPhaseBoxId, uint256 indexed numberOfBoxes);
+  event ClaimRewardBox(address indexed owner, uint256 indexed rewardPhaseBoxId, uint256 indexed numberOfBoxes);
 
   constructor(address registry_, bytes32 domain_) {
     _registryUserInit(registry_, domain_);
   }
 
-  function viewUserReward(uint256 _campaignId) public view returns (uint256) {
-    return getCurrentUserReward(_campaignId) / transferRate;
-  }
-
-  function createNewStakingCampaign(StakingCampaign memory _newCampaign)
-    external
-    onlyAllowSameDomain('StakingOperator')
-  {
-    require(
-      _newCampaign.startDate > block.timestamp && _newCampaign.endDate > _newCampaign.startDate,
-      'DKStaking: Invalid timeline format'
-    );
-    // Duration in days
-    uint64 duration = (_newCampaign.endDate - _newCampaign.startDate) / (1 days);
-    require(
-      _newCampaign.numberOfLockDays > 0 &&
-        _newCampaign.numberOfLockDays <= 90 &&
-        _newCampaign.numberOfLockDays <= duration,
-      'DKStaking: Invalid duration or lock days format'
-    );
-
-    require(_newCampaign.rewardPhaseBoxId >= 1, 'Invalid phase id');
-    require(_newCampaign.tokenAddress.isContract(), 'DKStaking: Token address is not a smart contract');
-
-    _newCampaign.returnRate = uint64(
-      (_newCampaign.maxNumberOfBoxes * transferRate) / (_newCampaign.maxAmountOfToken * duration)
-    );
-    _campaignStorage[totalCampaign] = _newCampaign;
-
-    emit NewCampaign(_newCampaign.startDate, _newCampaign.tokenAddress, totalCampaign);
-    totalCampaign += 1;
-  }
-
-  function calculatePendingBoxes(UserStakingSlot memory userStakingSlot, StakingCampaign memory campaign)
-    private
-    view
-    returns (uint64)
-  {
-    uint64 currentTimestamp = uint64(block.timestamp) > campaign.endDate ? campaign.endDate : uint64(block.timestamp);
-    return
-      uint64(
-        ((userStakingSlot.stakingAmountOfToken * (currentTimestamp - userStakingSlot.lastStakingDate)) / (1 days)) *
-          campaign.returnRate
-      );
-  }
-
-  function getCurrentUserReward(uint256 _campaignId) private view returns (uint256) {
-    StakingCampaign memory _currentCampaign = _campaignStorage[_campaignId];
-    UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaignId][msg.sender];
-    return currentUserStakingSlot.stakedAmountOfBoxes + calculatePendingBoxes(currentUserStakingSlot, _currentCampaign);
-  }
-
-  function getCurrentUserStakingAmount(uint256 _campaignId) public view returns (uint256) {
-    return _userStakingSlot[_campaignId][msg.sender].stakingAmountOfToken;
-  }
+  /*******************************************************
+   * Public section
+   *******************************************************/
 
   function staking(uint256 _campaignId, uint256 _amountOfToken) external returns (bool) {
     StakingCampaign memory _currentCampaign = _campaignStorage[_campaignId];
@@ -158,14 +108,6 @@ contract DuelistKingStaking is RegistryUser {
     return true;
   }
 
-  function issueBoxes(
-    address owner,
-    uint256 rewardPhaseBoxId,
-    uint256 numberOfBoxes
-  ) private {
-    emit IssueBoxes(owner, rewardPhaseBoxId, numberOfBoxes);
-  }
-
   function claimBoxes(uint256 _campaignId) external returns (bool) {
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaignId][msg.sender];
     StakingCampaign memory _currentCampaign = _campaignStorage[_campaignId];
@@ -180,8 +122,7 @@ contract DuelistKingStaking is RegistryUser {
       'DKStaking: Unable to claim boxes before locked time'
     );
 
-    // Issue box
-    issueBoxes(msg.sender, _currentCampaign.rewardPhaseBoxId, currentReward);
+    emit ClaimRewardBox(msg.sender, _currentCampaign.rewardPhaseBoxId, currentReward);
 
     // Update user data
     currentUserStakingSlot.stakedAmountOfBoxes = 0;
@@ -219,10 +160,10 @@ contract DuelistKingStaking is RegistryUser {
 
     currentUserStakingSlot.stakedAmountOfBoxes += calculatePendingBoxes(currentUserStakingSlot, _currentCampaign);
     currentToken.safeTransfer(msg.sender, currentUserStakingSlot.stakingAmountOfToken);
-    emit IssueBoxes(
+    emit ClaimRewardBox(
       msg.sender,
       _currentCampaign.rewardPhaseBoxId,
-      currentUserStakingSlot.stakedAmountOfBoxes / transferRate
+      currentUserStakingSlot.stakedAmountOfBoxes / decimal
     );
 
     // remove user staking amount from the pool
@@ -234,6 +175,95 @@ contract DuelistKingStaking is RegistryUser {
     return true;
   }
 
+  /*******************************************************
+   * Same domain section
+   *******************************************************/
+
+  // Create a new staking campaign
+  function createNewStakingCampaign(StakingCampaign memory _newCampaign)
+    external
+    onlyAllowSameDomain('StakingOperator')
+  {
+    require(
+      _newCampaign.startDate > block.timestamp && _newCampaign.endDate > _newCampaign.startDate,
+      'DKStaking: Invalid timeline format'
+    );
+    uint64 duration = (_newCampaign.endDate - _newCampaign.startDate) / (1 days);
+    require(
+      _newCampaign.numberOfLockDays > 0 &&
+        _newCampaign.numberOfLockDays <= 90 &&
+        _newCampaign.numberOfLockDays <= duration,
+      'DKStaking: Invalid duration or lock days format'
+    );
+
+    require(_newCampaign.rewardPhaseBoxId >= 1, 'Invalid phase id');
+    require(_newCampaign.tokenAddress.isContract(), 'DKStaking: Token address is not a smart contract');
+
+    _newCampaign.returnRate = uint64(
+      (_newCampaign.maxNumberOfBoxes * decimal) / (_newCampaign.maxAmountOfToken * duration)
+    );
+    _campaignStorage[totalCampaign] = _newCampaign;
+
+    emit NewCampaign(_newCampaign.startDate, _newCampaign.tokenAddress, totalCampaign);
+    totalCampaign += 1;
+  }
+
+  function withdrawPenaltyPot(uint256 campaignId, address beneficiary)
+    external
+    onlyAllowSameDomain('StakingOperator')
+    returns (bool)
+  {
+    StakingCampaign memory _currentCampaign = _campaignStorage[campaignId];
+    ERC20 currentToken = ERC20(_currentCampaign.tokenAddress);
+    uint256 withdrawingAmount = currentToken.balanceOf(address(this)) - _currentCampaign.stakedAmountOfToken;
+    require(withdrawingAmount > 0, 'DKStaking: Invalid penalty pot');
+    currentToken.safeTransfer(beneficiary, withdrawingAmount);
+    return true;
+  }
+
+  function issueBoxes(
+    address owner,
+    uint256 rewardPhaseBoxId,
+    uint256 numberOfBoxes
+  ) private {
+    emit ClaimRewardBox(owner, rewardPhaseBoxId, numberOfBoxes);
+  }
+
+  /*******************************************************
+   * Private section
+   *******************************************************/
+
+  function getCurrentUserReward(uint256 _campaignId) private view returns (uint256) {
+    StakingCampaign memory _currentCampaign = _campaignStorage[_campaignId];
+    UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaignId][msg.sender];
+    return currentUserStakingSlot.stakedAmountOfBoxes + calculatePendingBoxes(currentUserStakingSlot, _currentCampaign);
+  }
+
+  function calculatePendingBoxes(UserStakingSlot memory userStakingSlot, StakingCampaign memory campaign)
+    private
+    view
+    returns (uint64)
+  {
+    uint64 currentTimestamp = uint64(block.timestamp) > campaign.endDate ? campaign.endDate : uint64(block.timestamp);
+    return
+      uint64(
+        ((userStakingSlot.stakingAmountOfToken * (currentTimestamp - userStakingSlot.lastStakingDate)) / (1 days)) *
+          campaign.returnRate
+      );
+  }
+
+  /*******************************************************
+   * View section
+   *******************************************************/
+
+  function viewUserReward(uint256 _campaignId) public view returns (uint256) {
+    return getCurrentUserReward(_campaignId) / decimal;
+  }
+
+  function getCurrentUserStakingAmount(uint256 _campaignId) public view returns (uint256) {
+    return _userStakingSlot[_campaignId][msg.sender].stakingAmountOfToken;
+  }
+
   function getBlockTime() public view returns (uint256) {
     return block.timestamp;
   }
@@ -242,15 +272,5 @@ contract DuelistKingStaking is RegistryUser {
     StakingCampaign memory _currentCampaign = _campaignStorage[campaignId];
     ERC20 currentToken = ERC20(_currentCampaign.tokenAddress);
     return currentToken.balanceOf(address(this)) - _currentCampaign.stakedAmountOfToken;
-  }
-
-  function withdrawPenaltyPot(uint256 campaignId, address beneficiary) external returns (bool) {
-    // TODO: check beneficiary is one of address in registry
-    StakingCampaign memory _currentCampaign = _campaignStorage[campaignId];
-    ERC20 currentToken = ERC20(_currentCampaign.tokenAddress);
-    uint256 withdrawingAmount = currentToken.balanceOf(address(this)) - _currentCampaign.stakedAmountOfToken;
-    require(withdrawingAmount > 0, 'DKStaking: Invalid penalty pot');
-    currentToken.safeTransfer(beneficiary, withdrawingAmount);
-    return true;
   }
 }
