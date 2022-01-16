@@ -56,7 +56,7 @@ contract DuelistKingStaking is RegistryUser {
   // Unstaking event
   event Unstaking(address indexed owner, uint256 indexed amount, uint256 indexed unStakeTime);
 
-  // Issue box to user evnt
+  // User claim boxes event
   event ClaimRewardBoxes(address indexed owner, uint256 indexed rewardPhaseBoxId, uint256 indexed numberOfBoxes);
 
   constructor(address registry_, bytes32 domain_) {
