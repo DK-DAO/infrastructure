@@ -252,7 +252,7 @@ describe.only('Staking', function () {
    */
   it('user1: should be able to claim 17 boxes', async function () {
     const r = await (await stakingContract.connect(user1).claimBoxes(0)).wait();
-    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimRewardBox');
+    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimRewardBoxes');
     expect(filteredEvents.length).to.equal(1);
     const eventArgs = filteredEvents[0].args;
     expect(eventArgs.owner).to.equals(user1.address);
@@ -269,7 +269,7 @@ describe.only('Staking', function () {
   it('user3: should be able to unstake without penalty', async function () {
     expect(await contractTestToken.balanceOf(user3.address)).to.equals(700);
     const r = await (await stakingContract.connect(user3).unStaking(0)).wait();
-    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimRewardBox');
+    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimRewardBoxes');
     const eventArgs = filteredEvents[0].args;
     expect(filteredEvents.length).to.equal(1);
     expect(await stakingContract.connect(user3).viewUserReward(0)).to.equals(0);
