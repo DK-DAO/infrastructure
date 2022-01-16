@@ -217,8 +217,8 @@ contract DuelistKingStaking is RegistryUser {
   {
     StakingCampaign memory _currentCampaign = _campaignStorage[campaignId];
     ERC20 currentToken = ERC20(_currentCampaign.tokenAddress);
-    uint256 withdrawingAmount = currentToken.balanceOf(address(this)) - _currentCampaign.stakedAmountOfToken;
-    require(withdrawingAmount > 0, 'DKStaking: Invalid penalty pot');
+    uint256 withdrawingAmount = _totalPenalty[_currentCampaign.tokenAddress];
+    require(withdrawingAmount > 0, 'DKStaking: Invalid withdrawing amount');
     currentToken.safeTransfer(beneficiary, withdrawingAmount);
     return true;
   }
