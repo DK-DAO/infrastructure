@@ -67,9 +67,9 @@ contract DuelistKingStaking is RegistryUser {
    * Public section
    *******************************************************/
 
-  function staking(uint256 _campaignId, uint256 _amountOfToken) external returns (bool) {
-    StakingCampaign memory _currentCampaign = _campaignStorage[_campaignId];
-    UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaignId][msg.sender];
+  function staking(uint256 campaignId, uint256 amountOfToken) external returns (bool) {
+    StakingCampaign memory _currentCampaign = _campaignStorage[campaignId];
+    UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][msg.sender];
     ERC20 currentToken = ERC20(_currentCampaign.tokenAddress);
 
     require(block.timestamp >= _currentCampaign.startDate, 'DKStaking: This staking event has not yet starting');
@@ -78,7 +78,7 @@ contract DuelistKingStaking is RegistryUser {
       'DKStaking: Not enough staking duration'
     );
     require(
-      currentUserStakingSlot.stakingAmountOfToken + _amountOfToken <= _currentCampaign.limitStakingAmountForUser,
+      currentUserStakingSlot.stakingAmountOfToken + amountOfToken <= _currentCampaign.limitStakingAmountForUser,
       'DKStaking: Token limit per user exceeded'
     );
 
@@ -87,33 +87,33 @@ contract DuelistKingStaking is RegistryUser {
       currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
     }
 
-    require(currentToken.balanceOf(msg.sender) >= _amountOfToken, 'DKStaking: Insufficient balance');
+    require(currentToken.balanceOf(msg.sender) >= amountOfToken, 'DKStaking: Insufficient balance');
 
     uint256 beforeBalance = currentToken.balanceOf(address(this));
-    currentToken.safeTransferFrom(msg.sender, address(this), _amountOfToken);
+    currentToken.safeTransferFrom(msg.sender, address(this), amountOfToken);
     uint256 afterBalance = currentToken.balanceOf(address(this));
-    require(afterBalance - beforeBalance == _amountOfToken, 'DKStaking: Invalid token transfer');
+    require(afterBalance - beforeBalance == amountOfToken, 'DKStaking: Invalid token transfer');
 
-    _currentCampaign.stakedAmountOfToken += _amountOfToken;
+    _currentCampaign.stakedAmountOfToken += amountOfToken;
     require(
       _currentCampaign.stakedAmountOfToken <= _currentCampaign.maxAmountOfToken,
       'DKStaking: Token limit exceeded'
     );
-    _campaignStorage[_campaignId] = _currentCampaign;
+    _campaignStorage[campaignId] = _currentCampaign;
 
-    currentUserStakingSlot.stakedAmountOfBoxes = estimateUserReward(_campaignId);
+    currentUserStakingSlot.stakedAmountOfBoxes = estimateUserReward(campaignId);
     currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
-    currentUserStakingSlot.stakingAmountOfToken += _amountOfToken;
+    currentUserStakingSlot.stakingAmountOfToken += amountOfToken;
 
-    _userStakingSlot[_campaignId][msg.sender] = currentUserStakingSlot;
-    emit Staking(msg.sender, _amountOfToken, block.timestamp);
+    _userStakingSlot[campaignId][msg.sender] = currentUserStakingSlot;
+    emit Staking(msg.sender, amountOfToken, block.timestamp);
     return true;
   }
 
-  function claimBoxes(uint256 _campaignId) external returns (bool) {
-    UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[_campaignId][msg.sender];
-    StakingCampaign memory _currentCampaign = _campaignStorage[_campaignId];
-    uint256 currentReward = viewUserReward(_campaignId);
+  function claimBoxes(uint256 campaignId) external returns (bool) {
+    UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][msg.sender];
+    StakingCampaign memory _currentCampaign = _campaignStorage[campaignId];
+    uint256 currentReward = viewUserReward(campaignId);
     require(currentReward > 0, 'DKStaking: Insufficient boxes');
 
     // Validate claim duration
@@ -128,7 +128,7 @@ contract DuelistKingStaking is RegistryUser {
     // Update user data
     currentUserStakingSlot.stakedAmountOfBoxes = 0;
     currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
-    _userStakingSlot[_campaignId][msg.sender] = currentUserStakingSlot;
+    _userStakingSlot[campaignId][msg.sender] = currentUserStakingSlot;
     return true;
   }
 
