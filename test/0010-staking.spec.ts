@@ -155,7 +155,6 @@ describe.only('Staking', function () {
   });
 
   it('user2: should NOT be able to stake 500 Tokens', async function () {
-    console.log('====', await contractTestToken.balanceOf(user2.address));
     expect(stakingContract.connect(user2).staking(0, 500)).to.be.revertedWith('DKStaking: Insufficient balance');
   });
 
