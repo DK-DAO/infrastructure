@@ -59,6 +59,8 @@ contract DuelistKingStaking is RegistryUser {
   // User claim boxes event
   event ClaimRewardBoxes(address indexed owner, uint128 indexed numberOfBoxes, uint64 indexed rewardPhaseBoxId);
 
+  event Withdrawal(address indexed beneficiary, uint256 indexed amount, uint64 timestamp);
+
   constructor(address registry_, bytes32 domain_) {
     _registryUserInit(registry_, domain_);
   }
@@ -74,7 +76,7 @@ contract DuelistKingStaking is RegistryUser {
 
     require(block.timestamp >= currentCampaign.startDate, 'DKStaking: This staking event has not yet starting');
     require(
-      block.timestamp <= currentCampaign.endDate - currentCampaign.numberOfLockDays * 1 days,
+      block.timestamp <= currentCampaign.endDate - currentCampaign.numberOfLockDays * (1 days),
       'DKStaking: Not enough staking duration'
     );
     require(
@@ -221,6 +223,7 @@ contract DuelistKingStaking is RegistryUser {
     uint256 withdrawingAmount = _totalPenalty[currentCampaign.tokenAddress];
     require(withdrawingAmount > 0, 'DKStaking: Invalid withdrawing amount');
     currentToken.safeTransfer(beneficiary, withdrawingAmount);
+    emit Withdrawal(beneficiary, withdrawingAmount, uint64(block.timestamp));
     return true;
   }
 

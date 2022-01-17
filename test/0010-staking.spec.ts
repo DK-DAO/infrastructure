@@ -9,7 +9,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 chai.use(solidity);
 
 let stakingContract: DuelistKingStaking, contractTestToken: TestToken;
-let user1: SignerWithAddress, user2: SignerWithAddress, user3: SignerWithAddress;
+let user1: SignerWithAddress, user2: SignerWithAddress, user3: SignerWithAddress, user4: SignerWithAddress;
 let infrastructureOperator: any, stakingOperator: any;
 
 function dayToSec(days: number) {
@@ -60,6 +60,7 @@ describe.only('DKStaking', function () {
     user1 = accounts[4];
     user2 = accounts[5];
     user3 = accounts[6];
+    user4 = accounts[7];
     await contractTestToken.transfer(user1.address, 2000);
     await contractTestToken.transfer(user2.address, 400);
     await contractTestToken.transfer(user3.address, 1000);
@@ -399,5 +400,28 @@ describe.only('DKStaking', function () {
     expect(await stakingContract.connect(user3).viewUserReward(0)).to.equals(0);
     expect(await stakingContract.connect(user3).getCurrentUserStakingAmount(0)).to.equals(0);
     expect(await contractTestToken.balanceOf(user3.address)).to.equals(1000);
+  });
+
+  it('should NOT be able withdraw penalty token because of non registered user', async function () {
+    await expect(stakingContract.connect(user2).withdrawPenaltyToken(0, user2.address)).to.be.revertedWith(
+      'UserRegistry: Only allow call from same domain',
+    );
+  });
+
+  it('Staking operator should be withdraw penalty token', async function () {
+    expect(await stakingContract.getTotalPenaltyAmount(contractTestToken.address)).to.equal(400 * 0.02 + 100 * 0.02);
+    // expect(await stakingContract.withdrawPenaltyToken(0, user4.address)).to.be.true;
+    const r = await (await stakingContract.withdrawPenaltyToken(0, user4.address)).wait();
+    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Withdrawal');
+    expect(filteredEvents.length).to.equal(1);
+    const eventArgs = filteredEvents[0].args;
+    expect(eventArgs.beneficiary).to.equals(user4.address);
+    expect(eventArgs.amount).to.equals(10);
+  });
+
+  it('should NOT see penalty token because of invalid token address', async function () {
+    await expect(stakingContract.connect(user2).getTotalPenaltyAmount(user2.address)).to.be.revertedWith(
+      'DKStaking: Token address is not a smart contract',
+    );
   });
 });
