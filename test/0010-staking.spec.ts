@@ -153,7 +153,7 @@ describe.only('DKStaking', function () {
     expect(filteredEvents.length).to.equal(1);
   });
 
-  it('Date 0:', () => {});
+  it('=========== Date 0 ============', () => {});
 
   it('Campaign 1: should be revert because a new user staking before event date', async function () {
     await expect(stakingContract.connect(user1).staking(0, 200)).to.be.revertedWith(
@@ -165,7 +165,7 @@ describe.only('DKStaking', function () {
     await expect(stakingContract.connect(user1).unStaking(0)).to.be.revertedWith('DKStaking: No token to be unstaked');
   });
 
-  it('Date 1: Campaign 1 started, Campaign 2 not yet', async function () {
+  it('=========== Date 1 ============: Campaign 1 started, Campaign 2 not yet', async function () {
     await timeTravel(dayToSec(1));
   });
 
@@ -214,7 +214,7 @@ describe.only('DKStaking', function () {
     await expect(stakingContract.connect(user1).unStaking(1)).to.be.revertedWith('DKStaking: No token to be unstaked');
   });
 
-  it('Date 11:', async function () {
+  it('=========== Date 11 ============', async function () {
     await timeTravel(dayToSec(10));
   });
 
@@ -288,7 +288,7 @@ describe.only('DKStaking', function () {
     expect(await stakingContract.connect(user1).getCurrentUserStakingAmount(0)).to.equal(500);
   });
 
-  it('Date 16:', async function () {
+  it('=========== Date 16 ============', async function () {
     await timeTravel(dayToSec(5));
   });
 
@@ -355,7 +355,7 @@ describe.only('DKStaking', function () {
     expect(await stakingContract.connect(user3).viewUserReward(1)).to.equals(1);
   });
 
-  it('Time travel to date 21', async function () {
+  it('=========== Date 21 ============', async function () {
     await timeTravel(dayToSec(5));
   });
 
@@ -383,7 +383,7 @@ describe.only('DKStaking', function () {
     expect(await stakingContract.connect(user3).viewUserReward(1)).to.equals(3);
   });
 
-  it('Time travel to date 26', async function () {
+  it('=========== Date 26 ============', async function () {
     await timeTravel(dayToSec(5));
   });
 
