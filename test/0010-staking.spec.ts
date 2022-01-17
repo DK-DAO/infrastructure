@@ -225,12 +225,12 @@ describe.only('DKStaking', function () {
     expect(await stakingContract.connect(user1).getCurrentUserStakingAmount(1)).to.equal(100);
   });
 
-  // it('Campaign 2: user3 should be able to stake 120 Tokens', async function () {
-  //   const r = await (await stakingContract.connect(user3).staking(1, 120)).wait();
-  //   const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
-  //   expect(filteredEvents.length).to.equal(1);
-  //   expect(await stakingContract.connect(user3).getCurrentUserStakingAmount(1)).to.equal(120);
-  // });
+  it('Campaign 2: user3 should be able to stake 120 Tokens', async function () {
+    const r = await (await stakingContract.connect(user3).staking(1, 120)).wait();
+    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
+    expect(filteredEvents.length).to.equal(1);
+    expect(await stakingContract.connect(user3).getCurrentUserStakingAmount(1)).to.equal(120);
+  });
 
   /**
    * Campaign 1
@@ -334,25 +334,26 @@ describe.only('DKStaking', function () {
   });
 
   it('Campaign 1: user3 should be able to unstake without penalty', async function () {
-    expect(await contractTestToken.balanceOf(user3.address)).to.equals(700);
+    expect(await contractTestToken.balanceOf(user3.address)).to.equals(580);
     const r = await (await stakingContract.connect(user3).unStaking(0)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimRewardBoxes');
     const eventArgs = filteredEvents[0].args;
+    console.log(eventArgs);
     expect(filteredEvents.length).to.equal(1);
     expect(await stakingContract.connect(user3).viewUserReward(0)).to.equals(0);
     expect(await stakingContract.connect(user3).getCurrentUserStakingAmount(0)).to.equals(0);
-    expect(await contractTestToken.balanceOf(user3.address)).to.equals(1000);
+    expect(await contractTestToken.balanceOf(user3.address)).to.equals(880);
   });
 
   it('Campagn 1: user3 should NOT be able to claimBoxes after unstaking', async function () {
     await expect(stakingContract.connect(user3).claimBoxes(0)).to.be.revertedWith('DKStaking: Insufficient boxes');
   });
 
-  // it('Campaign 2: user3 reward should be ', async function () {
-  //   expect(await stakingContract.connect(user3).viewUserReward(1)).to.equals(17);
-  // });
+  it('Campaign 2: user3 reward should be 1', async function () {
+    expect(await stakingContract.connect(user3).viewUserReward(1)).to.equals(1);
+  });
 
-  it('Time travel to next 15 days', async function () {
+  it('Time travel to date 31', async function () {
     await timeTravel(dayToSec(5));
   });
 
