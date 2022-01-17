@@ -10,6 +10,7 @@ chai.use(solidity);
 
 let stakingContract: DuelistKingStaking, contractTestToken: TestToken;
 let user1: SignerWithAddress, user2: SignerWithAddress, user3: SignerWithAddress;
+let infrastructureOperator: any, stakingOperator: any;
 
 function dayToSec(days: number) {
   return Math.round(days * 86400);
@@ -29,8 +30,8 @@ async function timeTravel(secs: number) {
 describe.only('DKStaking', function () {
   this.beforeAll('Before init', async function () {
     const accounts = await ethers.getSigners();
-    const infrastructureOperator = accounts[0];
-    const stakingOperator = accounts[1];
+    infrastructureOperator = accounts[0];
+    stakingOperator = accounts[1];
     const deployer: Deployer = Deployer.getInstance(hre);
 
     contractTestToken = <TestToken>await deployer.connect(accounts[0]).contractDeploy('test/TestToken', []);
@@ -39,8 +40,13 @@ describe.only('DKStaking', function () {
       await deployer.connect(infrastructureOperator).contractDeploy('Infrastructure/Registry', [])
     );
 
-    // Register a new operator in registry contract
+    // Register new operator in registry contract
     await registry.set(registryRecords.domain.duelistKing, registryRecords.name.staking, stakingOperator.address);
+    await registry.set(
+      registryRecords.domain.infrastructure,
+      registryRecords.name.operator,
+      infrastructureOperator.address,
+    );
 
     stakingContract = <DuelistKingStaking>(
       await deployer
@@ -54,6 +60,12 @@ describe.only('DKStaking', function () {
     user1 = accounts[4];
     user2 = accounts[5];
     user3 = accounts[6];
+    await contractTestToken.transfer(user1.address, 2000);
+    await contractTestToken.transfer(user2.address, 400);
+    await contractTestToken.transfer(user3.address, 1000);
+    await contractTestToken.connect(user1).approve(stakingContract.address, 2000);
+    await contractTestToken.connect(user2).approve(stakingContract.address, 400);
+    await contractTestToken.connect(user3).approve(stakingContract.address, 1000);
   });
 
   it('should be failed when create a new campaign because token address is not a smart contract', async function () {
@@ -77,7 +89,7 @@ describe.only('DKStaking', function () {
     );
   });
 
-  it('should be failed because of different domain creating a new campaign', async function () {
+  it('should be failed because of random user creating a new campaign', async function () {
     const blocktime = await stakingContract.getBlockTime();
     const accounts = await ethers.getSigners();
     const config = {
@@ -93,6 +105,9 @@ describe.only('DKStaking', function () {
       numberOfLockDays: 15,
     };
 
+    await expect(stakingContract.connect(infrastructureOperator).createNewStakingCampaign(config)).to.be.revertedWith(
+      'UserRegistry: Only allow call from same domain',
+    );
     await expect(stakingContract.connect(accounts[3]).createNewStakingCampaign(config)).to.be.revertedWith(
       'UserRegistry: Only allow call from same domain',
     );
@@ -126,11 +141,11 @@ describe.only('DKStaking', function () {
       returnRate: 1,
       maxAmountOfToken: 400000,
       stakedAmountOfToken: 0,
-      limitStakingAmountForUser: 500,
+      limitStakingAmountForUser: 300,
       tokenAddress: contractTestToken.address,
       maxNumberOfBoxes: 32000,
       rewardPhaseBoxId: 4,
-      numberOfLockDays: 15,
+      numberOfLockDays: 12,
     };
 
     const r = await (await stakingContract.createNewStakingCampaign(config)).wait();
@@ -138,66 +153,87 @@ describe.only('DKStaking', function () {
     expect(filteredEvents.length).to.equal(1);
   });
 
-  it('should be revert because a new user staking before event date', async function () {
-    await contractTestToken.transfer(user1.address, 1000);
-    await contractTestToken.transfer(user2.address, 400);
-    await contractTestToken.transfer(user3.address, 1000);
-    await contractTestToken.connect(user1).approve(stakingContract.address, 1000);
-    await contractTestToken.connect(user2).approve(stakingContract.address, 400);
-    await contractTestToken.connect(user3).approve(stakingContract.address, 1000);
-    expect(stakingContract.connect(user1).staking(0, 200)).to.be.revertedWith(
+  it('Date 0:', () => {});
+
+  it('Campaign 1: should be revert because a new user staking before event date', async function () {
+    await expect(stakingContract.connect(user1).staking(0, 200)).to.be.revertedWith(
       'DKStaking: This staking event has not yet starting',
     );
   });
 
-  it('should NOT be able to unstake with empty account before event date', async function () {
-    expect(stakingContract.connect(user1).unStaking(0)).to.be.revertedWith('DKStaking: No token to be unstaked');
+  it('Campaign 1: should NOT be able to unstake with empty account before event date', async function () {
+    await expect(stakingContract.connect(user1).unStaking(0)).to.be.revertedWith('DKStaking: No token to be unstaked');
   });
 
-  it('Campaign 1: Time travel to start staking date', async function () {
+  it('Date 1: Campaign 1 started, Campaign 2 not yet', async function () {
     await timeTravel(dayToSec(1));
   });
 
-  it('should NOT be able to unstake with empty account after event date', async function () {
-    expect(stakingContract.connect(user1).unStaking(0)).to.be.revertedWith('DKStaking: No token to be unstaked');
+  it('Campaign 1: user1 should NOT be able to unstake with empty account after event date', async function () {
+    await expect(stakingContract.connect(user1).unStaking(0)).to.be.revertedWith('DKStaking: No token to be unstaked');
   });
 
-  it('should be revert because a new user staking hit limit', async function () {
+  it('Campaign 1: user1 should be revert because a new user staking hit limit', async function () {
     await expect(stakingContract.connect(user1).staking(0, 501)).to.be.revertedWith(
       'DKStaking: Token limit per user exceeded',
     );
   });
 
-  it('user1: should stake 400 tokens successfully', async function () {
+  it('Campaign 1: user1 should stake 400 tokens successfully', async function () {
     const r = await (await stakingContract.connect(user1).staking(0, 400)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
     expect(filteredEvents.length).to.equal(1);
     expect(await stakingContract.connect(user1).getCurrentUserStakingAmount(0)).to.equal(400);
   });
 
-  it('user2: should NOT be able to stake 500 Tokens', async function () {
+  it('Campaign 1: user2 should NOT be able to stake 500 Tokens', async function () {
     expect(stakingContract.connect(user2).staking(0, 500)).to.be.revertedWith('ERC20: transfer amount exceeds balance');
   });
 
-  it('user2: should be able to stake 400 Tokens', async function () {
+  it('Campaign 1: user2 should be able to stake 400 Tokens', async function () {
     const r = await (await stakingContract.connect(user2).staking(0, 400)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
     expect(filteredEvents.length).to.equal(1);
     expect(await stakingContract.connect(user2).getCurrentUserStakingAmount(0)).to.equal(400);
   });
 
-  it('user3: should be able to stake 300 Tokens', async function () {
+  it('Campaign 1: user3 should be able to stake 300 Tokens', async function () {
     const r = await (await stakingContract.connect(user3).staking(0, 300)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
     expect(filteredEvents.length).to.equal(1);
     expect(await stakingContract.connect(user3).getCurrentUserStakingAmount(0)).to.equal(300);
   });
 
-  it('Time travel to next 10 days', async function () {
+  it('Campaign 2: should be revert because a new user staking before event date', async function () {
+    await expect(stakingContract.connect(user1).staking(1, 200)).to.be.revertedWith(
+      'DKStaking: This staking event has not yet starting',
+    );
+  });
+
+  it('Campaign 2: user1 should NOT be able to unstake with empty account before event date', async function () {
+    await expect(stakingContract.connect(user1).unStaking(1)).to.be.revertedWith('DKStaking: No token to be unstaked');
+  });
+
+  it('Date 11:', async function () {
     await timeTravel(dayToSec(10));
   });
 
+  it('Campaign 2: user1 should be able to stake 100 Tokens', async function () {
+    const r = await (await stakingContract.connect(user1).staking(1, 100)).wait();
+    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
+    expect(filteredEvents.length).to.equal(1);
+    expect(await stakingContract.connect(user1).getCurrentUserStakingAmount(1)).to.equal(100);
+  });
+
+  // it('Campaign 2: user3 should be able to stake 120 Tokens', async function () {
+  //   const r = await (await stakingContract.connect(user3).staking(1, 120)).wait();
+  //   const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
+  //   expect(filteredEvents.length).to.equal(1);
+  //   expect(await stakingContract.connect(user3).getCurrentUserStakingAmount(1)).to.equal(120);
+  // });
+
   /**
+   * Campaign 1
    * Rate: 0.266%
    * Amount: 400
    * Duration: 10 days
@@ -206,47 +242,57 @@ describe.only('DKStaking', function () {
    * Total = 10.64
    * ViewTotalSum = 10
    */
-  it('User1 & user2: should be able to reward 10 boxes after 10 days ', async function () {
+  it('Campaign 1: user1 & user2 should be able to reward 10 boxes at date 11 ', async function () {
     expect(await stakingContract.connect(user1).viewUserReward(0)).to.equals(10);
     expect(await stakingContract.connect(user2).viewUserReward(0)).to.equals(10);
   });
 
-  it('user2: should be able to unstake with penalty', async function () {
+  it('Campaign 1: user2 should be able to unstake with penalty', async function () {
     await stakingContract.connect(user2).unStaking(0);
     expect(await contractTestToken.balanceOf(user2.address)).to.equals(400 * 0.98);
     expect(await stakingContract.connect(user2).getCurrentUserStakingAmount(0)).to.equal(0);
+    expect(await stakingContract.connect(user2).viewUserReward(0)).to.equal(0);
+    expect(await stakingContract.getTotalPenaltyAmount(contractTestToken.address)).to.equal(400 * 0.02);
+  });
+
+  it('Campaign 2: user1 should be able to unstake with penalty', async function () {
+    await stakingContract.connect(user1).unStaking(1);
+    expect(await contractTestToken.balanceOf(user1.address)).to.equals(1598);
+    expect(await stakingContract.connect(user1).getCurrentUserStakingAmount(1)).to.equal(0);
+    expect(await stakingContract.connect(user1).viewUserReward(1)).to.equal(0);
+    expect(await stakingContract.getTotalPenaltyAmount(contractTestToken.address)).to.equal(400 * 0.02 + 100 * 0.02);
   });
 
   /**
    * After unstaking before due, user cannot claim any boxes
    */
-  it('user2: should NOT be able to claim any boxes', async function () {
+  it('Campaign 1: user2 should NOT be able to claim any boxes', async function () {
     expect(await stakingContract.connect(user2).viewUserReward(0)).to.equal(0);
-    expect(stakingContract.connect(user2).claimBoxes(0)).to.be.revertedWith('DKStaking: Insufficient boxes');
+    await expect(stakingContract.connect(user2).claimBoxes(0)).to.be.revertedWith('DKStaking: Insufficient boxes');
   });
 
-  it('User1: should NOT be able to claim boxes', async function () {
-    expect(stakingContract.connect(user1).claimBoxes(0)).to.be.revertedWith(
+  it('Campaign 1: user1 should NOT be able to claim boxes', async function () {
+    await expect(stakingContract.connect(user1).claimBoxes(0)).to.be.revertedWith(
       'DKStaking: Unable to claim boxes before locked time',
     );
   });
 
-  it('User1: Should be failed when restake 101 token at date 10 (limitStakingAmountForUser = 500)', async function () {
-    expect(stakingContract.connect(user1).staking(0, 101)).to.be.revertedWith(
+  it('Campagin 1: user1 should be failed when restake 101 token at date 11 (limitStakingAmountForUser = 500)', async function () {
+    await expect(stakingContract.connect(user1).staking(0, 101)).to.be.revertedWith(
       'DKStaking: Token limit per user exceeded',
     );
   });
 
-  it('user1 should stake 100 tokens more successfully', async function () {
+  it('Campaign 1: user1 should stake 100 tokens more successfully', async function () {
     await stakingContract.connect(user1).staking(0, 100);
     expect(await stakingContract.connect(user1).getCurrentUserStakingAmount(0)).to.equal(500);
   });
 
-  it('Time travel to next 5 days', async function () {
+  it('Date 16:', async function () {
     await timeTravel(dayToSec(5));
   });
 
-  it('user2: should NOT be able to earn any boxes after 5 days', async function () {
+  it('Campaign 1: user2 should NOT be able to earn any boxes at date 16', async function () {
     expect(await stakingContract.connect(user2).viewUserReward(0)).to.equal(0);
   });
   /**
@@ -259,11 +305,11 @@ describe.only('DKStaking', function () {
    * TotalSum = 10.64 + 6.65 = 17.32
    * ViewTotalSum = 17
    */
-  it('user reward after 15 days should be 17', async function () {
+  it('Campaign 1: user1 reward should be 17', async function () {
     expect(await stakingContract.connect(user1).viewUserReward(0)).to.equals(17);
   });
 
-  it('user2: should NOT be able to claim boxes', async function () {
+  it('Camapgin 1: user2 should NOT be able to claim boxes', async function () {
     await expect(stakingContract.connect(user2).claimBoxes(0)).to.be.revertedWith('DKStaking: Insufficient boxes');
   });
 
@@ -271,7 +317,7 @@ describe.only('DKStaking', function () {
    * TotalSum = 17.32
    * Can claim = 17
    */
-  it('user1: should be able to claim 17 boxes', async function () {
+  it('Campaign 1: user1 should be able to claim 17 boxes', async function () {
     const r = await (await stakingContract.connect(user1).claimBoxes(0)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimRewardBoxes');
     expect(filteredEvents.length).to.equal(1);
@@ -283,11 +329,11 @@ describe.only('DKStaking', function () {
     expect(await stakingContract.connect(user1).viewUserReward(0)).to.equals(0);
   });
 
-  it('user1: should NOT be able to claim boxes again', async function () {
-    expect(stakingContract.connect(user1).claimBoxes(0)).to.be.revertedWith('DKStaking: Insufficient boxes');
+  it('Capaign 1: user1 should NOT be able to claim boxes again', async function () {
+    await expect(stakingContract.connect(user1).claimBoxes(0)).to.be.revertedWith('DKStaking: Insufficient boxes');
   });
 
-  it('user3: should be able to unstake without penalty', async function () {
+  it('Campaign 1: user3 should be able to unstake without penalty', async function () {
     expect(await contractTestToken.balanceOf(user3.address)).to.equals(700);
     const r = await (await stakingContract.connect(user3).unStaking(0)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimRewardBoxes');
@@ -298,9 +344,13 @@ describe.only('DKStaking', function () {
     expect(await contractTestToken.balanceOf(user3.address)).to.equals(1000);
   });
 
-  it('user3: should NOT be able to claimBoxes after unstaking', async function () {
+  it('Campagn 1: user3 should NOT be able to claimBoxes after unstaking', async function () {
     await expect(stakingContract.connect(user3).claimBoxes(0)).to.be.revertedWith('DKStaking: Insufficient boxes');
   });
+
+  // it('Campaign 2: user3 reward should be ', async function () {
+  //   expect(await stakingContract.connect(user3).viewUserReward(1)).to.equals(17);
+  // });
 
   it('Time travel to next 15 days', async function () {
     await timeTravel(dayToSec(5));
