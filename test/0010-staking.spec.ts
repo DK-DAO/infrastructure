@@ -338,7 +338,9 @@ describe.only('DKStaking', function () {
     const r = await (await stakingContract.connect(user3).unStaking(0)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimRewardBoxes');
     const eventArgs = filteredEvents[0].args;
-    console.log(eventArgs);
+    expect(eventArgs.owner).to.equals(user3.address);
+    expect(eventArgs.numberOfBoxes).to.equals(11);
+    expect(eventArgs.rewardPhaseBoxId).to.equals(3);
     expect(filteredEvents.length).to.equal(1);
     expect(await stakingContract.connect(user3).viewUserReward(0)).to.equals(0);
     expect(await stakingContract.connect(user3).getCurrentUserStakingAmount(0)).to.equals(0);
