@@ -14,6 +14,7 @@ if (env.DUELIST_KING_LOCAL_MNEMONIC !== 'baby nose young alone sport inside grai
   require('./tasks/deploy-vesting-creator');
   require('./tasks/create-vesting-contract');
   require('./tasks/transfer-token');
+  require('./tasks/transfer-native-token');
   require('./tasks/open-boxes');
 }
 
