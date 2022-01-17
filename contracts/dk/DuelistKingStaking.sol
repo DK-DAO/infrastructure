@@ -232,11 +232,11 @@ contract DuelistKingStaking is RegistryUser {
    *******************************************************/
 
   function getUserStakingTimestamp(StakingCampaign memory currentCampaign) private view returns (uint64) {
-    uint64 eventTimestamp = uint64(block.timestamp);
-    if (eventTimestamp > currentCampaign.endDate) {
-      eventTimestamp = currentCampaign.endDate;
+    uint64 userTimestamp = uint64(block.timestamp);
+    if (userTimestamp > currentCampaign.endDate) {
+      userTimestamp = currentCampaign.endDate;
     }
-    return eventTimestamp;
+    return userTimestamp;
   }
 
   function estimateUserReward(uint256 campaignId) private view returns (uint128) {
