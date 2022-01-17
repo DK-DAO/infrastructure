@@ -38,7 +38,7 @@ contract DuelistKingStaking is RegistryUser {
   }
 
   address private _owner;
-  uint256 private totalCampaign;
+  uint256 private _totalCampaign;
   uint32 constant decimals = 1000000;
 
   mapping(uint256 => StakingCampaign) private _campaignStorage;
@@ -98,7 +98,7 @@ contract DuelistKingStaking is RegistryUser {
     require(currentCampaign.stakedAmountOfToken <= currentCampaign.maxAmountOfToken, 'DKStaking: Token limit exceeded');
     _campaignStorage[campaignId] = currentCampaign;
 
-    currentUserStakingSlot.stakedAmountOfBoxes = estimateUserReward(campaignId);
+    currentUserStakingSlot.stakedAmountOfBoxes = estimateUserReward(currentCampaign, currentUserStakingSlot);
     currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
     currentUserStakingSlot.stakingAmountOfToken += amountOfToken;
 
@@ -109,21 +109,20 @@ contract DuelistKingStaking is RegistryUser {
 
   function claimBoxes(uint256 campaignId) external returns (bool) {
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][msg.sender];
-    StakingCampaign memory _currentCampaign = _campaignStorage[campaignId];
-    currentUserStakingSlot.stakedAmountOfBoxes = estimateUserReward(campaignId);
+    StakingCampaign memory currentCampaign = _campaignStorage[campaignId];
+    currentUserStakingSlot.stakedAmountOfBoxes = estimateUserReward(currentCampaign, currentUserStakingSlot);
     require(currentUserStakingSlot.stakedAmountOfBoxes > 0, 'DKStaking: Insufficient boxes');
 
     // Validate claim duration
     require(
-      block.timestamp >= currentUserStakingSlot.startStakingDate + (_currentCampaign.numberOfLockDays * (1 days)) ||
-        block.timestamp >= _currentCampaign.endDate,
+      block.timestamp >= currentUserStakingSlot.startStakingDate + (currentCampaign.numberOfLockDays * (1 days)),
       'DKStaking: Unable to claim boxes before locked time'
     );
 
     emit ClaimRewardBoxes(
       msg.sender,
       currentUserStakingSlot.stakedAmountOfBoxes / decimals,
-      _currentCampaign.rewardPhaseBoxId
+      currentCampaign.rewardPhaseBoxId
     );
 
     // Update user data
@@ -145,7 +144,7 @@ contract DuelistKingStaking is RegistryUser {
     uint64 currentTimestamp = getUserStakingTimestamp(currentCampaign);
     uint64 stakingDuration = (currentTimestamp - currentUserStakingSlot.startStakingDate) / (1 days);
 
-    if (stakingDuration < currentCampaign.numberOfLockDays && block.timestamp <= currentCampaign.endDate) {
+    if (stakingDuration < currentCampaign.numberOfLockDays) {
       uint256 penaltyAmount = (currentUserStakingSlot.stakingAmountOfToken * 2) / 100;
       _totalPenalty[currentCampaign.tokenAddress] += penaltyAmount;
       currentToken.safeTransfer(msg.sender, currentUserStakingSlot.stakingAmountOfToken - penaltyAmount);
@@ -162,7 +161,7 @@ contract DuelistKingStaking is RegistryUser {
       return true;
     }
 
-    currentUserStakingSlot.stakedAmountOfBoxes = estimateUserReward(campaignId);
+    currentUserStakingSlot.stakedAmountOfBoxes = estimateUserReward(currentCampaign, currentUserStakingSlot);
     currentToken.safeTransfer(msg.sender, currentUserStakingSlot.stakingAmountOfToken);
     emit ClaimRewardBoxes(
       msg.sender,
@@ -208,10 +207,10 @@ contract DuelistKingStaking is RegistryUser {
     newCampaign.returnRate = uint64(
       (newCampaign.maxNumberOfBoxes * decimals) / (newCampaign.maxAmountOfToken * duration)
     );
-    _campaignStorage[totalCampaign] = newCampaign;
+    _campaignStorage[_totalCampaign] = newCampaign;
 
-    emit NewCampaign(newCampaign.startDate, newCampaign.tokenAddress, totalCampaign);
-    totalCampaign += 1;
+    emit NewCampaign(newCampaign.startDate, newCampaign.tokenAddress, _totalCampaign);
+    _totalCampaign += 1;
   }
 
   function withdrawPenaltyToken(uint256 campaignId, address beneficiary)
@@ -239,10 +238,11 @@ contract DuelistKingStaking is RegistryUser {
     return userTimestamp;
   }
 
-  function estimateUserReward(uint256 campaignId) private view returns (uint128) {
-    StakingCampaign memory currentCampaign = _campaignStorage[campaignId];
-    UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][msg.sender];
-
+  function estimateUserReward(StakingCampaign memory currentCampaign, UserStakingSlot memory currentUserStakingSlot)
+    private
+    view
+    returns (uint128)
+  {
     uint64 currentTimestamp = getUserStakingTimestamp(currentCampaign);
 
     uint128 remainingReward = uint128(
@@ -257,7 +257,9 @@ contract DuelistKingStaking is RegistryUser {
    *******************************************************/
 
   function viewUserReward(uint256 campaignId) external view returns (uint256) {
-    return estimateUserReward(campaignId) / decimals;
+    StakingCampaign memory currentCampaign = _campaignStorage[campaignId];
+    UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][msg.sender];
+    return estimateUserReward(currentCampaign, currentUserStakingSlot) / decimals;
   }
 
   function getCurrentUserStakingAmount(uint256 campaignId) external view returns (uint256) {
