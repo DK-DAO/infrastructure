@@ -4,11 +4,12 @@ import { DuelistKingStaking, IRegistry, TestToken } from '../typechain';
 import { solidity } from 'ethereum-waffle';
 import Deployer from './helpers/deployer';
 import { registryRecords } from './helpers/const';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
 chai.use(solidity);
 
-let stakingContract: any, contractTestToken: TestToken;
-let user1: any, user2: any, user3: any;
+let stakingContract: DuelistKingStaking, contractTestToken: TestToken;
+let user1: SignerWithAddress, user2: SignerWithAddress, user3: SignerWithAddress;
 
 function dayToSec(days: number) {
   return Math.round(days * 86400);
@@ -25,7 +26,7 @@ async function timeTravel(secs: number) {
   });
 }
 
-describe.only('Staking', function () {
+describe.only('DKStaking', function () {
   this.beforeAll('Before init', async function () {
     const accounts = await ethers.getSigners();
     const infrastructureOperator = accounts[0];
@@ -76,7 +77,7 @@ describe.only('Staking', function () {
     );
   });
 
-  it('should be failed because of non onwner creating a new campaign', async function () {
+  it('should be failed because of different domain creating a new campaign', async function () {
     const blocktime = await stakingContract.getBlockTime();
     const accounts = await ethers.getSigners();
     const config = {
@@ -117,6 +118,26 @@ describe.only('Staking', function () {
     expect(filteredEvents.length).to.equal(1);
   });
 
+  it('create another campaign', async function () {
+    const blocktime = await stakingContract.getBlockTime();
+    const config = {
+      startDate: blocktime.add(dayToSec(2)),
+      endDate: blocktime.add(dayToSec(31)),
+      returnRate: 1,
+      maxAmountOfToken: 400000,
+      stakedAmountOfToken: 0,
+      limitStakingAmountForUser: 500,
+      tokenAddress: contractTestToken.address,
+      maxNumberOfBoxes: 32000,
+      rewardPhaseBoxId: 4,
+      numberOfLockDays: 15,
+    };
+
+    const r = await (await stakingContract.createNewStakingCampaign(config)).wait();
+    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'NewCampaign');
+    expect(filteredEvents.length).to.equal(1);
+  });
+
   it('should be revert because a new user staking before event date', async function () {
     await contractTestToken.transfer(user1.address, 1000);
     await contractTestToken.transfer(user2.address, 400);
@@ -133,7 +154,7 @@ describe.only('Staking', function () {
     expect(stakingContract.connect(user1).unStaking(0)).to.be.revertedWith('DKStaking: No token to be unstaked');
   });
 
-  it('Time travel to start staking date', async function () {
+  it('Campaign 1: Time travel to start staking date', async function () {
     await timeTravel(dayToSec(1));
   });
 
@@ -155,7 +176,7 @@ describe.only('Staking', function () {
   });
 
   it('user2: should NOT be able to stake 500 Tokens', async function () {
-    expect(stakingContract.connect(user2).staking(0, 500)).to.be.revertedWith('DKStaking: Insufficient balance');
+    expect(stakingContract.connect(user2).staking(0, 500)).to.be.revertedWith('ERC20: transfer amount exceeds balance');
   });
 
   it('user2: should be able to stake 400 Tokens', async function () {

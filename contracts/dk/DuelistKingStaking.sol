@@ -87,8 +87,6 @@ contract DuelistKingStaking is RegistryUser {
       currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
     }
 
-    require(currentToken.balanceOf(msg.sender) >= amountOfToken, 'DKStaking: Insufficient balance');
-
     uint256 beforeBalance = currentToken.balanceOf(address(this));
     currentToken.safeTransferFrom(msg.sender, address(this), amountOfToken);
     uint256 afterBalance = currentToken.balanceOf(address(this));
