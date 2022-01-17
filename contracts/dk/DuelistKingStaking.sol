@@ -74,7 +74,7 @@ contract DuelistKingStaking is RegistryUser {
 
     require(block.timestamp >= currentCampaign.startDate, 'DKStaking: This staking event has not yet starting');
     require(
-      block.timestamp <= currentCampaign.endDate - currentCampaign.numberOfLockDays,
+      block.timestamp <= currentCampaign.endDate - currentCampaign.numberOfLockDays * 1 days,
       'DKStaking: Not enough staking duration'
     );
     require(

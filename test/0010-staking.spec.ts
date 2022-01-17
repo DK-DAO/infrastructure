@@ -64,7 +64,7 @@ describe.only('DKStaking', function () {
     await contractTestToken.transfer(user2.address, 400);
     await contractTestToken.transfer(user3.address, 1000);
     await contractTestToken.connect(user1).approve(stakingContract.address, 2000);
-    await contractTestToken.connect(user2).approve(stakingContract.address, 400);
+    await contractTestToken.connect(user2).approve(stakingContract.address, 500);
     await contractTestToken.connect(user3).approve(stakingContract.address, 1000);
   });
 
@@ -355,15 +355,49 @@ describe.only('DKStaking', function () {
     expect(await stakingContract.connect(user3).viewUserReward(1)).to.equals(1);
   });
 
-  it('Time travel to date 31', async function () {
+  it('Time travel to date 21', async function () {
     await timeTravel(dayToSec(5));
   });
 
-  it('user3: should NOT be earn any more boxes after unstaking', async function () {
+  it('Campiagn 1: user3 should NOT be earn any more boxes after unstaking', async function () {
     expect(await stakingContract.connect(user3).viewUserReward(0)).to.equals(0);
   });
 
-  it('user2: should NOT be able to earn any boxes after 20 days since unstaking event', async function () {
+  it('Campaign 1: user2 should NOT be able to earn any boxes at date 21 since unstaking event', async function () {
     expect(await stakingContract.connect(user2).viewUserReward(0)).to.equal(0);
+  });
+
+  it('Campaign 1: user2 should NOT be able to stake', async function () {
+    await expect(stakingContract.connect(user2).staking(0, 100)).to.be.revertedWith(
+      'DKStaking: Not enough staking duration',
+    );
+  });
+
+  it('Campaign 2: user2 should NOT be able to stake', async function () {
+    await expect(stakingContract.connect(user2).staking(1, 100)).to.be.revertedWith(
+      'DKStaking: Not enough staking duration',
+    );
+  });
+
+  it('Campaign 2: user3 reward should be 3', async function () {
+    expect(await stakingContract.connect(user3).viewUserReward(1)).to.equals(3);
+  });
+
+  it('Time travel to date 26', async function () {
+    await timeTravel(dayToSec(5));
+  });
+
+  it('Campaign 2: user3 should be able to unstake without penalty', async function () {
+    expect(await contractTestToken.balanceOf(user3.address)).to.equals(880);
+    const r = await (await stakingContract.connect(user3).unStaking(1)).wait();
+    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimRewardBoxes');
+    expect(filteredEvents.length).to.equal(1);
+    const eventArgs = filteredEvents[0].args;
+    expect(eventArgs.owner).to.equals(user3.address);
+    expect(eventArgs.numberOfBoxes).to.equals(4);
+    expect(eventArgs.rewardPhaseBoxId).to.equals(4);
+    expect(await stakingContract.connect(user3).viewUserReward(0)).to.equals(0);
+    expect(await stakingContract.connect(user3).getCurrentUserStakingAmount(0)).to.equals(0);
+    expect(await contractTestToken.balanceOf(user3.address)).to.equals(1000);
   });
 });
