@@ -96,12 +96,12 @@ contract DuelistKingStaking is RegistryUser {
 
     currentCampaign.stakedAmountOfToken += amountOfToken;
     require(currentCampaign.stakedAmountOfToken <= currentCampaign.maxAmountOfToken, 'DKStaking: Token limit exceeded');
-    _campaignStorage[campaignId] = currentCampaign;
 
     currentUserStakingSlot.stakedAmountOfBoxes = estimateUserReward(currentCampaign, currentUserStakingSlot);
     currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
     currentUserStakingSlot.stakingAmountOfToken += amountOfToken;
 
+    _campaignStorage[campaignId] = currentCampaign;
     _userStakingSlot[campaignId][msg.sender] = currentUserStakingSlot;
     emit Staking(msg.sender, amountOfToken, block.timestamp);
     return true;
