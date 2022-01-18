@@ -257,7 +257,7 @@ contract DuelistKingStaking is RegistryUser {
    * View section
    *******************************************************/
 
-  function viewUserReward(uint256 campaignId) external view returns (uint256) {
+  function getUserReward(uint256 campaignId) external view returns (uint256) {
     StakingCampaign memory currentCampaign = _campaignStorage[campaignId];
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][msg.sender];
     return estimateUserReward(currentCampaign, currentUserStakingSlot) / decimals;
@@ -278,5 +278,9 @@ contract DuelistKingStaking is RegistryUser {
   function getTotalPenaltyAmount(address tokenAddress) external view returns (uint256) {
     require(tokenAddress.isContract(), 'DKStaking: Token address is not a smart contract');
     return _totalPenalty[tokenAddress];
+  }
+
+  function getCampaignInfo(uint256 campaignId) external view returns (StakingCampaign memory) {
+    return _campaignStorage[campaignId];
   }
 }
