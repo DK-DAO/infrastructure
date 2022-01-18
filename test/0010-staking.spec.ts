@@ -240,8 +240,6 @@ describe('DKStaking', function () {
    * Duration: 10 days
    * RawBoxNumber: 400*0.2666%*10 ~ 10.64
    * RoundedBoxNumber: 10
-   * Total = 10.64
-   * ViewTotalSum = 10
    */
   it('Campaign 1: user1 & user2 should be able to reward 10 boxes at date 11 ', async function () {
     expect(await stakingContract.connect(user1).viewUserReward(0)).to.equals(10);
@@ -302,9 +300,8 @@ describe('DKStaking', function () {
    * Amount: 500
    * Duration: 5 days
    * RawBoxNumber: 500*0.2666%*5 = 6.65
-   * RoundedBoxNumber: 6
-   * TotalSum = 10.64 + 6.65 = 17.32
-   * ViewTotalSum = 17
+   * Latest raw box number = 10.64 + 6.65 = 17.32
+   * RoundedBoxNumber = 17
    */
   it('Campaign 1: user1 reward should be 17', async function () {
     expect(await stakingContract.connect(user1).viewUserReward(0)).to.equals(17);
