@@ -30,14 +30,13 @@ task('transfer:native', 'Distribute native token')
         const [address, amount] = tokenTransferData[i];
         const cleanAddress = address.trim();
         const gasPrice = await hre.ethers.provider.getGasPrice();
-        console.log(cleanAddress, (await hre.ethers.provider.getBalance(cleanAddress)).toString());
         const cleanAmount = hre.ethers.BigNumber.from(toHexString(new BigNumber(amount).times('1e+18')));
         if (hre.ethers.utils.isAddress(cleanAddress)) {
           console.log(
             'Process',
             cleanAddress,
             'amount:',
-            cleanAmount.div(hre.ethers.BigNumber.from(10).pow(18)).toString(),
+            new BigNumber(cleanAmount.toString()).div('1e+18').toString(),
             'ETH',
           );
           await (
