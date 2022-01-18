@@ -27,7 +27,7 @@ async function timeTravel(secs: number) {
   });
 }
 
-describe('DKStaking', function () {
+describe.only('DKStaking', function () {
   this.beforeAll('Before init', async function () {
     const accounts = await ethers.getSigners();
     infrastructureOperator = accounts[0];
@@ -82,7 +82,6 @@ describe('DKStaking', function () {
       tokenAddress: accounts[1].address,
       maxNumberOfBoxes: 32000,
       rewardPhaseBoxId: 3,
-      numberOfLockDays: 15,
     };
 
     await expect(stakingContract.createNewStakingCampaign(config)).to.be.revertedWith(
@@ -103,7 +102,6 @@ describe('DKStaking', function () {
       tokenAddress: contractTestToken.address,
       maxNumberOfBoxes: 32000,
       rewardPhaseBoxId: 3,
-      numberOfLockDays: 15,
     };
 
     await expect(stakingContract.connect(infrastructureOperator).createNewStakingCampaign(config)).to.be.revertedWith(
@@ -126,7 +124,6 @@ describe('DKStaking', function () {
       tokenAddress: contractTestToken.address,
       maxNumberOfBoxes: 32000,
       rewardPhaseBoxId: 3,
-      numberOfLockDays: 15,
     };
 
     const r = await (await stakingContract.createNewStakingCampaign(config)).wait();
@@ -146,7 +143,6 @@ describe('DKStaking', function () {
       tokenAddress: contractTestToken.address,
       maxNumberOfBoxes: 32000,
       rewardPhaseBoxId: 4,
-      numberOfLockDays: 12,
     };
 
     const r = await (await stakingContract.createNewStakingCampaign(config)).wait();
@@ -157,9 +153,7 @@ describe('DKStaking', function () {
   it('=========== Date 0 ============', () => {});
 
   it('Campaign 1: should be revert because a new user staking before event date', async function () {
-    await expect(stakingContract.connect(user1).staking(0, 200)).to.be.revertedWith(
-      'DKStaking: This staking event has not yet starting',
-    );
+    await expect(stakingContract.connect(user1).staking(0, 200)).to.be.revertedWith('DKStaking: Not in event time');
   });
 
   it('Campaign 1: should NOT be able to unstake with empty account before event date', async function () {
@@ -206,9 +200,7 @@ describe('DKStaking', function () {
   });
 
   it('Campaign 2: should be revert because a new user staking before event date', async function () {
-    await expect(stakingContract.connect(user1).staking(1, 200)).to.be.revertedWith(
-      'DKStaking: This staking event has not yet starting',
-    );
+    await expect(stakingContract.connect(user1).staking(1, 200)).to.be.revertedWith('DKStaking: Not in event time');
   });
 
   it('Campaign 2: user1 should NOT be able to unstake with empty account before event date', async function () {
@@ -219,7 +211,7 @@ describe('DKStaking', function () {
     await timeTravel(dayToSec(10));
   });
 
-  it('Campaign 2: user1 should be able to stake 100 Tokens', async function () {
+  it('Campaign 2: user1 should be able to stake 100 tokens', async function () {
     const r = await (await stakingContract.connect(user1).staking(1, 100)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
     expect(filteredEvents.length).to.equal(1);
@@ -247,7 +239,19 @@ describe('DKStaking', function () {
   });
 
   it('Campaign 1: user2 should be able to unstake with penalty', async function () {
-    await stakingContract.connect(user2).unStaking(0);
+    const r = await (await stakingContract.connect(user2).unStaking(0)).wait();
+    const rewardBoxesEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimRewardBoxes');
+    expect(rewardBoxesEvents.length).to.equal(1);
+    const eventArgs = rewardBoxesEvents[0].args;
+    expect(eventArgs.owner).to.equals(user2.address);
+    expect(eventArgs.numberOfBoxes).to.equals(5);
+
+    const unstakingEvents = <any>r.events?.filter((e: any) => e.event === 'Unstaking');
+    expect(unstakingEvents.length).to.equal(1);
+    const unstakingArgs = unstakingEvents[0].args;
+    expect(unstakingArgs.owner).to.equals(user2.address);
+    expect(unstakingArgs.tokenAmount).to.equals(392);
+
     expect(await contractTestToken.balanceOf(user2.address)).to.equals(400 * 0.98);
     expect(await stakingContract.connect(user2).getCurrentUserStakingAmount(0)).to.equal(0);
     expect(await stakingContract.connect(user2).getUserReward(0)).to.equal(0);
@@ -255,25 +259,28 @@ describe('DKStaking', function () {
   });
 
   it('Campaign 2: user1 should be able to unstake with penalty', async function () {
-    await stakingContract.connect(user1).unStaking(1);
+    const r = await (await stakingContract.connect(user1).unStaking(1)).wait(0);
+    const rewardBoxesEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimRewardBoxes');
+    expect(rewardBoxesEvents.length).to.equal(1);
+    const eventArgs = rewardBoxesEvents[0].args;
+    expect(eventArgs.numberOfBoxes).to.equals(0);
+    expect(eventArgs.owner).to.equals(user1.address);
+
+    const unstakingEvents = <any>r.events?.filter((e: any) => e.event === 'Unstaking');
+    expect(unstakingEvents.length).to.equal(1);
+    const unstakingArgs = unstakingEvents[0].args;
+    expect(unstakingArgs.owner).to.equals(user1.address);
+    expect(unstakingArgs.tokenAmount).to.equals(98);
+
     expect(await contractTestToken.balanceOf(user1.address)).to.equals(1598);
     expect(await stakingContract.connect(user1).getCurrentUserStakingAmount(1)).to.equal(0);
     expect(await stakingContract.connect(user1).getUserReward(1)).to.equal(0);
     expect(await stakingContract.getTotalPenaltyAmount(contractTestToken.address)).to.equal(400 * 0.02 + 100 * 0.02);
   });
 
-  /**
-   * After unstaking before due, user cannot claim any boxes
-   */
-  it('Campaign 1: user2 should NOT be able to claim any boxes', async function () {
+  it('Campaign 1: user2 should NOT be able to unstake again', async function () {
     expect(await stakingContract.connect(user2).getUserReward(0)).to.equal(0);
-    await expect(stakingContract.connect(user2).claimBoxes(0)).to.be.revertedWith('DKStaking: Insufficient boxes');
-  });
-
-  it('Campaign 1: user1 should NOT be able to claim boxes', async function () {
-    await expect(stakingContract.connect(user1).claimBoxes(0)).to.be.revertedWith(
-      'DKStaking: Unable to claim boxes before locked time',
-    );
+    await expect(stakingContract.connect(user2).unStaking(0)).to.be.revertedWith('DKStaking: No token to be unstaked');
   });
 
   it('Campagin 1: user1 should be failed when restake 101 token at date 11 (limitStakingAmountForUser = 500)', async function () {
@@ -307,46 +314,8 @@ describe('DKStaking', function () {
     expect(await stakingContract.connect(user1).getUserReward(0)).to.equals(17);
   });
 
-  it('Camapgin 1: user2 should NOT be able to claim boxes', async function () {
-    await expect(stakingContract.connect(user2).claimBoxes(0)).to.be.revertedWith('DKStaking: Insufficient boxes');
-  });
-
-  /**
-   * TotalSum = 17.32
-   * Can claim = 17
-   */
-  it('Campaign 1: user1 should be able to claim 17 boxes', async function () {
-    const r = await (await stakingContract.connect(user1).claimBoxes(0)).wait();
-    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimRewardBoxes');
-    expect(filteredEvents.length).to.equal(1);
-    const eventArgs = filteredEvents[0].args;
-    expect(eventArgs.owner).to.equals(user1.address);
-    // TODO: update variable constant for rewardPhaseBoxId
-    expect(eventArgs.rewardPhaseBoxId).to.equals(3);
-    expect(eventArgs.numberOfBoxes).to.equals(17);
-    expect(await stakingContract.connect(user1).getUserReward(0)).to.equals(0);
-  });
-
-  it('Capaign 1: user1 should NOT be able to claim boxes again', async function () {
-    await expect(stakingContract.connect(user1).claimBoxes(0)).to.be.revertedWith('DKStaking: Insufficient boxes');
-  });
-
-  it('Campaign 1: user3 should be able to unstake without penalty', async function () {
-    expect(await contractTestToken.balanceOf(user3.address)).to.equals(580);
-    const r = await (await stakingContract.connect(user3).unStaking(0)).wait();
-    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimRewardBoxes');
-    const eventArgs = filteredEvents[0].args;
-    expect(eventArgs.owner).to.equals(user3.address);
-    expect(eventArgs.numberOfBoxes).to.equals(11);
-    expect(eventArgs.rewardPhaseBoxId).to.equals(3);
-    expect(filteredEvents.length).to.equal(1);
-    expect(await stakingContract.connect(user3).getUserReward(0)).to.equals(0);
-    expect(await stakingContract.connect(user3).getCurrentUserStakingAmount(0)).to.equals(0);
-    expect(await contractTestToken.balanceOf(user3.address)).to.equals(880);
-  });
-
-  it('Campagn 1: user3 should NOT be able to claimBoxes after unstaking', async function () {
-    await expect(stakingContract.connect(user3).claimBoxes(0)).to.be.revertedWith('DKStaking: Insufficient boxes');
+  it('Camapgin 1: user2 should NOT be able to unstake', async function () {
+    await expect(stakingContract.connect(user2).unStaking(0)).to.be.revertedWith('DKStaking: No token to be unstaked');
   });
 
   it('Campaign 2: user3 reward should be 1', async function () {
@@ -357,46 +326,49 @@ describe('DKStaking', function () {
     await timeTravel(dayToSec(5));
   });
 
-  it('Campiagn 1: user3 should NOT be earn any more boxes after unstaking', async function () {
-    expect(await stakingContract.connect(user3).getUserReward(0)).to.equals(0);
-  });
-
   it('Campaign 1: user2 should NOT be able to earn any boxes at date 21 since unstaking event', async function () {
     expect(await stakingContract.connect(user2).getUserReward(0)).to.equal(0);
-  });
-
-  it('Campaign 1: user2 should NOT be able to stake', async function () {
-    await expect(stakingContract.connect(user2).staking(0, 100)).to.be.revertedWith(
-      'DKStaking: Not enough staking duration',
-    );
-  });
-
-  it('Campaign 2: user2 should NOT be able to stake', async function () {
-    await expect(stakingContract.connect(user2).staking(1, 100)).to.be.revertedWith(
-      'DKStaking: Not enough staking duration',
-    );
   });
 
   it('Campaign 2: user3 reward should be 3', async function () {
     expect(await stakingContract.connect(user3).getUserReward(1)).to.equals(3);
   });
 
-  it('=========== Date 26 ============', async function () {
-    await timeTravel(dayToSec(5));
+  it('=========== Date 30 ============', async function () {
+    await timeTravel(dayToSec(9));
+  });
+
+  it('Campaign 1: user2 should NOT be able to stake', async function () {
+    await expect(stakingContract.connect(user2).staking(0, 100)).to.be.revertedWith('DKStaking: Not in event time');
+  });
+
+  it('Campaign 2: user2 should NOT be able to stake', async function () {
+    await expect(stakingContract.connect(user2).staking(1, 100)).to.be.revertedWith('DKStaking: Not in event time');
+  });
+
+  it('=========== Date 32 ============', async function () {
+    await timeTravel(dayToSec(2));
   });
 
   it('Campaign 2: user3 should be able to unstake without penalty', async function () {
-    expect(await contractTestToken.balanceOf(user3.address)).to.equals(880);
+    expect(await contractTestToken.balanceOf(user3.address)).to.equals(580);
     const r = await (await stakingContract.connect(user3).unStaking(1)).wait();
-    const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimRewardBoxes');
-    expect(filteredEvents.length).to.equal(1);
-    const eventArgs = filteredEvents[0].args;
+    const rewardBoxesEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimRewardBoxes');
+    expect(rewardBoxesEvents.length).to.equal(1);
+    const eventArgs = rewardBoxesEvents[0].args;
     expect(eventArgs.owner).to.equals(user3.address);
-    expect(eventArgs.numberOfBoxes).to.equals(4);
+    expect(eventArgs.numberOfBoxes).to.equals(6);
     expect(eventArgs.rewardPhaseBoxId).to.equals(4);
-    expect(await stakingContract.connect(user3).getUserReward(0)).to.equals(0);
-    expect(await stakingContract.connect(user3).getCurrentUserStakingAmount(0)).to.equals(0);
-    expect(await contractTestToken.balanceOf(user3.address)).to.equals(1000);
+
+    const unstakingEvents = <any>r.events?.filter((e: any) => e.event === 'Unstaking');
+    expect(unstakingEvents.length).to.equal(1);
+    const unstakingArgs = unstakingEvents[0].args;
+    expect(unstakingArgs.owner).to.equals(user3.address);
+    expect(unstakingArgs.tokenAmount).to.equals(120);
+
+    expect(await stakingContract.connect(user3).getUserReward(1)).to.equals(0);
+    expect(await stakingContract.connect(user3).getCurrentUserStakingAmount(1)).to.equals(0);
+    expect(await contractTestToken.balanceOf(user3.address)).to.equals(700);
   });
 
   it('should NOT be able withdraw penalty token because of non registered user', async function () {
@@ -406,8 +378,9 @@ describe('DKStaking', function () {
   });
 
   it('Staking operator should be withdraw penalty token', async function () {
-    expect(await stakingContract.getTotalPenaltyAmount(contractTestToken.address)).to.equal(400 * 0.02 + 100 * 0.02);
-    // expect(await stakingContract.withdrawPenaltyToken(0, user4.address)).to.be.true;
+    expect(await stakingContract.connect(stakingOperator).getTotalPenaltyAmount(contractTestToken.address)).to.equal(
+      400 * 0.02 + 100 * 0.02,
+    );
     const r = await (await stakingContract.withdrawPenaltyToken(0, user4.address)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Withdrawal');
     expect(filteredEvents.length).to.equal(1);

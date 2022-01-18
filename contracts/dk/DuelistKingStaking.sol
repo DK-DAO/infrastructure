@@ -58,7 +58,7 @@ contract DuelistKingStaking is RegistryUser {
   // User claim boxes event
   event ClaimRewardBoxes(address indexed owner, uint128 indexed numberOfBoxes, uint64 indexed rewardPhaseBoxId);
 
-  event Withdrawal(address indexed beneficiary, uint256 indexed amount, uint64 timestamp);
+  event Withdrawal(address indexed beneficiary, uint256 indexed amount, uint64 indexed timestamp);
 
   constructor(address registry_, bytes32 domain_) {
     _registryUserInit(registry_, domain_);
