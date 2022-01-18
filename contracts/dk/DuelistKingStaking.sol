@@ -73,6 +73,7 @@ contract DuelistKingStaking is RegistryUser {
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][msg.sender];
     ERC20 currentToken = ERC20(currentCampaign.tokenAddress);
 
+    // User should stake at least 1 day in event time
     require(
       block.timestamp >= currentCampaign.startDate && block.timestamp <= currentCampaign.endDate - 1 days,
       'DKStaking: Not in event time'
@@ -113,7 +114,7 @@ contract DuelistKingStaking is RegistryUser {
     require(currentUserStakingSlot.stakingAmountOfToken > 0, 'DKStaking: No token to be unstaked');
 
     /**
-     * User unstake before campaign's endDate
+     * User unstake before endDate
      * will be paid for penalty fee: 2% DKT and 50% reward box
      */
     currentUserStakingSlot.stakedAmountOfBoxes = estimateUserReward(currentCampaign, currentUserStakingSlot);

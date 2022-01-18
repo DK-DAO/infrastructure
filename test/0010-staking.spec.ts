@@ -65,7 +65,7 @@ describe.only('DKStaking', function () {
     await contractTestToken.transfer(user2.address, 400);
     await contractTestToken.transfer(user3.address, 1000);
     await contractTestToken.connect(user1).approve(stakingContract.address, 2000);
-    await contractTestToken.connect(user2).approve(stakingContract.address, 500);
+    await contractTestToken.connect(user2).approve(stakingContract.address, 600);
     await contractTestToken.connect(user3).approve(stakingContract.address, 1000);
   });
 
@@ -375,6 +375,9 @@ describe.only('DKStaking', function () {
     await expect(stakingContract.connect(user2).withdrawPenaltyToken(0, user2.address)).to.be.revertedWith(
       'UserRegistry: Only allow call from same domain',
     );
+    await expect(
+      stakingContract.connect(infrastructureOperator).withdrawPenaltyToken(0, user2.address),
+    ).to.be.revertedWith('UserRegistry: Only allow call from same domain');
   });
 
   it('Staking operator should be withdraw penalty token', async function () {
