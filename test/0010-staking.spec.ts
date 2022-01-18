@@ -27,7 +27,7 @@ async function timeTravel(secs: number) {
   });
 }
 
-describe.only('DKStaking', function () {
+describe('DKStaking', function () {
   this.beforeAll('Before init', async function () {
     const accounts = await ethers.getSigners();
     infrastructureOperator = accounts[0];
