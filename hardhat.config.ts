@@ -33,7 +33,7 @@ const config: HardhatUserConfig = {
   networks: {
     fantom: {
       url: env.DUELIST_KING_FANTOM_RPC,
-      chainId: 137,
+      chainId: 250,
       accounts: {
         mnemonic: env.DUELIST_KING_FANTOM_MNEMONIC,
         path: "m/44'/60'/0'/0",
