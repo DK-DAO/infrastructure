@@ -26,13 +26,13 @@ contract DuelistKingStaking is RegistryUser {
     uint256 stakedAmountOfToken;
     uint256 limitStakingAmountForUser;
     address tokenAddress;
-    uint64 maxNumberOfBoxes;
+    uint128 maxNumberOfBoxes;
     uint128 totalReceivedBoxes;
   }
 
   struct UserStakingSlot {
     uint256 stakingAmountOfToken;
-    uint128 stakedAmountOfBoxes;
+    uint128 stakedReward;
     uint64 startStakingDate;
     uint64 lastStakingDate;
   }
@@ -46,23 +46,23 @@ contract DuelistKingStaking is RegistryUser {
   mapping(address => uint256) private _totalPenalty;
 
   // New created campaign event
-  event NewCampaign(uint64 indexed startDate, address indexed tokenAddress, uint256 indexed campaignId);
+  event NewCampaign(uint256 indexed campaignId, uint64 indexed startDate, address indexed tokenAddress);
 
   // Staking event
-  event Staking(address indexed owner, uint256 indexed amount, uint256 indexed campaignId);
+  event Staking(uint256 indexed campaignId, address indexed owner, uint256 indexed amount);
 
   // Unstaking and claim reward event
   event ClaimReward(
+    uint256 campaignId,
     address indexed owner,
     uint128 indexed numberOfBoxes,
     uint64 indexed rewardPhaseId,
-    uint256 campaignId,
     uint256 withdrawAmount,
     bool isPenalty
   );
 
   // Withdrawal penalty token event
-  event Withdrawal(address indexed beneficiary, uint256 indexed amount, uint256 indexed campaignId);
+  event Withdrawal(uint256 indexed campaignId, address indexed beneficiary, uint256 indexed amount);
 
   constructor(address registry_, bytes32 domain_) {
     _registryUserInit(registry_, domain_);
@@ -94,8 +94,7 @@ contract DuelistKingStaking is RegistryUser {
       currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
     }
 
-    // Transfer token from user to this smart contract
-    require(currentToken.balanceOf(msg.sender) >= amountOfToken, 'DKStaking: Insufficient balance');
+    // Safely transfer token from user to this smart contract
     uint256 beforeBalance = currentToken.balanceOf(address(this));
     currentToken.safeTransferFrom(msg.sender, address(this), amountOfToken);
     uint256 afterBalance = currentToken.balanceOf(address(this));
@@ -106,14 +105,14 @@ contract DuelistKingStaking is RegistryUser {
     require(currentCampaign.stakedAmountOfToken <= currentCampaign.maxAmountOfToken, 'DKStaking: Token limit exceeded');
 
     // Calculate user reward
-    currentUserStakingSlot.stakedAmountOfBoxes = estimateUserReward(currentCampaign, currentUserStakingSlot);
+    currentUserStakingSlot.stakedReward = uint128(estimateUserReward(currentCampaign, currentUserStakingSlot));
     currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
     currentUserStakingSlot.stakingAmountOfToken += amountOfToken;
 
     // Update campaign and user staking slot
     _campaignStorage[campaignId] = currentCampaign;
     _userStakingSlot[campaignId][msg.sender] = currentUserStakingSlot;
-    emit Staking(msg.sender, amountOfToken, campaignId);
+    emit Staking(campaignId, msg.sender, amountOfToken);
     return true;
   }
 
@@ -121,8 +120,8 @@ contract DuelistKingStaking is RegistryUser {
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][msg.sender];
     StakingCampaign memory currentCampaign = _campaignStorage[campaignId];
     uint256 withdrawAmount = currentUserStakingSlot.stakingAmountOfToken;
-    uint128 rewardBoxes = estimateUserReward(currentCampaign, currentUserStakingSlot);
-    bool isPenalty;
+    uint128 rewardBoxes = uint128(estimateUserReward(currentCampaign, currentUserStakingSlot) / 1000000);
+    bool isPenalty = block.timestamp < currentCampaign.endDate;
 
     require(withdrawAmount > 0, 'DKStaking: No token to be unstaked');
 
@@ -131,40 +130,27 @@ contract DuelistKingStaking is RegistryUser {
      * will be paid for penalty fee: 2% DKT and 50% reward box
      */
 
-    if (block.timestamp < currentCampaign.endDate) {
-      uint256 penaltyAmount = withdrawAmount / 50;
-
+    if (isPenalty) {
       // pnaltyAmount: 2% of user's staked token
+      uint256 penaltyAmount = withdrawAmount / 50;
       withdrawAmount -= penaltyAmount;
 
-      // penalty rewardBoxes is 50%
+      // penalty userReward is 50%
       rewardBoxes /= 2;
       _totalPenalty[currentCampaign.tokenAddress] += penaltyAmount;
-      isPenalty = true;
     }
-    transfer(currentCampaign.tokenAddress, msg.sender, withdrawAmount);
-    emit ClaimReward(
-      msg.sender,
-      rewardBoxes / 1000000,
-      currentCampaign.rewardPhaseId,
-      campaignId,
-      withdrawAmount,
-      isPenalty
-    );
+    tokenTransfer(currentCampaign.tokenAddress, msg.sender, withdrawAmount);
+    emit ClaimReward(campaignId, msg.sender, rewardBoxes, currentCampaign.rewardPhaseId, withdrawAmount, isPenalty);
 
     // Remove user staking amount from the pool and update total boxes user receive
     currentCampaign.stakedAmountOfToken -= currentUserStakingSlot.stakingAmountOfToken;
-    currentCampaign.totalReceivedBoxes += rewardBoxes / 1000000;
+    currentCampaign.totalReceivedBoxes += rewardBoxes;
 
-    // Reset user staking storage
-    currentUserStakingSlot.stakingAmountOfToken = 0;
-    currentUserStakingSlot.stakedAmountOfBoxes = 0;
-    currentUserStakingSlot.startStakingDate = 0;
-    currentUserStakingSlot.lastStakingDate = 0;
+    // Delete user staking storage
+    delete (_userStakingSlot[campaignId][msg.sender]);
 
-    // Update campaign and user staking slot
+    // Update campaign
     _campaignStorage[campaignId] = currentCampaign;
-    _userStakingSlot[campaignId][msg.sender] = currentUserStakingSlot;
     return true;
   }
 
@@ -193,7 +179,7 @@ contract DuelistKingStaking is RegistryUser {
     );
     _campaignStorage[_totalCampaign] = newCampaign;
 
-    emit NewCampaign(newCampaign.startDate, newCampaign.tokenAddress, _totalCampaign);
+    emit NewCampaign(_totalCampaign, newCampaign.startDate, newCampaign.tokenAddress);
     _totalCampaign += 1;
     return true;
   }
@@ -206,8 +192,8 @@ contract DuelistKingStaking is RegistryUser {
   {
     StakingCampaign memory currentCampaign = _campaignStorage[campaignId];
     uint256 withdrawingAmount = _totalPenalty[currentCampaign.tokenAddress];
-    transfer(currentCampaign.tokenAddress, beneficiary, withdrawingAmount);
-    emit Withdrawal(beneficiary, withdrawingAmount, campaignId);
+    tokenTransfer(currentCampaign.tokenAddress, beneficiary, withdrawingAmount);
+    emit Withdrawal(campaignId, beneficiary, withdrawingAmount);
     return true;
   }
 
@@ -219,29 +205,28 @@ contract DuelistKingStaking is RegistryUser {
   function estimateUserReward(StakingCampaign memory currentCampaign, UserStakingSlot memory currentUserStakingSlot)
     private
     view
-    returns (uint128)
+    returns (uint256)
   {
     uint64 currentTimestamp = uint64(block.timestamp);
     if (currentTimestamp > currentCampaign.endDate) {
       currentTimestamp = currentCampaign.endDate;
     }
-    uint64 stakingDuration = (currentTimestamp - currentUserStakingSlot.lastStakingDate) / (1 days);
 
-    uint128 remainingReward = uint128(
-      currentUserStakingSlot.stakingAmountOfToken * stakingDuration * currentCampaign.returnRate
-    );
-    return currentUserStakingSlot.stakedAmountOfBoxes + remainingReward;
+    uint256 onGoingReward = (currentUserStakingSlot.stakingAmountOfToken *
+      (currentTimestamp - currentUserStakingSlot.lastStakingDate) *
+      currentCampaign.returnRate) / (1 days);
+
+    return currentUserStakingSlot.stakedReward + onGoingReward;
   }
 
   // Transfer token to receiver
-  function transfer(
+  function tokenTransfer(
     address tokenAddress,
     address receiver,
     uint256 amount
   ) private returns (bool) {
     ERC20 token = ERC20(tokenAddress);
 
-    require(token.balanceOf(address(this)) >= amount && amount > 0, 'DKStaking: Insufficient balance');
     uint256 beforeBalance = token.balanceOf(address(this));
     token.safeTransfer(receiver, amount);
     uint256 afterBalance = token.balanceOf(address(this));
@@ -256,7 +241,9 @@ contract DuelistKingStaking is RegistryUser {
   function getUserStakingSlot(uint256 campaignId, address owner) external view returns (UserStakingSlot memory) {
     StakingCampaign memory currentCampaign = _campaignStorage[campaignId];
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][owner];
-    currentUserStakingSlot.stakedAmountOfBoxes = estimateUserReward(currentCampaign, currentUserStakingSlot) / 1000000;
+    currentUserStakingSlot.stakedReward = uint128(
+      estimateUserReward(currentCampaign, currentUserStakingSlot) / 1000000
+    );
     return currentUserStakingSlot;
   }
 
