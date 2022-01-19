@@ -41,7 +41,11 @@ describe('DKStaking', function () {
     );
 
     // Register new operator in registry contract
-    await registry.set(registryRecords.domain.duelistKing, registryRecords.name.staking, stakingOperator.address);
+    await registry.set(
+      registryRecords.domain.duelistKing,
+      registryRecords.name.stakingOperator,
+      stakingOperator.address,
+    );
     await registry.set(
       registryRecords.domain.infrastructure,
       registryRecords.name.operator,

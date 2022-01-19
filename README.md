@@ -1,4 +1,5 @@
 # infrastructure
+
 Infrastructure of DKDAO
 
 ```
@@ -20,4 +21,12 @@ Infrastructure of DKDAO
         }
     }
 }
+```
+
+## Deploy staking
+
+An example of deploying new staking contract
+
+```text
+npx hardhat --network local deploy:staking --registry 0x0e870BC3D1A61b22E9ad8b168ceDB4Dc78D6699a --operator 0x9C00CccFC23c3AC90c48D37226D4E2aF2D3d3415
 ```
