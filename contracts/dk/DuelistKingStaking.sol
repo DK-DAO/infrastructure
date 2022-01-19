@@ -174,8 +174,9 @@ contract DuelistKingStaking is RegistryUser {
     require(newCampaign.rewardPhaseId >= 1, 'DKStaking: Invalid phase id');
     require(newCampaign.tokenAddress.isContract(), 'DKStaking: Token address is not a smart contract');
 
+    ERC20 token = ERC20(newCampaign.tokenAddress);
     newCampaign.returnRate = uint64(
-      (newCampaign.maxNumberOfBoxes * 1000000) / (newCampaign.maxAmountOfToken * duration)
+      newCampaign.maxNumberOfBoxes / (newCampaign.maxAmountOfToken * duration) / (1000000 * 10**token.decimals())
     );
     _campaignStorage[_totalCampaign] = newCampaign;
 
