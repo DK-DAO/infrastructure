@@ -196,7 +196,7 @@ describe('DKStaking', function () {
   });
 
   it('Campaign 1: user2 should NOT be able to stake 500 Tokens', async function () {
-    expect(stakingContract.connect(user2).staking(0, 500)).to.be.revertedWith('DKStaking: Insufficient balance');
+    expect(stakingContract.connect(user2).staking(0, 500)).to.be.revertedWith('ERC20: transfer amount exceeds balance');
   });
 
   it('Campaign 1: user2 should be able to stake 400 Tokens', async function () {
@@ -262,8 +262,8 @@ describe('DKStaking', function () {
   it('Campaign 1: user1 & user2 should be able to reward 10 boxes at date 11 ', async function () {
     const userSlot1 = await stakingContract.getUserStakingSlot(0, user1.address);
     const userSlot2 = await stakingContract.getUserStakingSlot(0, user2.address);
-    expect(userSlot1.stakedAmountOfBoxes).to.equals(10);
-    expect(userSlot2.stakedAmountOfBoxes).to.equals(10);
+    expect(userSlot1.stakedReward).to.equals(10);
+    expect(userSlot2.stakedReward).to.equals(10);
   });
 
   it('Campaign 1: user2 should be able to unstake with penalty', async function () {
@@ -281,7 +281,7 @@ describe('DKStaking', function () {
 
     const userSlot = await stakingContract.getUserStakingSlot(0, user2.address);
     expect(userSlot.stakingAmountOfToken).to.equal(0);
-    expect(userSlot.stakedAmountOfBoxes).to.equal(0);
+    expect(userSlot.stakedReward).to.equal(0);
     expect(await stakingContract.getTotalPenaltyAmount(contractTestToken.address)).to.equal(400 * 0.02);
     const campaign = await stakingContract.getCampaignInfo(0);
     expect(campaign.totalReceivedBoxes).to.equals(5);
@@ -302,7 +302,7 @@ describe('DKStaking', function () {
     const userSlot = await stakingContract.getUserStakingSlot(1, user1.address);
     expect(await contractTestToken.balanceOf(user1.address)).to.equals(1598);
     expect(userSlot.stakingAmountOfToken).to.equal(0);
-    expect(userSlot.stakedAmountOfBoxes).to.equal(0);
+    expect(userSlot.stakedReward).to.equal(0);
     expect(await stakingContract.getTotalPenaltyAmount(contractTestToken.address)).to.equal(400 * 0.02 + 100 * 0.02);
     const campaign = await stakingContract.getCampaignInfo(0);
     expect(campaign.totalReceivedBoxes).to.equals(5);
@@ -310,7 +310,7 @@ describe('DKStaking', function () {
 
   it('Campaign 1: user2 should NOT be able to unstake again', async function () {
     const userSlot = await stakingContract.getUserStakingSlot(0, user2.address);
-    expect(userSlot.stakedAmountOfBoxes).to.equal(0);
+    expect(userSlot.stakedReward).to.equal(0);
     await expect(stakingContract.connect(user2).unStaking(0)).to.be.revertedWith('DKStaking: No token to be unstaked');
   });
 
@@ -332,7 +332,7 @@ describe('DKStaking', function () {
 
   it('Campaign 1: user2 should NOT be able to earn any boxes at date 16', async function () {
     const userSlot = await stakingContract.getUserStakingSlot(0, user2.address);
-    expect(userSlot.stakedAmountOfBoxes).to.equal(0);
+    expect(userSlot.stakedReward).to.equal(0);
     expect(userSlot.stakingAmountOfToken).to.equal(0);
   });
   /**
@@ -346,7 +346,7 @@ describe('DKStaking', function () {
    */
   it('Campaign 1: user1 reward should be 17', async function () {
     const userSlot = await stakingContract.getUserStakingSlot(0, user1.address);
-    expect(userSlot.stakedAmountOfBoxes).to.equals(17);
+    expect(userSlot.stakedReward).to.equals(17);
   });
 
   it('Camapgin 1: user2 should NOT be able to unstake', async function () {
@@ -355,7 +355,7 @@ describe('DKStaking', function () {
 
   it('Campaign 2: user3 reward should be 1', async function () {
     const userSlot = await stakingContract.getUserStakingSlot(1, user3.address);
-    expect(userSlot.stakedAmountOfBoxes).to.equals(1);
+    expect(userSlot.stakedReward).to.equals(1);
   });
 
   it('=========== Date 21 ============', async function () {
@@ -364,12 +364,12 @@ describe('DKStaking', function () {
 
   it('Campaign 1: user2 should NOT be able to earn any boxes at date 21 since unstaking event', async function () {
     const userSlot = await stakingContract.getUserStakingSlot(0, user2.address);
-    expect(userSlot.stakedAmountOfBoxes).to.equal(0);
+    expect(userSlot.stakedReward).to.equal(0);
   });
 
   it('Campaign 2: user3 reward should be 3', async function () {
     const userSlot = await stakingContract.getUserStakingSlot(1, user3.address);
-    expect(userSlot.stakedAmountOfBoxes).to.equals(3);
+    expect(userSlot.stakedReward).to.equals(3);
   });
 
   it('=========== Date 30 ============', async function () {
@@ -403,7 +403,7 @@ describe('DKStaking', function () {
 
     const userSlot = await stakingContract.getUserStakingSlot(1, user3.address);
 
-    expect(userSlot.stakedAmountOfBoxes).to.equals(0);
+    expect(userSlot.stakedReward).to.equals(0);
     expect(userSlot.stakingAmountOfToken).to.equals(0);
     expect(await contractTestToken.balanceOf(user3.address)).to.equals(700);
   });
