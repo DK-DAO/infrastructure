@@ -120,7 +120,7 @@ contract DuelistKingStaking is RegistryUser {
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][msg.sender];
     StakingCampaign memory currentCampaign = _campaignStorage[campaignId];
     uint256 withdrawAmount = currentUserStakingSlot.stakingAmountOfToken;
-    uint128 rewardBoxes = uint128(estimateUserReward(currentCampaign, currentUserStakingSlot) / 1000000);
+    uint128 rewardBoxes = uint128(estimateUserReward(currentCampaign, currentUserStakingSlot) / (1000000 * 10**18));
     bool isPenalty = block.timestamp < currentCampaign.endDate;
 
     require(withdrawAmount > 0, 'DKStaking: No token to be unstaked');
@@ -175,7 +175,7 @@ contract DuelistKingStaking is RegistryUser {
     require(newCampaign.tokenAddress.isContract(), 'DKStaking: Token address is not a smart contract');
 
     newCampaign.returnRate = uint64(
-      (newCampaign.maxNumberOfBoxes * 1000000) / (newCampaign.maxAmountOfToken * duration)
+      (newCampaign.maxNumberOfBoxes * 1000000 * 10**18) / (newCampaign.maxAmountOfToken * duration)
     );
     _campaignStorage[_totalCampaign] = newCampaign;
 
@@ -242,7 +242,7 @@ contract DuelistKingStaking is RegistryUser {
     StakingCampaign memory currentCampaign = _campaignStorage[campaignId];
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][owner];
     currentUserStakingSlot.stakedReward = uint128(
-      estimateUserReward(currentCampaign, currentUserStakingSlot) / 1000000
+      estimateUserReward(currentCampaign, currentUserStakingSlot) / (1000000 * 10**18)
     );
     return currentUserStakingSlot;
   }
