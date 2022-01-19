@@ -119,8 +119,12 @@ contract DuelistKingStaking is RegistryUser {
   function unStaking(uint256 campaignId) external returns (bool) {
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][msg.sender];
     StakingCampaign memory currentCampaign = _campaignStorage[campaignId];
+    ERC20 token = ERC20(currentCampaign.tokenAddress);
+
     uint256 withdrawAmount = currentUserStakingSlot.stakingAmountOfToken;
-    uint128 rewardBoxes = uint128(estimateUserReward(currentCampaign, currentUserStakingSlot) / 1000000);
+    uint128 rewardBoxes = uint128(
+      estimateUserReward(currentCampaign, currentUserStakingSlot) / (1000000 * 10**token.decimals())
+    );
     bool isPenalty = block.timestamp < currentCampaign.endDate;
 
     require(withdrawAmount > 0, 'DKStaking: No token to be unstaked');
@@ -176,7 +180,7 @@ contract DuelistKingStaking is RegistryUser {
 
     ERC20 token = ERC20(newCampaign.tokenAddress);
     newCampaign.returnRate = uint64(
-      newCampaign.maxNumberOfBoxes / (newCampaign.maxAmountOfToken * duration) / (1000000 * 10**token.decimals())
+      (newCampaign.maxNumberOfBoxes * 1000000) / ((newCampaign.maxAmountOfToken / 10**token.decimals()) * duration)
     );
     _campaignStorage[_totalCampaign] = newCampaign;
 
@@ -242,8 +246,9 @@ contract DuelistKingStaking is RegistryUser {
   function getUserStakingSlot(uint256 campaignId, address owner) external view returns (UserStakingSlot memory) {
     StakingCampaign memory currentCampaign = _campaignStorage[campaignId];
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][owner];
+    ERC20 token = ERC20(currentCampaign.tokenAddress);
     currentUserStakingSlot.stakedReward = uint128(
-      estimateUserReward(currentCampaign, currentUserStakingSlot) / 1000000
+      estimateUserReward(currentCampaign, currentUserStakingSlot) / (1000000 * 10**token.decimals())
     );
     return currentUserStakingSlot;
   }
