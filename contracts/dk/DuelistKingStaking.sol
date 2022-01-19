@@ -50,15 +50,20 @@ contract DuelistKingStaking is RegistryUser {
   event NewCampaign(uint64 indexed startDate, address indexed tokenAddress, uint256 indexed campaignId);
 
   // Staking event
-  event Staking(address indexed owner, uint256 indexed amount, uint256 indexed startStakingDate);
+  event Staking(address indexed owner, uint256 indexed amount, uint256 indexed campaignId);
 
   // Unstaking event
-  event Unstaking(address indexed owner, uint256 indexed tokenAmount, uint64 indexed unStakeTime);
+  event Unstaking(address indexed owner, uint256 indexed tokenAmount, uint256 indexed campaignId);
 
   // User claim boxes event
-  event ClaimRewardBoxes(address indexed owner, uint128 indexed numberOfBoxes, uint64 indexed rewardPhaseBoxId);
+  event ClaimRewardBoxes(
+    address indexed owner,
+    uint128 indexed numberOfBoxes,
+    uint64 indexed rewardPhaseBoxId,
+    uint256 campaignId
+  );
 
-  event Withdrawal(address indexed beneficiary, uint256 indexed amount, uint64 indexed timestamp);
+  event Withdrawal(address indexed beneficiary, uint256 indexed amount, uint256 indexed campaignId);
 
   constructor(address registry_, bytes32 domain_) {
     _registryUserInit(registry_, domain_);
@@ -102,7 +107,7 @@ contract DuelistKingStaking is RegistryUser {
 
     _campaignStorage[campaignId] = currentCampaign;
     _userStakingSlot[campaignId][msg.sender] = currentUserStakingSlot;
-    emit Staking(msg.sender, amountOfToken, block.timestamp);
+    emit Staking(msg.sender, amountOfToken, campaignId);
     return true;
   }
 
@@ -127,17 +132,19 @@ contract DuelistKingStaking is RegistryUser {
       emit ClaimRewardBoxes(
         msg.sender,
         currentUserStakingSlot.stakedAmountOfBoxes / (2 * decimals),
-        currentCampaign.rewardPhaseBoxId
+        currentCampaign.rewardPhaseBoxId,
+        campaignId
       );
-      emit Unstaking(msg.sender, currentUserStakingSlot.stakingAmountOfToken - penaltyAmount, uint64(block.timestamp));
+      emit Unstaking(msg.sender, currentUserStakingSlot.stakingAmountOfToken - penaltyAmount, campaignId);
     } else {
       currentToken.safeTransfer(msg.sender, currentUserStakingSlot.stakingAmountOfToken);
       emit ClaimRewardBoxes(
         msg.sender,
         currentUserStakingSlot.stakedAmountOfBoxes / decimals,
-        currentCampaign.rewardPhaseBoxId
+        currentCampaign.rewardPhaseBoxId,
+        campaignId
       );
-      emit Unstaking(msg.sender, currentUserStakingSlot.stakingAmountOfToken, uint64(block.timestamp));
+      emit Unstaking(msg.sender, currentUserStakingSlot.stakingAmountOfToken, campaignId);
     }
 
     // remove user staking amount from the pool
@@ -190,7 +197,7 @@ contract DuelistKingStaking is RegistryUser {
     uint256 withdrawingAmount = _totalPenalty[currentCampaign.tokenAddress];
     require(withdrawingAmount > 0, 'DKStaking: Invalid withdrawing amount');
     currentToken.safeTransfer(beneficiary, withdrawingAmount);
-    emit Withdrawal(beneficiary, withdrawingAmount, uint64(block.timestamp));
+    emit Withdrawal(beneficiary, withdrawingAmount, campaignId);
     return true;
   }
 

@@ -178,6 +178,10 @@ describe('DKStaking', function () {
     const r = await (await stakingContract.connect(user1).staking(0, 400)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
     expect(filteredEvents.length).to.equal(1);
+    const eventArgs = filteredEvents[0].args;
+    expect(eventArgs.owner).to.equals(user1.address);
+    expect(eventArgs.amount).to.equals(400);
+    expect(eventArgs.campaignId).to.equals(0);
     expect(await stakingContract.connect(user1).getCurrentUserStakingAmount(0)).to.equal(400);
   });
 
@@ -245,12 +249,14 @@ describe('DKStaking', function () {
     const eventArgs = rewardBoxesEvents[0].args;
     expect(eventArgs.owner).to.equals(user2.address);
     expect(eventArgs.numberOfBoxes).to.equals(5);
+    expect(eventArgs.campaignId).to.equals(0);
 
     const unstakingEvents = <any>r.events?.filter((e: any) => e.event === 'Unstaking');
     expect(unstakingEvents.length).to.equal(1);
     const unstakingArgs = unstakingEvents[0].args;
     expect(unstakingArgs.owner).to.equals(user2.address);
     expect(unstakingArgs.tokenAmount).to.equals(392);
+    expect(unstakingArgs.campaignId).to.equals(0);
 
     expect(await contractTestToken.balanceOf(user2.address)).to.equals(400 * 0.98);
     expect(await stakingContract.connect(user2).getCurrentUserStakingAmount(0)).to.equal(0);
@@ -365,6 +371,7 @@ describe('DKStaking', function () {
     const unstakingArgs = unstakingEvents[0].args;
     expect(unstakingArgs.owner).to.equals(user3.address);
     expect(unstakingArgs.tokenAmount).to.equals(120);
+    expect(unstakingArgs.campaignId).to.equals(1);
 
     expect(await stakingContract.connect(user3).getUserReward(1)).to.equals(0);
     expect(await stakingContract.connect(user3).getCurrentUserStakingAmount(1)).to.equals(0);
@@ -390,6 +397,7 @@ describe('DKStaking', function () {
     const eventArgs = filteredEvents[0].args;
     expect(eventArgs.beneficiary).to.equals(user4.address);
     expect(eventArgs.amount).to.equals(10);
+    expect(eventArgs.campaignId).to.equals(0);
   });
 
   it('should NOT see penalty token because of invalid token address', async function () {
