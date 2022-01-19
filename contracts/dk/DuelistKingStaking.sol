@@ -234,10 +234,6 @@ contract DuelistKingStaking is RegistryUser {
     return _userStakingSlot[campaignId][msg.sender].stakingAmountOfToken;
   }
 
-  function getCurrentUserStartStakingDate(uint256 campaignId) external view returns (uint256) {
-    return _userStakingSlot[campaignId][msg.sender].startStakingDate;
-  }
-
   function getBlockTime() external view returns (uint256) {
     return block.timestamp;
   }
