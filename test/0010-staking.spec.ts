@@ -8,6 +8,7 @@ import { BigNumber } from 'ethers';
 
 chai.use(solidity);
 const decimals = BigNumber.from('10').pow(18);
+const hardCodeDecimals = BigNumber.from('10').pow(18);
 
 let stakingContract: DuelistKingStaking, contractTestToken: TestToken;
 let user1: SignerWithAddress, user2: SignerWithAddress, user3: SignerWithAddress, user4: SignerWithAddress;
@@ -256,8 +257,8 @@ describe('DKStaking', function () {
   it('Campaign 1: user1 & user2 should be able to reward 10 boxes at date 11 ', async function () {
     const userSlot1 = await stakingContract.getUserStakingSlot(0, user1.address);
     const userSlot2 = await stakingContract.getUserStakingSlot(0, user2.address);
-    expect(userSlot1.stakedReward).to.equals(10);
-    expect(userSlot2.stakedReward).to.equals(10);
+    expect(userSlot1.stakedReward.div(hardCodeDecimals)).to.equals(10);
+    expect(userSlot2.stakedReward.div(hardCodeDecimals)).to.equals(10);
   });
 
   it('Campaign 1: user2 should be able to unstake with penalty', async function () {
@@ -346,7 +347,7 @@ describe('DKStaking', function () {
    */
   it('Campaign 1: user1 reward should be 17', async function () {
     const userSlot = await stakingContract.getUserStakingSlot(0, user1.address);
-    expect(userSlot.stakedReward).to.equals(17);
+    expect(userSlot.stakedReward.div(hardCodeDecimals)).to.equals(17);
   });
 
   it('Camapgin 1: user2 should NOT be able to unstake', async function () {
@@ -355,7 +356,7 @@ describe('DKStaking', function () {
 
   it('Campaign 2: user3 reward should be 1', async function () {
     const userSlot = await stakingContract.getUserStakingSlot(1, user3.address);
-    expect(userSlot.stakedReward).to.equals(1);
+    expect(userSlot.stakedReward.div(hardCodeDecimals)).to.equals(1);
   });
 
   it('=========== Date 21 ============', async function () {
@@ -369,7 +370,7 @@ describe('DKStaking', function () {
 
   it('Campaign 2: user3 reward should be 3', async function () {
     const userSlot = await stakingContract.getUserStakingSlot(1, user3.address);
-    expect(userSlot.stakedReward).to.equals(3);
+    expect(userSlot.stakedReward.div(hardCodeDecimals)).to.equals(3);
   });
 
   it('=========== Date 30 ============', async function () {

@@ -20,8 +20,8 @@ contract DuelistKingStaking is Ownable {
   struct StakingCampaign {
     uint64 startDate;
     uint64 endDate;
-    uint64 returnRate;
-    uint64 rewardPhaseId;
+    uint128 rewardPhaseId;
+    uint128 returnRate;
     uint256 maxAmountOfToken;
     uint256 stakedAmountOfToken;
     uint256 limitStakingAmountForUser;
@@ -61,8 +61,8 @@ contract DuelistKingStaking is Ownable {
   event ClaimReward(
     uint256 campaignId,
     address indexed owner,
-    uint128 indexed numberOfBoxes,
-    uint64 indexed rewardPhaseId,
+    uint256 indexed numberOfBoxes,
+    uint128 indexed rewardPhaseId,
     uint256 withdrawAmount,
     bool isPenalty
   );
@@ -132,7 +132,7 @@ contract DuelistKingStaking is Ownable {
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][msg.sender];
     StakingCampaign memory currentCampaign = _campaignStorage[campaignId];
     uint256 withdrawAmount = currentUserStakingSlot.stakingAmountOfToken;
-    uint128 rewardBoxes = uint128(estimateUserReward(currentCampaign, currentUserStakingSlot) / 1000000);
+    uint256 rewardBoxes = estimateUserReward(currentCampaign, currentUserStakingSlot) / 1000000000000000000;
     bool isPenalty = block.timestamp < currentCampaign.endDate;
 
     require(withdrawAmount > 0, 'DKStaking: No token to be unstaked');
@@ -156,7 +156,7 @@ contract DuelistKingStaking is Ownable {
 
     // Remove user staking amount from the pool and update total boxes user receive
     currentCampaign.stakedAmountOfToken -= currentUserStakingSlot.stakingAmountOfToken;
-    currentCampaign.totalReceivedBoxes += rewardBoxes;
+    currentCampaign.totalReceivedBoxes += uint128(rewardBoxes);
 
     // Delete user staking storage
     delete (_userStakingSlot[campaignId][msg.sender]);
@@ -188,12 +188,16 @@ contract DuelistKingStaking is Ownable {
 
   // Create a new staking campaign
   function createNewStakingCampaign(StakingCampaign memory newCampaign) external onlyOperator returns (bool) {
+    // Start date must be greater than current block.timestamp
+    // Min campaign duration is 15 days
     require(
-      newCampaign.startDate > block.timestamp && newCampaign.endDate > newCampaign.startDate,
+      newCampaign.startDate > block.timestamp && newCampaign.endDate >= newCampaign.startDate + 15 days,
       'DKStaking: Invalid timeline format'
     );
+
+    // Max campaign duration is 90 days
     uint64 duration = (newCampaign.endDate - newCampaign.startDate) / (1 days);
-    require(duration > 1, 'DKStaking: Duration must be greater than 1');
+    require(duration <= 90, 'DKStaking: Duration must be less than 90');
 
     require(newCampaign.rewardPhaseId >= 1, 'DKStaking: Invalid phase id');
     require(newCampaign.tokenAddress.isContract(), 'DKStaking: Token address is not a smart contract');
@@ -201,7 +205,9 @@ contract DuelistKingStaking is Ownable {
     // Get the integer part of token amount
     uint256 intAmountOfToken = newCampaign.maxAmountOfToken / (10**ERC20(newCampaign.tokenAddress).decimals());
 
-    newCampaign.returnRate = uint64((newCampaign.maxNumberOfBoxes * 1000000) / (intAmountOfToken * duration));
+    newCampaign.returnRate = uint128(
+      (newCampaign.maxNumberOfBoxes * 1000000000000000000) / (intAmountOfToken * duration)
+    );
     _campaignStorage[_totalCampaign] = newCampaign;
 
     emit NewCampaign(_totalCampaign, newCampaign.startDate, newCampaign.tokenAddress);
@@ -266,9 +272,7 @@ contract DuelistKingStaking is Ownable {
   function getUserStakingSlot(uint256 campaignId, address owner) external view returns (UserStakingSlot memory) {
     StakingCampaign memory currentCampaign = _campaignStorage[campaignId];
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][owner];
-    currentUserStakingSlot.stakedReward = uint128(
-      estimateUserReward(currentCampaign, currentUserStakingSlot) / 1000000
-    );
+    currentUserStakingSlot.stakedReward = uint128(estimateUserReward(currentCampaign, currentUserStakingSlot));
     return currentUserStakingSlot;
   }
 
