@@ -131,8 +131,11 @@ contract DuelistKingStaking is Ownable {
   function unStaking(uint256 campaignId) external returns (bool) {
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][msg.sender];
     StakingCampaign memory currentCampaign = _campaignStorage[campaignId];
+    ERC20 token = ERC20(currentCampaign.tokenAddress);
     uint256 withdrawAmount = currentUserStakingSlot.stakingAmountOfToken;
-    uint128 rewardBoxes = uint128(estimateUserReward(currentCampaign, currentUserStakingSlot) / 1000000);
+    uint128 rewardBoxes = uint128(
+      estimateUserReward(currentCampaign, currentUserStakingSlot) / (1000000 * 10**token.decimals())
+    );
     bool isPenalty = block.timestamp < currentCampaign.endDate;
 
     require(withdrawAmount > 0, 'DKStaking: No token to be unstaked');

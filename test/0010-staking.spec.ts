@@ -265,6 +265,8 @@ describe.only('DKStaking', function () {
   });
 
   it('Campaign 1: user2 should be able to unstake with penalty', async function () {
+    const amount = BigNumber.from('392').mul(decimals);
+
     const r = await (await stakingContract.connect(user2).unStaking(0)).wait();
     const rewardBoxesEvents = <any>r.events?.filter((e: any) => e.event === 'ClaimReward');
     expect(rewardBoxesEvents.length).to.equal(1);
@@ -273,14 +275,16 @@ describe.only('DKStaking', function () {
     expect(eventArgs.numberOfBoxes).to.equals(5);
     expect(eventArgs.rewardPhaseId).to.equals(3);
     expect(eventArgs.campaignId).to.equals(0);
-    expect(eventArgs.withdrawAmount).to.equals(392);
+    expect(eventArgs.withdrawAmount).to.equals(amount);
     expect(eventArgs.isPenalty).to.equals(true);
-    expect(await contractTestToken.balanceOf(user2.address)).to.equals(400 * 0.98);
+    expect(await contractTestToken.balanceOf(user2.address)).to.equals(amount);
 
     const userSlot = await stakingContract.getUserStakingSlot(0, user2.address);
     expect(userSlot.stakingAmountOfToken).to.equal(0);
     expect(userSlot.stakedReward).to.equal(0);
-    expect(await stakingContract.getTotalPenaltyAmount(contractTestToken.address)).to.equal(400 * 0.02);
+    expect(await stakingContract.getTotalPenaltyAmount(contractTestToken.address)).to.equal(
+      BigNumber.from('8').mul(decimals),
+    );
     const campaign = await stakingContract.getCampaignInfo(0);
     expect(campaign.totalReceivedBoxes).to.equals(5);
   });
