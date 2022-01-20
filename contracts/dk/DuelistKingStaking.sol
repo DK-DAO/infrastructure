@@ -5,7 +5,7 @@ pragma abicoder v2;
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
-import '../libraries/RegistryUser.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
 
 /**
  * Duelist King Staking
@@ -13,7 +13,7 @@ import '../libraries/RegistryUser.sol';
  * Doamin: Duelist King
  */
 
-contract DuelistKingStaking is RegistryUser {
+contract DuelistKingStaking is Ownable {
   using SafeERC20 for ERC20;
   using Address for address;
 
@@ -45,6 +45,12 @@ contract DuelistKingStaking is RegistryUser {
 
   mapping(address => uint256) private _totalPenalty;
 
+  mapping(address => bool) private _operator;
+
+  event AddOperator(address operator);
+
+  event RemoveOperator(address operator);
+
   // New created campaign event
   event NewCampaign(uint256 indexed campaignId, uint64 indexed startDate, address indexed tokenAddress);
 
@@ -64,8 +70,14 @@ contract DuelistKingStaking is RegistryUser {
   // Withdrawal penalty token event
   event Withdrawal(uint256 indexed campaignId, address indexed beneficiary, uint256 indexed amount);
 
-  constructor(address registry_, bytes32 domain_) {
-    _registryUserInit(registry_, domain_);
+  modifier onlyOperator() {
+    require(_operator[msg.sender], 'DKStaking: Only operator is allowed');
+    _;
+  }
+
+  constructor() {
+    // Owner is also a operator
+    _operator[msg.sender] = true;
   }
 
   /*******************************************************
@@ -155,15 +167,27 @@ contract DuelistKingStaking is RegistryUser {
   }
 
   /*******************************************************
-   * Same domain section
+   * Owner's section
+   *******************************************************/
+
+  function addOperator(address operator_) external onlyOwner {
+    require(operator_ != address(0), 'DKStaking: operator can not be zero address');
+    _operator[operator_] = true;
+    emit AddOperator(operator_);
+  }
+
+  function removeOperator(address operator_) external onlyOwner {
+    require(operator_ != address(0), 'DKStaking: operator can not be zero address');
+    _operator[operator_] = false;
+    emit RemoveOperator(operator_);
+  }
+
+  /*******************************************************
+   * Operator's section
    *******************************************************/
 
   // Create a new staking campaign
-  function createNewStakingCampaign(StakingCampaign memory newCampaign)
-    external
-    onlyAllowSameDomain('StakingOperator')
-    returns (bool)
-  {
+  function createNewStakingCampaign(StakingCampaign memory newCampaign) external onlyOperator returns (bool) {
     require(
       newCampaign.startDate > block.timestamp && newCampaign.endDate > newCampaign.startDate,
       'DKStaking: Invalid timeline format'
@@ -185,11 +209,7 @@ contract DuelistKingStaking is RegistryUser {
   }
 
   // Staking operator withdraw the penalty token
-  function withdrawPenaltyToken(uint256 campaignId, address beneficiary)
-    external
-    onlyAllowSameDomain('StakingOperator')
-    returns (bool)
-  {
+  function withdrawPenaltyToken(uint256 campaignId, address beneficiary) external onlyOperator returns (bool) {
     StakingCampaign memory currentCampaign = _campaignStorage[campaignId];
     uint256 withdrawingAmount = _totalPenalty[currentCampaign.tokenAddress];
     tokenTransfer(currentCampaign.tokenAddress, beneficiary, withdrawingAmount);
