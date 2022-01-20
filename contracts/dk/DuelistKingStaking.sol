@@ -197,9 +197,9 @@ contract DuelistKingStaking is Ownable {
 
     require(newCampaign.rewardPhaseId >= 1, 'DKStaking: Invalid phase id');
     require(newCampaign.tokenAddress.isContract(), 'DKStaking: Token address is not a smart contract');
-
+    ERC20 token = ERC20(newCampaign.tokenAddress);
     newCampaign.returnRate = uint64(
-      (newCampaign.maxNumberOfBoxes * 1000000) / (newCampaign.maxAmountOfToken * duration)
+      (newCampaign.maxNumberOfBoxes * 1000000) / ((newCampaign.maxAmountOfToken / 10**token.decimals()) * duration)
     );
     _campaignStorage[_totalCampaign] = newCampaign;
 
@@ -261,8 +261,9 @@ contract DuelistKingStaking is Ownable {
   function getUserStakingSlot(uint256 campaignId, address owner) external view returns (UserStakingSlot memory) {
     StakingCampaign memory currentCampaign = _campaignStorage[campaignId];
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][owner];
+    ERC20 token = ERC20(currentCampaign.tokenAddress);
     currentUserStakingSlot.stakedReward = uint128(
-      estimateUserReward(currentCampaign, currentUserStakingSlot) / 1000000
+      estimateUserReward(currentCampaign, currentUserStakingSlot) / (1000000 * 10**token.decimals())
     );
     return currentUserStakingSlot;
   }

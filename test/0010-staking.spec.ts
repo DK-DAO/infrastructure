@@ -5,8 +5,10 @@ import { solidity } from 'ethereum-waffle';
 import Deployer from './helpers/deployer';
 import { registryRecords } from './helpers/const';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { BigNumber } from 'ethers';
 
 chai.use(solidity);
+const decimals = BigNumber.from('10').pow(18);
 
 let stakingContract: DuelistKingStaking, contractTestToken: TestToken;
 let user1: SignerWithAddress, user2: SignerWithAddress, user3: SignerWithAddress, user4: SignerWithAddress;
@@ -27,7 +29,7 @@ async function timeTravel(secs: number) {
   });
 }
 
-describe('DKStaking', function () {
+describe.only('DKStaking', function () {
   this.beforeAll('Before init', async function () {
     const accounts = await ethers.getSigners();
     infrastructureOperator = accounts[0];
@@ -47,12 +49,12 @@ describe('DKStaking', function () {
     user2 = accounts[5];
     user3 = accounts[6];
     user4 = accounts[7];
-    await contractTestToken.transfer(user1.address, 2000);
-    await contractTestToken.transfer(user2.address, 400);
-    await contractTestToken.transfer(user3.address, 1000);
-    await contractTestToken.connect(user1).approve(stakingContract.address, 2000);
-    await contractTestToken.connect(user2).approve(stakingContract.address, 600);
-    await contractTestToken.connect(user3).approve(stakingContract.address, 1000);
+    await contractTestToken.transfer(user1.address, BigNumber.from('2000').mul(decimals));
+    await contractTestToken.transfer(user2.address, BigNumber.from('400').mul(decimals));
+    await contractTestToken.transfer(user3.address, BigNumber.from('1000').mul(decimals));
+    await contractTestToken.connect(user1).approve(stakingContract.address, BigNumber.from('2000').mul(decimals));
+    await contractTestToken.connect(user2).approve(stakingContract.address, BigNumber.from('600').mul(decimals));
+    await contractTestToken.connect(user3).approve(stakingContract.address, BigNumber.from('1000').mul(decimals));
   });
 
   it('should be failed when create a new campaign because token address is not a smart contract', async function () {
@@ -62,9 +64,9 @@ describe('DKStaking', function () {
       startDate: blocktime.add(Math.round(1 * 86400)),
       endDate: blocktime.add(Math.round(30 * 86400)),
       returnRate: 1,
-      maxAmountOfToken: 4000000,
+      maxAmountOfToken: BigNumber.from('400000').mul(decimals),
       stakedAmountOfToken: 0,
-      limitStakingAmountForUser: 500,
+      limitStakingAmountForUser: BigNumber.from('500').mul(decimals),
       tokenAddress: accounts[1].address,
       maxNumberOfBoxes: 32000,
       rewardPhaseId: 3,
@@ -83,9 +85,9 @@ describe('DKStaking', function () {
       startDate: blocktime.add(Math.round(1 * 86400)),
       endDate: blocktime.add(Math.round(30 * 86400)),
       returnRate: 1,
-      maxAmountOfToken: 4000000,
+      maxAmountOfToken: BigNumber.from('400000').mul(decimals),
       stakedAmountOfToken: 0,
-      limitStakingAmountForUser: 500,
+      limitStakingAmountForUser: BigNumber.from('500').mul(decimals),
       tokenAddress: contractTestToken.address,
       maxNumberOfBoxes: 32000,
       rewardPhaseId: 3,
@@ -106,9 +108,9 @@ describe('DKStaking', function () {
       startDate: blocktime.add(dayToSec(1)),
       endDate: blocktime.add(dayToSec(31)),
       returnRate: 1,
-      maxAmountOfToken: 400000,
+      maxAmountOfToken: BigNumber.from('400000').mul(decimals),
       stakedAmountOfToken: 0,
-      limitStakingAmountForUser: 500,
+      limitStakingAmountForUser: BigNumber.from('500').mul(decimals),
       tokenAddress: contractTestToken.address,
       maxNumberOfBoxes: 32000,
       rewardPhaseId: 3,
@@ -126,9 +128,9 @@ describe('DKStaking', function () {
       startDate: blocktime.add(dayToSec(2)),
       endDate: blocktime.add(dayToSec(31)),
       returnRate: 1,
-      maxAmountOfToken: 400000,
+      maxAmountOfToken: BigNumber.from('400000').mul(decimals),
       stakedAmountOfToken: 0,
-      limitStakingAmountForUser: 300,
+      limitStakingAmountForUser: BigNumber.from('300').mul(decimals),
       tokenAddress: contractTestToken.address,
       maxNumberOfBoxes: 32000,
       rewardPhaseId: 4,
@@ -143,7 +145,8 @@ describe('DKStaking', function () {
   it('=========== Date 0 ============', () => {});
 
   it('Campaign 1: should be revert because a new user staking before event date', async function () {
-    await expect(stakingContract.connect(user1).staking(0, 200)).to.be.revertedWith('DKStaking: Not in event time');
+    const amount = BigNumber.from('200').mul(decimals);
+    await expect(stakingContract.connect(user1).staking(0, amount)).to.be.revertedWith('DKStaking: Not in event time');
   });
 
   it('Campaign 1: should NOT be able to unstake with empty account before event date', async function () {
@@ -159,54 +162,64 @@ describe('DKStaking', function () {
   });
 
   it('Campaign 1: user1 should be revert because a new user staking hit limit', async function () {
-    await expect(stakingContract.connect(user1).staking(0, 501)).to.be.revertedWith(
+    const amount = BigNumber.from('501').mul(decimals);
+    await expect(stakingContract.connect(user1).staking(0, amount)).to.be.revertedWith(
       'DKStaking: Token limit per user exceeded',
     );
   });
 
   it('Campaign 1: user1 should stake 400 tokens successfully', async function () {
-    const r = await (await stakingContract.connect(user1).staking(0, 400)).wait();
+    const amount = BigNumber.from('400').mul(decimals);
+    const r = await (await stakingContract.connect(user1).staking(0, amount)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
     expect(filteredEvents.length).to.equal(1);
     const eventArgs = filteredEvents[0].args;
     expect(eventArgs.owner).to.equals(user1.address);
-    expect(eventArgs.amount).to.equals(400);
+    expect(eventArgs.amount).to.equals(amount);
     expect(eventArgs.campaignId).to.equals(0);
     const userSlot = await stakingContract.connect(user1).getUserStakingSlot(0, user1.address);
-    expect(userSlot.stakingAmountOfToken).to.equals(400);
-    expect(await contractTestToken.balanceOf(user1.address)).to.equals(1600);
+    expect(userSlot.stakingAmountOfToken).to.equals(amount);
+    expect(await contractTestToken.balanceOf(user1.address)).to.equals(BigNumber.from('1600').mul(decimals));
   });
 
   it('Campaign 1: user2 should NOT be able to stake 500 Tokens', async function () {
-    expect(stakingContract.connect(user2).staking(0, 500)).to.be.revertedWith('ERC20: transfer amount exceeds balance');
+    const amount = BigNumber.from('500').mul(decimals);
+    expect(stakingContract.connect(user2).staking(0, amount)).to.be.revertedWith(
+      'ERC20: transfer amount exceeds balance',
+    );
   });
 
   it('Campaign 1: user2 should be able to stake 400 Tokens', async function () {
-    const r = await (await stakingContract.connect(user2).staking(0, 400)).wait();
+    const amount = BigNumber.from('400').mul(decimals);
+
+    const r = await (await stakingContract.connect(user2).staking(0, amount)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
     expect(filteredEvents.length).to.equal(1);
     const stakingArgs = filteredEvents[0].args;
     expect(stakingArgs.owner).to.equals(user2.address);
-    expect(stakingArgs.amount).to.equals(400);
+    expect(stakingArgs.amount).to.equals(amount);
     expect(stakingArgs.campaignId).to.equals(0);
     const userSlot = await stakingContract.getUserStakingSlot(0, user2.address);
-    expect(userSlot.stakingAmountOfToken).to.equal(400);
+    expect(userSlot.stakingAmountOfToken).to.equal(amount);
   });
 
   it('Campaign 1: user3 should be able to stake 300 Tokens', async function () {
-    const r = await (await stakingContract.connect(user3).staking(0, 300)).wait();
+    const amount = BigNumber.from('300').mul(decimals);
+
+    const r = await (await stakingContract.connect(user3).staking(0, amount)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
     expect(filteredEvents.length).to.equal(1);
     const stakingArgs = filteredEvents[0].args;
     expect(stakingArgs.owner).to.equals(user3.address);
-    expect(stakingArgs.amount).to.equals(300);
+    expect(stakingArgs.amount).to.equals(amount);
     expect(stakingArgs.campaignId).to.equals(0);
     const userSlot = await stakingContract.getUserStakingSlot(0, user3.address);
-    expect(userSlot.stakingAmountOfToken).to.equal(300);
+    expect(userSlot.stakingAmountOfToken).to.equal(amount);
   });
 
   it('Campaign 2: should be revert because a new user staking before event date', async function () {
-    await expect(stakingContract.connect(user1).staking(1, 200)).to.be.revertedWith('DKStaking: Not in event time');
+    const amount = BigNumber.from('200').mul(decimals);
+    await expect(stakingContract.connect(user1).staking(1, amount)).to.be.revertedWith('DKStaking: Not in event time');
   });
 
   it('Campaign 2: user1 should NOT be able to unstake with empty account before event date', async function () {
@@ -218,19 +231,22 @@ describe('DKStaking', function () {
   });
 
   it('Campaign 2: user1 should be able to stake 100 tokens', async function () {
-    const r = await (await stakingContract.connect(user1).staking(1, 100)).wait();
+    const amount = BigNumber.from('100').mul(decimals);
+    const r = await (await stakingContract.connect(user1).staking(1, amount)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
     expect(filteredEvents.length).to.equal(1);
     const userSlot = await stakingContract.getUserStakingSlot(1, user1.address);
-    expect(userSlot.stakingAmountOfToken).to.equal(100);
+    expect(userSlot.stakingAmountOfToken).to.equal(amount);
   });
 
   it('Campaign 2: user3 should be able to stake 120 Tokens', async function () {
-    const r = await (await stakingContract.connect(user3).staking(1, 120)).wait();
+    const amount = BigNumber.from('120').mul(decimals);
+
+    const r = await (await stakingContract.connect(user3).staking(1, amount)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Staking');
     expect(filteredEvents.length).to.equal(1);
     const userSlot = await stakingContract.getUserStakingSlot(1, user3.address);
-    expect(userSlot.stakingAmountOfToken).to.equal(120);
+    expect(userSlot.stakingAmountOfToken).to.equal(amount);
   });
 
   /**
