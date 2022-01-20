@@ -36,26 +36,8 @@ describe('DKStaking', function () {
 
     contractTestToken = <TestToken>await deployer.connect(accounts[0]).contractDeploy('test/TestToken', []);
 
-    const registry = <IRegistry>(
-      await deployer.connect(infrastructureOperator).contractDeploy('Infrastructure/Registry', [])
-    );
-
-    // Register new operator in registry contract
-    await registry.set(
-      registryRecords.domain.duelistKing,
-      registryRecords.name.stakingOperator,
-      stakingOperator.address,
-    );
-    await registry.set(
-      registryRecords.domain.infrastructure,
-      registryRecords.name.operator,
-      infrastructureOperator.address,
-    );
-
     stakingContract = <DuelistKingStaking>(
-      await deployer
-        .connect(stakingOperator)
-        .contractDeploy('Duelist King/DuelistKingStaking', [], registry.address, registryRecords.domain.duelistKing)
+      await deployer.connect(stakingOperator).contractDeploy('Duelist King/DuelistKingStaking', [])
     );
   });
 
@@ -111,10 +93,10 @@ describe('DKStaking', function () {
     };
 
     await expect(stakingContract.connect(infrastructureOperator).createNewStakingCampaign(config)).to.be.revertedWith(
-      'UserRegistry: Only allow call from same domain',
+      'DKStaking: Only operator is allowed',
     );
     await expect(stakingContract.connect(accounts[3]).createNewStakingCampaign(config)).to.be.revertedWith(
-      'UserRegistry: Only allow call from same domain',
+      'DKStaking: Only operator is allowed',
     );
   });
 
@@ -410,11 +392,11 @@ describe('DKStaking', function () {
 
   it('should NOT be able withdraw penalty token because of non registered user', async function () {
     await expect(stakingContract.connect(user2).withdrawPenaltyToken(0, user2.address)).to.be.revertedWith(
-      'UserRegistry: Only allow call from same domain',
+      'DKStaking: Only operator is allowed',
     );
     await expect(
       stakingContract.connect(infrastructureOperator).withdrawPenaltyToken(0, user2.address),
-    ).to.be.revertedWith('UserRegistry: Only allow call from same domain');
+    ).to.be.revertedWith('DKStaking: Only operator is allowed');
   });
 
   it('Staking operator should be withdraw penalty token', async function () {
