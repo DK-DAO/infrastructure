@@ -197,7 +197,7 @@ contract DuelistKingStaking is Ownable {
 
     // Max campaign duration is 90 days
     uint64 duration = (newCampaign.endDate - newCampaign.startDate) / (1 days);
-    require(duration <= 90, 'DKStaking: Duration must be greater than 1');
+    require(duration <= 90, 'DKStaking: Duration must be less than 90');
 
     require(newCampaign.rewardPhaseId >= 1, 'DKStaking: Invalid phase id');
     require(newCampaign.tokenAddress.isContract(), 'DKStaking: Token address is not a smart contract');
