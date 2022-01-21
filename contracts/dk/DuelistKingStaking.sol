@@ -21,7 +21,7 @@ contract DuelistKingStaking is Ownable {
     uint64 startDate;
     uint64 endDate;
     uint128 rewardPhaseId;
-    uint128 returnRate;
+    uint256 returnRate;
     uint256 maxAmountOfToken;
     uint256 stakedAmountOfToken;
     uint256 limitStakingAmountForUser;
@@ -32,7 +32,7 @@ contract DuelistKingStaking is Ownable {
 
   struct UserStakingSlot {
     uint256 stakingAmountOfToken;
-    uint128 stakedReward;
+    uint256 stakedReward;
     uint64 startStakingDate;
     uint64 lastStakingDate;
   }
@@ -117,7 +117,7 @@ contract DuelistKingStaking is Ownable {
     require(currentCampaign.stakedAmountOfToken <= currentCampaign.maxAmountOfToken, 'DKStaking: Token limit exceeded');
 
     // Calculate user reward
-    currentUserStakingSlot.stakedReward = uint128(estimateUserReward(currentCampaign, currentUserStakingSlot));
+    currentUserStakingSlot.stakedReward = estimateUserReward(currentCampaign, currentUserStakingSlot);
     currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
     currentUserStakingSlot.stakingAmountOfToken += amountOfToken;
 
@@ -205,9 +205,7 @@ contract DuelistKingStaking is Ownable {
     // Get the integer part of token amount
     uint256 intAmountOfToken = newCampaign.maxAmountOfToken / (10**ERC20(newCampaign.tokenAddress).decimals());
 
-    newCampaign.returnRate = uint128(
-      (newCampaign.maxNumberOfBoxes * 1000000000000000000) / (intAmountOfToken * duration)
-    );
+    newCampaign.returnRate = (newCampaign.maxNumberOfBoxes * 1000000000000000000) / (intAmountOfToken * duration);
     _campaignStorage[_totalCampaign] = newCampaign;
 
     emit NewCampaign(_totalCampaign, newCampaign.startDate, newCampaign.tokenAddress);
@@ -272,7 +270,7 @@ contract DuelistKingStaking is Ownable {
   function getUserStakingSlot(uint256 campaignId, address owner) external view returns (UserStakingSlot memory) {
     StakingCampaign memory currentCampaign = _campaignStorage[campaignId];
     UserStakingSlot memory currentUserStakingSlot = _userStakingSlot[campaignId][owner];
-    currentUserStakingSlot.stakedReward = uint128(estimateUserReward(currentCampaign, currentUserStakingSlot));
+    currentUserStakingSlot.stakedReward = estimateUserReward(currentCampaign, currentUserStakingSlot);
     return currentUserStakingSlot;
   }
 
