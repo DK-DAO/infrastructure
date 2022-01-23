@@ -33,8 +33,8 @@ contract DuelistKingStaking is Ownable {
   struct UserStakingSlot {
     uint256 stakingAmountOfToken;
     uint256 stakedReward;
-    uint64 startStakingDate;
-    uint64 lastStakingDate;
+    uint128 startStakingDate;
+    uint128 lastStakingDate;
   }
 
   uint256 private _totalCampaign;
@@ -102,8 +102,8 @@ contract DuelistKingStaking is Ownable {
     );
 
     if (currentUserStakingSlot.stakingAmountOfToken == 0) {
-      currentUserStakingSlot.startStakingDate = uint64(block.timestamp);
-      currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
+      currentUserStakingSlot.startStakingDate = uint128(block.timestamp);
+      currentUserStakingSlot.lastStakingDate = uint128(block.timestamp);
     }
 
     // Safely transfer token from user to this smart contract
@@ -118,7 +118,7 @@ contract DuelistKingStaking is Ownable {
 
     // Calculate user reward
     currentUserStakingSlot.stakedReward = estimateUserReward(currentCampaign, currentUserStakingSlot);
-    currentUserStakingSlot.lastStakingDate = uint64(block.timestamp);
+    currentUserStakingSlot.lastStakingDate = uint128(block.timestamp);
     currentUserStakingSlot.stakingAmountOfToken += amountOfToken;
 
     // Update campaign and user staking slot
@@ -180,6 +180,10 @@ contract DuelistKingStaking is Ownable {
     require(operator_ != address(0), 'DKStaking: operator can not be zero address');
     _operator[operator_] = false;
     emit RemoveOperator(operator_);
+  }
+
+  function isOperator(address operator_) external view returns (bool) {
+    return _operator[operator_];
   }
 
   /*******************************************************
