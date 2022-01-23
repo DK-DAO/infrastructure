@@ -2,43 +2,36 @@
 import '@nomiclabs/hardhat-ethers';
 import { task } from 'hardhat/config';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { registryRecords } from '../test/helpers/const';
 import Deployer from '../test/helpers/deployer';
-import { DuelistKingStaking, Registry } from '../typechain';
+import { dayToSec } from '../test/helpers/functions';
+import { DuelistKingStaking } from '../typechain';
 
-task('deploy:staking', 'Deploy staking token earn FNT contract')
-  .addParam('registry', 'Registry address')
-  .addParam('operator', 'Operator address address')
-  .setAction(async (_taskArgs: any, hre: HardhatRuntimeEnvironment) => {
-    const registry = (_taskArgs.registry || '').trim();
-    const operator = (_taskArgs.operator || '').trim();
-    if (hre.ethers.utils.isAddress(registry) && hre.ethers.utils.isAddress(operator)) {
-      const accounts = await hre.ethers.getSigners();
-      const deployer: Deployer = Deployer.getInstance(hre);
-      const registryContract = <Registry>(
-        (await deployer.contractAttach('Infrastructure/Registry', registry)).connect(accounts[0])
-      );
-      // We assume that accounts[0] is infrastructure operator
-      deployer.connect(accounts[0]);
-      <DuelistKingStaking>(
-        await deployer.contractDeploy(
-          'DuelistKing/DuelistKingStaking',
-          [],
-          registry,
-          registryRecords.domain.duelistKing,
-        )
-      );
+task('deploy:staking', 'Deploy staking token earn FNT contract').setAction(
+  async (_taskArgs: any, hre: HardhatRuntimeEnvironment) => {
+    const accounts = await hre.ethers.getSigners();
+    const deployer: Deployer = Deployer.getInstance(hre);
+    // We assume that accounts[0] is infrastructure operator
+    deployer.connect(accounts[0]);
+    const stakingContract = <DuelistKingStaking>await deployer.contractDeploy('DuelistKing/DuelistKingStaking', []);
+    const blockTimeStamp = await stakingContract.getBlockTime();
+    if (hre.network.name === 'testnet') {
       await (
-        await registryContract.set(registryRecords.domain.duelistKing, registryRecords.name.stakingOperator, operator)
+        await stakingContract.connect(accounts[0]).createNewStakingCampaign({
+          startDate: blockTimeStamp.add(60),
+          endDate: blockTimeStamp.add(dayToSec(30)),
+          returnRate: 0,
+          maxAmountOfToken: hre.ethers.BigNumber.from(400000).mul('1000000000000000000'),
+          maxNumberOfBoxes: 400000,
+          tokenAddress: '0xf33B79F915fC4A870ED1b26356C9f6EB60638DB8',
+          rewardPhaseId: 3,
+          limitStakingAmountForUser: hre.ethers.BigNumber.from(1000).mul('1000000000000000000'),
+          stakedAmountOfToken: 0,
+          totalReceivedBoxes: 0,
+        })
       ).wait();
-      deployer.printReport();
-      console.log(
-        'Operator is:',
-        await registryContract.getAddress(registryRecords.domain.duelistKing, registryRecords.name.stakingOperator),
-      );
-      return;
     }
-    throw new Error('Invalid registry or operator address');
-  });
+    deployer.printReport();
+  },
+);
 
 export default {};
