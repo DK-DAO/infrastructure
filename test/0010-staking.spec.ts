@@ -405,9 +405,11 @@ describe('DKStaking', function () {
     expect(eventArgs.isPenalty).to.equals(false);
 
     const userSlot = await stakingContract.getUserStakingSlot(1, user3.address);
-
+    // Delete should able to free slot data
     expect(userSlot.stakedReward).to.equals(0);
     expect(userSlot.stakingAmountOfToken).to.equals(0);
+    expect(userSlot.startStakingDate).to.equals(0);
+    expect(userSlot.lastStakingDate).to.equals(0);
     expect(await contractTestToken.balanceOf(user3.address)).to.equals(BigNumber.from('700').mul(decimals));
   });
 
@@ -424,6 +426,7 @@ describe('DKStaking', function () {
     expect(await stakingContract.connect(stakingOperator).getTotalPenaltyAmount(contractTestToken.address)).to.equal(
       BigNumber.from('10').mul(decimals),
     );
+    await timeTravel(dayToSec(4));
     const r = await (await stakingContract.withdrawPenaltyToken(0, user4.address)).wait();
     const filteredEvents = <any>r.events?.filter((e: any) => e.event === 'Withdrawal');
     expect(filteredEvents.length).to.equal(1);
