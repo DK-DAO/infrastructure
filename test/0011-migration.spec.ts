@@ -104,9 +104,10 @@ describe('DuelistKingDistributor', function () {
     } = context;
 
     const cardAddress = await registry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.card);
+    const boxAddress = await registry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.item);
     const card = <NFT>await deployer.contractAttach('Infrastructure/NFT', cardAddress);
     const migration = <DuelistKingMigration>(
-      await deployer.contractDeploy('Duelist King/DuelistKingMigration', [], card.address)
+      await deployer.contractDeploy('Duelist King/DuelistKingMigration', [], card.address, boxAddress)
     );
 
     // Migration should be approved for transfer tokens
@@ -114,11 +115,11 @@ describe('DuelistKingDistributor', function () {
     expect(await card.isApprovedForAll(accounts[4].address, migration.address)).to.equal(true);
 
     // Owner should able to transfer NFTs
-    await migration.connect(accounts[4]).migrate([cards[0], cards[1]]);
+    await migration.connect(accounts[4]).migrateCard([cards[0], cards[1]]);
     expect(await card.ownerOf(cards[0])).to.equal(migration.address);
 
     // Owner should able to approve another address to transfer all tokens
-    await migration.approveAll(accounts[0].address);
+    await migration.approveAllCard(accounts[0].address);
     expect(await card.isApprovedForAll(migration.address, accounts[0].address)).to.equal(true);
   });
 });

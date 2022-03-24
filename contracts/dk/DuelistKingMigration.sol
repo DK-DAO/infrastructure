@@ -6,19 +6,31 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 
 contract DuelistKingMigration is Ownable {
-  IERC721 immutable nftToken;
+  IERC721 immutable nftCard;
+  IERC721 immutable nftBox;
 
-  constructor(address nftTokenAddress) {
-    nftToken = IERC721(nftTokenAddress);
+  constructor(address nftCard_, address nftBox_) {
+    nftCard = IERC721(nftCard_);
+    nftBox = IERC721(nftBox_);
   }
 
-  function migrate(uint256[] calldata tokenIds) external {
+  function migrateCard(uint256[] calldata tokenIds) external {
     for (uint256 i; i < tokenIds.length; i += 1) {
-      nftToken.transferFrom(msg.sender, address(this), tokenIds[i]);
+      nftCard.transferFrom(msg.sender, address(this), tokenIds[i]);
     }
   }
 
-  function approveAll(address operator) external onlyOwner {
-    nftToken.setApprovalForAll(operator, true);
+  function migrateBox(uint256[] calldata tokenIds) external {
+    for (uint256 i; i < tokenIds.length; i += 1) {
+      nftBox.transferFrom(msg.sender, address(this), tokenIds[i]);
+    }
+  }
+
+  function approveAllCard(address operator) external onlyOwner {
+    nftCard.setApprovalForAll(operator, true);
+  }
+
+  function approveAllBox(address operator) external onlyOwner {
+    nftBox.setApprovalForAll(operator, true);
   }
 }
