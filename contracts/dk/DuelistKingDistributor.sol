@@ -95,13 +95,13 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
   }
 
   /*******************************************************
-   * Oracle section
+   * Operator section
    ********************************************************/
 
   // Set remaining boxes
   function setRemainingBoxes(uint256 phaseId, uint256 numberOfBoxes)
     external
-    onlyAllowSameDomain('Oracle')
+    onlyAllowSameDomain('Operator')
     returns (bool)
   {
     require(
@@ -113,37 +113,30 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
     return true;
   }
 
-  // Upgrade card
-  function upgradeCard(
-    uint256 nftId,
-    uint256 randomValue,
-    uint256 successTarget
-  ) external onlyAllowSameDomain('Oracle') returns (bool) {
-    INFT nftCard = INFT(_registry.getAddress(_domain, 'NFT Card'));
-    require(successTarget <= 1000000000, 'Distrubutor: Target must less than 1 billion');
-    address owner = nftCard.ownerOf(nftId);
-    require(owner != address(0), 'Distributor: Invalid token owner');
-    uint256 rand = uint256(keccak256(abi.encodePacked(_entropy, randomValue)));
-    if (rand % 1000000000 <= successTarget) {
-      _cardSerial += 1;
-      uint256 newCardNftId = nftId.setType(nftId.getType() + 1).setSerial(_cardSerial);
-      // Burn old card
-      nftCard.burn(nftId);
-      // Mint new card
-      nftCard.mint(owner, newCardNftId);
-      emit CardUpgradeSuccessful(owner, nftId, newCardNftId);
-      return true;
-    }
-    emit CardUpgradeFailed(owner, nftId);
-    return false;
+  // Issue genesis edition for card creator
+  function issueGenesisCard(address owner, uint256 id) external onlyAllowSameDomain('Opreator') returns (uint256) {
+    require(_genesisEdition[id] == 0, 'Distributor: Only one genesis edition will be distributed');
+    _cardSerial += 1;
+    uint256 cardId = uint256(0x0000000000000000ffff00000000000000000000000000000000000000000000)
+      .setGeneration(id / 400)
+      .setId(id)
+      .setSerial(_cardSerial);
+    require(INFT(_registry.getAddress(_domain, 'NFT Card')).mint(owner, cardId), 'Distributor: Unable to issue card');
+    _genesisEdition[id] = cardId;
+    emit NewGenesisCard(owner, id, cardId);
+    return cardId;
   }
+
+  /*******************************************************
+   * Merchant section
+   ********************************************************/
 
   // Mint boxes
   function mintBoxes(
     address owner,
     uint256 numberOfBoxes,
     uint256 phaseId
-  ) external onlyAllowSameDomain('Oracle') returns (bool) {
+  ) external onlyAllowSameDomain('Merchant') returns (bool) {
     require(numberOfBoxes > 0 && numberOfBoxes <= 1000, 'Distributor: Invalid number of boxes');
     require(phaseId >= 1, 'Distributor: Invalid phase id');
     require(_mintedBoxes[phaseId] + numberOfBoxes <= _capped, 'Distributor: We run out of this box');
@@ -164,18 +157,49 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
     return true;
   }
 
-  // Issue genesis edition for card creator
-  function issueGenesisCard(address owner, uint256 id) external onlyAllowSameDomain('Oracle') returns (uint256) {
-    require(_genesisEdition[id] == 0, 'Distributor: Only one genesis edition will be distributed');
-    _cardSerial += 1;
-    uint256 cardId = uint256(0x0000000000000000ffff00000000000000000000000000000000000000000000)
-      .setGeneration(id / 400)
-      .setId(id)
-      .setSerial(_cardSerial);
-    require(INFT(_registry.getAddress(_domain, 'NFT Card')).mint(owner, cardId), 'Distributor: Unable to issue card');
-    _genesisEdition[id] = cardId;
-    emit NewGenesisCard(owner, id, cardId);
-    return cardId;
+  /*******************************************************
+   * Oracle section
+   ********************************************************/
+
+  // Upgrade card
+  function upgradeCard(uint256 nftId, uint256 successTarget) external onlyAllowSameDomain('Oracle') returns (bool) {
+    INFT nftCard = INFT(_registry.getAddress(_domain, 'NFT Card'));
+    require(successTarget <= 1000000000, 'Distrubutor: Target must less than 1 billion');
+    address owner = nftCard.ownerOf(nftId);
+    require(owner != address(0), 'Distributor: Invalid token owner');
+    uint256 rand = uint256(keccak256(abi.encodePacked(_entropy)));
+    if (rand % 1000000000 <= successTarget) {
+      _cardSerial += 1;
+      uint256 newCardNftId = nftId.setType(nftId.getType() + 1).setSerial(_cardSerial);
+      // Burn old card
+      nftCard.burn(nftId);
+      // Mint new card
+      nftCard.mint(owner, newCardNftId);
+      emit CardUpgradeSuccessful(owner, nftId, newCardNftId);
+      return true;
+    }
+    emit CardUpgradeFailed(owner, nftId);
+    return false;
+  }
+
+  /*******************************************************
+   * Migrator section
+   ********************************************************/
+
+  function batchMigrate(
+    address owner,
+    bool isMint,
+    bool isBox,
+    bytes memory nftIdList
+  ) external onlyAllowSameDomain('Migrator') {
+    INFT nftContract = isBox
+      ? INFT(_registry.getAddress(_domain, 'NFT Item'))
+      : INFT(_registry.getAddress(_domain, 'NFT Card'));
+    if (isMint) {
+      require(nftContract.batchMint(owner, _bytesToArray(nftIdList)), 'Distributor: Unable to mint new NFT');
+    } else {
+      require(nftContract.batchBurn(owner, _bytesToArray(nftIdList)), 'Distributor: Unable to burn old NFT');
+    }
   }
 
   /*******************************************************
@@ -246,6 +270,15 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
       }
     }
     return 0;
+  }
+
+  // Transform bytes string to uint256[]
+  function _bytesToArray(bytes memory data) internal pure returns (uint256[] memory result) {
+    require(data.length > 0 && data.length % 32 == 0, 'Distributor: Invalid length of data id');
+    result = new uint256[](data.length / 32);
+    for (uint256 i = 0; i < data.length; i += 32) {
+      result[i / 32] = data.readUint256(i);
+    }
   }
 
   /*******************************************************
