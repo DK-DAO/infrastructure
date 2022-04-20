@@ -19,6 +19,7 @@ describe('RNG', () => {
     context = await initDuelistKing(
       await initInfrastructure(hre, {
         network: hre.network.name,
+        salesAgent: accounts[9],
         infrastructure: {
           operator: accounts[0],
           oracles: [accounts[1]],

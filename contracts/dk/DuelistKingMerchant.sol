@@ -51,6 +51,11 @@ contract DuelistKingMerchant is RegistryUser {
   // Update supporting stablecoin
   event UpdateStablecoin(address indexed contractAddress, uint256 indexed decimals, bool isListed);
 
+  // Constructor method
+  constructor(address registry_, bytes32 domain_) {
+    _registryUserInit(registry_, domain_);
+  }
+
   /*******************************************************
    * Sales Agent section
    ********************************************************/
@@ -58,7 +63,7 @@ contract DuelistKingMerchant is RegistryUser {
   // Create a new campaign
   function createNewCampaign(SaleCampaign memory newCampaign)
     external
-    onlyAllowSameDomain('SalesAgent')
+    onlyAllowSameDomain('Sales Agent')
     returns (uint256)
   {
     IDistributor distributor = IDistributor(_getAddressSameDomain('Distributor'));
@@ -68,6 +73,7 @@ contract DuelistKingMerchant is RegistryUser {
     );
     // We use 10^6 or 6 decimal for fiat value, e.g $4.8 -> 4,800,000
     require(newCampaign.basePrice > 1000000, 'Merchant: Base price must greater than 1 unit');
+    require(newCampaign.deadline > block.timestamp, 'Merchant: Deadline must be in the future');
     uint256 currentCampaignId = _totalCampaign;
     _campaign[currentCampaignId] = newCampaign;
     _totalCampaign += 1;
@@ -76,11 +82,11 @@ contract DuelistKingMerchant is RegistryUser {
   }
 
   // Create a new campaign
-  function ManageStableCoin(
+  function manageStablecoin(
     address tokenAddress,
     uint256 decimals,
     bool isListing
-  ) external onlyAllowSameDomain('SalesAgent') returns (bool) {
+  ) external onlyAllowSameDomain('Sales Agent') returns (bool) {
     if (decimals == 0) {
       decimals = ERC20(tokenAddress).decimals();
     }
@@ -154,7 +160,7 @@ contract DuelistKingMerchant is RegistryUser {
     bytes32 code,
     uint256 decmials
   ) public view returns (uint256) {
-    return ((basePrice - (basePrice * _discount[code])) * 10**decmials) / 1000000000000;
+    return ((basePrice - ((basePrice * _discount[code]) / 1000000)) * 10**decmials) / 1000000;
   }
 
   // Get total campaign

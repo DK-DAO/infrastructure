@@ -25,6 +25,7 @@ describe('DuelistKingDistributor', function () {
     context = await initDuelistKing(
       await initInfrastructure(hre, {
         network: hre.network.name,
+        salesAgent: accounts[9],
         infrastructure: {
           operator: accounts[0],
           oracles: [accounts[1]],
@@ -39,8 +40,7 @@ describe('DuelistKingDistributor', function () {
 
   it('OracleProxy should able to forward mintBoxes() phase 20 from real oracle to DuelistKingDistributor', async () => {
     const {
-      infrastructure: { nft },
-      duelistKing: { distributor, oracle },
+      duelistKing: { distributor, oracle, item },
       config: { duelistKing },
     } = context;
     expect(boxes.length).to.eq(0);
@@ -58,7 +58,7 @@ describe('DuelistKingDistributor', function () {
     console.log(
       txResult.logs
         .filter((e) => e.topics[0] === utils.id('Transfer(address,address,uint256)'))
-        .map((e) => nft.interface.decodeEventLog('Transfer', e.data, e.topics))
+        .map((e) => item.interface.decodeEventLog('Transfer', e.data, e.topics))
         .map((e) => {
           const { from, to, tokenId } = e;
           if (from === zeroAddress) boxes.push(BigNumber.from(tokenId).toHexString());
@@ -71,8 +71,7 @@ describe('DuelistKingDistributor', function () {
 
   it('owner should able to open their boxes', async () => {
     const {
-      infrastructure: { nft },
-      duelistKing: { distributor },
+      duelistKing: { distributor, item },
     } = context;
     const packedTokenId = BytesBuffer.newInstance();
     for (let i = 0; i < boxes.length; i += 1) {
@@ -83,7 +82,7 @@ describe('DuelistKingDistributor', function () {
     const txTransferLogs = txResult.logs
       .filter((e) => e.topics[0] === utils.id('Transfer(address,address,uint256)'))
       .map((e) => {
-        return nft.interface.decodeEventLog('Transfer', e.data, e.topics);
+        return item.interface.decodeEventLog('Transfer', e.data, e.topics);
       });
     cards = [...txTransferLogs.map((e) => e.tokenId)];
     console.log(
@@ -99,15 +98,12 @@ describe('DuelistKingDistributor', function () {
 
   it('owner should able to approve migration contract to transfer all of their token', async () => {
     const {
-      infrastructure: { registry },
+      duelistKing: { card, item },
       deployer,
     } = context;
 
-    const cardAddress = await registry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.card);
-    const boxAddress = await registry.getAddress(registryRecords.domain.duelistKing, registryRecords.name.item);
-    const card = <NFT>await deployer.contractAttach('Infrastructure/NFT', cardAddress);
     const migration = <DuelistKingMigration>(
-      await deployer.contractDeploy('Duelist King/DuelistKingMigration', [], card.address, boxAddress)
+      await deployer.contractDeploy('Duelist King/DuelistKingMigration', [], card.address, item.address)
     );
 
     // Migration should be approved for transfer tokens

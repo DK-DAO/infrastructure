@@ -22,12 +22,10 @@ describe('MultiSig', function () {
     accounts = await hre.ethers.getSigners();
     const deployer: Deployer = Deployer.getInstance(hre);
     deployer.connect(accounts[0]);
-    await deployer.contractDeploy('Libraries/Bytes', []);
-    await deployer.contractDeploy('Libraries/Verifier', []);
     contractTestToken = <TestToken>await deployer.contractDeploy('test/TestToken', []);
     contractMultiSig = <MultiSig>await deployer.contractDeploy(
       'test/MultiSig',
-      ['Bytes', 'Verifier'],
+      [],
       accounts.slice(0, 4).map((e) => e.address),
     );
 

@@ -2,6 +2,7 @@ import { Signer, Contract } from 'ethers';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { Registry } from '../../typechain';
 import { stringToBytes32, zeroAddress } from './const';
+import { printAllEvents } from './functions';
 import { Singleton } from './singleton';
 
 export class Deployer {
@@ -20,6 +21,10 @@ export class Deployer {
     this._signer = new this._hre.ethers.VoidSigner(zeroAddress);
   }
 
+  public getChainId() {
+    return this._hre.network.config.chainId || 0;
+  }
+
   public lock() {
     this._executed = false;
   }
@@ -32,12 +37,12 @@ export class Deployer {
     return this._signer;
   }
 
-  public async safeExecute(callback: () => Promise<void>) {
+  public async safeExecute<T>(callback: () => Promise<T>) {
     if (this._executed) return;
     if (typeof callback === 'function' && callback.constructor.name === 'AsyncFunction') {
-      await callback();
+      const result = await callback();
       this._executed = true;
-      return;
+      return result;
     }
     throw new Error('Invalid callback');
   }

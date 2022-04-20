@@ -38,7 +38,7 @@ contract OracleProxy is RegistryUser {
 
   // Only allow listed oracle to trigger oracle proxy
   modifier onlyListedController(bytes memory proof) {
-    require(proof.length == 97, 'Swap: Wrong size of the proof, it must be 97 bytes');
+    require(proof.length == 97, 'OracleProxy: Wrong size of the proof, it must be 97 bytes');
     bytes memory signature = proof.readBytes(0, 65);
     bytes memory message = proof.readBytes(65, 32);
     address sender = message.verifySerialized(signature);
