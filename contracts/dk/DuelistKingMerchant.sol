@@ -81,7 +81,7 @@ contract DuelistKingMerchant is RegistryUser {
     return currentCampaignId;
   }
 
-  // Create a new campaign
+  // Create a new supported stable coin
   function manageStablecoin(
     address tokenAddress,
     uint256 decimals,
