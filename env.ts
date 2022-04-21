@@ -23,4 +23,5 @@ export const env: IEnvironment = fs.existsSync(`${__dirname}/.env`)
       DUELIST_KING_DEPLOY_MNEMONIC: 'baby nose young alone sport inside grain rather undo donor void exotic',
       DUELIST_KING_ORACLE_MNEMONIC: 'baby nose young alone sport inside grain rather undo donor void exotic',
       DUELIST_KING_LOCAL_RPC: 'http://localhost:8545',
+      DUELIST_KING_RPC: '',
     };
