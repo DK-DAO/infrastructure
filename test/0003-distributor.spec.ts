@@ -20,10 +20,10 @@ let uint = '1000000000000000000';
 const emptyBytes32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
 const maxUint256 = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
 
-describe('DuelistKingDistributor', function () {
+describe.only('DuelistKingDistributor', function () {
   this.timeout(5000000);
 
-  it('all initialized should be correct', async () => {
+  this.beforeAll('all initialized should be correct', async () => {
     accounts = await hre.ethers.getSigners();
     context = await initDuelistKing(
       await initInfrastructure(hre, {
@@ -38,6 +38,26 @@ describe('DuelistKingDistributor', function () {
           oracles: [accounts[3]],
         },
       }),
+    );
+  });
+
+  it('Should be failed when creating a new campaign because invalid Sales Agent', async function () {
+    const {
+      duelistKing: { merchant },
+      deployer,
+    } = context;
+    const config = {
+      phaseId: 1,
+      totalSale: 20000,
+      deadline: Math.round(Date.now() / 1000) + dayToSec(30),
+      // It is $5
+      basePrice: 5000000,
+    };
+    await expect(merchant.connect(accounts[1]).createNewCampaign(config)).to.be.revertedWith(
+      'UserRegistry: Only allow call from same domain',
+    );
+    await expect(merchant.connect(accounts[2]).createNewCampaign(config)).to.be.revertedWith(
+      'UserRegistry: Only allow call from same domain',
     );
   });
 
