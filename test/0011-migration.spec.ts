@@ -11,6 +11,7 @@ let context: IDeployContext;
 let accounts: SignerWithAddress[];
 let boxes: string[] = [];
 let cards: string[] = [];
+let migration: DuelistKingMigration;
 
 describe.only('DuelistKingMigration', function () {
   this.timeout(5000000);
@@ -37,8 +38,8 @@ describe.only('DuelistKingMigration', function () {
     const {
       duelistKing: { card, item },
       deployer,
+      config: { duelistKing },
     } = context;
-
     const migration = <DuelistKingMigration>(
       await deployer.contractDeploy('Duelist King/DuelistKingMigration', [], card.address, item.address)
     );
@@ -52,7 +53,7 @@ describe.only('DuelistKingMigration', function () {
     // expect(await card.ownerOf(cards[0])).to.equal(migration.address);
 
     // Owner should able to approve another address to transfer all tokens
-    // await migration.approveAllCard(accounts[0].address);
-    // expect(await card.isApprovedForAll(migration.address, accounts[0].address)).to.equal(true);
+    await migration.approveAll(accounts[0].address);
+    expect(await card.isApprovedForAll(migration.address, accounts[0].address)).to.equal(true);
   });
 });
