@@ -114,7 +114,7 @@ contract DuelistKingDistributor is RegistryUser, IRNGConsumer {
   }
 
   // Issue genesis edition for card creator
-  function issueGenesisCard(address owner, uint256 id) external onlyAllowSameDomain('Opreator') returns (uint256) {
+  function issueGenesisCard(address owner, uint256 id) external onlyAllowSameDomain('Operator') returns (uint256) {
     require(_genesisEdition[id] == 0, 'Distributor: Only one genesis edition will be distributed');
     _cardSerial += 1;
     uint256 cardId = uint256(0x0000000000000000ffff00000000000000000000000000000000000000000000)
