@@ -99,7 +99,7 @@ contract DuelistKingMerchant is RegistryUser {
    * Public section
    ********************************************************/
 
-  // Annyone could buy NFT from smart contract
+  // Anyone could buy NFT from smart contract
   function buy(
     uint256 campaignId,
     uint256 numberOfBoxes,
