@@ -196,7 +196,7 @@ describe.only('DuelistKingDistributor', function () {
     );
   });
 
-  it('OracleProxy should able to forward issueGenesisCard() DuelistKingDistributor', async () => {
+  it('Owner balance should have 0 box after unboxing', async () => {
     const {
       duelistKing: { item, card },
     } = context;
