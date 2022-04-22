@@ -149,11 +149,11 @@ describe.only('DuelistKingDistributor', function () {
     );
   });
 
-  it('Owner should be able to buy phase 20 boxes from DuelistKingDistributor', async () => {
+  it('Owner should be able to buy phase 20 (campaignId = 1) with 50 boxes from DuelistKingDistributor', async () => {
     const {
       duelistKing: { merchant, item },
     } = context;
-    const txResult = await (await merchant.connect(accounts[4]).buy(0, 50, token.address, emptyBytes32)).wait();
+    const txResult = await (await merchant.connect(accounts[4]).buy(1, 50, token.address, emptyBytes32)).wait();
 
     console.log(
       txResult.logs
@@ -200,6 +200,7 @@ describe.only('DuelistKingDistributor', function () {
     const {
       duelistKing: { item, card },
     } = context;
+    console.log((await card.balanceOf(accounts[4].address)).toNumber());
     expect((await item.balanceOf(accounts[4].address)).toNumber()).to.eq(0);
     expect((await item.totalSupply()).toNumber()).to.eq(0);
     expect((await card.balanceOf(accounts[4].address)).toNumber()).to.gt(0);
