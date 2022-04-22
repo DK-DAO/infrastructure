@@ -17,7 +17,7 @@ let accounts: SignerWithAddress[];
 let boxes: string[] = [];
 let cards: string[] = [];
 
-describe('DuelistKingDistributor', function () {
+describe('DuelistKingMigration', function () {
   this.timeout(5000000);
 
   it('all initialized should be correct', async () => {
