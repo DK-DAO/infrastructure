@@ -31,3 +31,6 @@ export const registryRecords = {
 };
 
 export const zeroAddress = '0x0000000000000000000000000000000000000000';
+export const uint = '1000000000000000000';
+export const emptyBytes32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
+export const maxUint256 = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';

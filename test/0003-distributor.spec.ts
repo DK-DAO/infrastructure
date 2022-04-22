@@ -5,7 +5,7 @@ import hre from 'hardhat';
 import { DuelistKingToken } from '../typechain';
 import BytesBuffer from './helpers/bytes';
 import Card from './helpers/card';
-import { zeroAddress } from './helpers/const';
+import { emptyBytes32, maxUint256, uint, zeroAddress } from './helpers/const';
 import initDuelistKing, { IDeployContext } from './helpers/deployer-duelist-king';
 import initInfrastructure from './helpers/deployer-infrastructure';
 import { craftProof, dayToSec, printAllEvents } from './helpers/functions';
@@ -15,9 +15,6 @@ let accounts: SignerWithAddress[];
 let boxes: string[] = [];
 let cards: string[] = [];
 let token: DuelistKingToken;
-let uint = '1000000000000000000';
-const emptyBytes32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
-const maxUint256 = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
 
 describe('DuelistKingDistributor', function () {
   this.timeout(5000000);
