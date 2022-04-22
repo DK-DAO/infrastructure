@@ -19,7 +19,7 @@ let uint = '1000000000000000000';
 const emptyBytes32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
 const maxUint256 = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
 
-describe.only('DuelistKingDistributor', function () {
+describe('DuelistKingDistributor', function () {
   this.timeout(5000000);
 
   this.beforeAll('all initialized should be correct', async () => {
@@ -195,7 +195,7 @@ describe.only('DuelistKingDistributor', function () {
     );
   });
 
-  it('Owner balance should have 0 box after unboxing', async () => {
+  it('Owner balance should have 0 box after unboxing all boxes', async () => {
     const {
       duelistKing: { item, card },
     } = context;
