@@ -1,15 +1,14 @@
-import hre from 'hardhat';
-import { randomBytes } from 'crypto';
-import { BigNumber, utils } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { zeroAddress } from './helpers/const';
-import initInfrastructure from './helpers/deployer-infrastructure';
-import initDuelistKing, { IDeployContext } from './helpers/deployer-duelist-king';
-import { craftProof, dayToSec, getUint128Random, printAllEvents } from './helpers/functions';
+import { expect } from 'chai';
+import { BigNumber, utils } from 'ethers';
+import hre from 'hardhat';
+import { DuelistKingToken } from '../typechain';
 import BytesBuffer from './helpers/bytes';
 import Card from './helpers/card';
-import { expect } from 'chai';
-import { DuelistKingToken, NFT } from '../typechain';
+import { zeroAddress } from './helpers/const';
+import initDuelistKing, { IDeployContext } from './helpers/deployer-duelist-king';
+import initInfrastructure from './helpers/deployer-infrastructure';
+import { craftProof, dayToSec, printAllEvents } from './helpers/functions';
 
 let context: IDeployContext;
 let accounts: SignerWithAddress[];
@@ -203,7 +202,7 @@ describe.only('DuelistKingDistributor', function () {
     console.log((await card.balanceOf(accounts[4].address)).toNumber());
     expect((await item.balanceOf(accounts[4].address)).toNumber()).to.eq(0);
     expect((await item.totalSupply()).toNumber()).to.eq(0);
-    expect((await card.balanceOf(accounts[4].address)).toNumber()).to.gt(0);
+    expect((await card.balanceOf(accounts[4].address)).toNumber()).to.eq(500);
     expect((await card.totalSupply()).toNumber()).to.eq((await card.balanceOf(accounts[4].address)).toNumber());
   });
 
@@ -215,15 +214,7 @@ describe.only('DuelistKingDistributor', function () {
       },
     } = context;
     boxes = [];
-    const txResult = await // await oracle
-    //   .connect(accounts[8])
-    //   .safeCall(
-    //     await craftProof(await hre.ethers.getSigner(duelistKing.oracleAddresses[0]), oracle),
-    //     distributor.address,
-    //     0,
-    //     distributor.interface.encodeFunctionData('issueGenesisCard', [accounts[4].address, 400]),
-    //   )
-    (await distributor.connect(operator).issueGenesisCard(accounts[4].address, 400)).wait();
+    const txResult = await (await distributor.connect(operator).issueGenesisCard(accounts[4].address, 400)).wait();
 
     console.log(
       txResult.logs
@@ -238,38 +229,6 @@ describe.only('DuelistKingDistributor', function () {
           expect(card.getGeneration()).to.eq(1);
           expect(card.getRareness()).to.eq(0);
           expect(card.getType()).to.eq(0);
-          if (from === zeroAddress) boxes.push(nftTokenId);
-          return `Transfer(${[from, to, nftTokenId].join(', ')})`;
-        })
-        .join('\n'),
-      `\n${txResult.gasUsed.toString()} Gas`,
-    );
-  });
-
-  it('OracleProxy should able to forward mintBoxes() phase 2 from real oracle to DuelistKingDistributor', async () => {
-    const {
-      duelistKing: { distributor, oracle, card },
-      config: { duelistKing },
-    } = context;
-
-    const txResult = await (
-      await oracle
-        .connect(accounts[8])
-        .safeCall(
-          await craftProof(await hre.ethers.getSigner(duelistKing.oracleAddresses[0]), oracle),
-          distributor.address,
-          0,
-          distributor.interface.encodeFunctionData('mintBoxes', [accounts[4].address, 100, 2]),
-        )
-    ).wait();
-
-    console.log(
-      txResult.logs
-        .filter((e) => e.topics[0] === utils.id('Transfer(address,address,uint256)'))
-        .map((e) => card.interface.decodeEventLog('Transfer', e.data, e.topics))
-        .map((e) => {
-          const { from, to, tokenId } = e;
-          const nftTokenId = BigNumber.from(tokenId).toHexString();
           if (from === zeroAddress) boxes.push(nftTokenId);
           return `Transfer(${[from, to, nftTokenId].join(', ')})`;
         })

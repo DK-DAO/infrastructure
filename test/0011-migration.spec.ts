@@ -1,16 +1,11 @@
-import hre from 'hardhat';
-import { randomBytes } from 'crypto';
-import { BigNumber, utils } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { registryRecords, zeroAddress } from './helpers/const';
-import initInfrastructure from './helpers/deployer-infrastructure';
-import initDuelistKing, { IDeployContext } from './helpers/deployer-duelist-king';
-import { craftProof } from './helpers/functions';
-import BytesBuffer from './helpers/bytes';
-import Card from './helpers/card';
 import { expect } from 'chai';
-import { NFT } from '../typechain';
+import { BigNumber, utils } from 'ethers';
+import hre from 'hardhat';
 import { DuelistKingMigration } from '../typechain/DuelistKingMigration';
+import BytesBuffer from './helpers/bytes';
+import initDuelistKing, { IDeployContext } from './helpers/deployer-duelist-king';
+import initInfrastructure from './helpers/deployer-infrastructure';
 
 let context: IDeployContext;
 let accounts: SignerWithAddress[];
@@ -35,37 +30,6 @@ describe('DuelistKingMigration', function () {
           oracles: [accounts[3]],
         },
       }),
-    );
-  });
-
-  it('OracleProxy should able to forward mintBoxes() phase 20 from real oracle to DuelistKingDistributor', async () => {
-    const {
-      duelistKing: { distributor, oracle, item },
-      config: { duelistKing },
-    } = context;
-    expect(boxes.length).to.eq(0);
-    const txResult = await (
-      await oracle
-        .connect(accounts[8])
-        .safeCall(
-          await craftProof(await hre.ethers.getSigner(duelistKing.oracleAddresses[0]), oracle),
-          distributor.address,
-          0,
-          distributor.interface.encodeFunctionData('mintBoxes', [accounts[4].address, 50, 20]),
-        )
-    ).wait();
-
-    console.log(
-      txResult.logs
-        .filter((e) => e.topics[0] === utils.id('Transfer(address,address,uint256)'))
-        .map((e) => item.interface.decodeEventLog('Transfer', e.data, e.topics))
-        .map((e) => {
-          const { from, to, tokenId } = e;
-          if (from === zeroAddress) boxes.push(BigNumber.from(tokenId).toHexString());
-          return `Transfer(${[from, to, BigNumber.from(tokenId).toHexString()].join(', ')})`;
-        })
-        .join('\n'),
-      `\n${txResult.gasUsed.toString()} Gas`,
     );
   });
 
