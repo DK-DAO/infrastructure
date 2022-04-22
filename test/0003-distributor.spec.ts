@@ -207,22 +207,23 @@ describe.only('DuelistKingDistributor', function () {
     expect((await card.totalSupply()).toNumber()).to.eq((await card.balanceOf(accounts[4].address)).toNumber());
   });
 
-  it('OracleProxy should able to forward issueGenesisCard() DuelistKingDistributor', async () => {
+  it('Duelistking Operator should able to call issueGenesisCard() in DuelistKingDistributor', async () => {
     const {
-      duelistKing: { distributor, oracle, card },
-      config: { duelistKing },
+      duelistKing: { distributor, card },
+      config: {
+        duelistKing: { operator },
+      },
     } = context;
     boxes = [];
-    const txResult = await (
-      await oracle
-        .connect(accounts[8])
-        .safeCall(
-          await craftProof(await hre.ethers.getSigner(duelistKing.oracleAddresses[0]), oracle),
-          distributor.address,
-          0,
-          distributor.interface.encodeFunctionData('issueGenesisCard', [accounts[4].address, 400]),
-        )
-    ).wait();
+    const txResult = await // await oracle
+    //   .connect(accounts[8])
+    //   .safeCall(
+    //     await craftProof(await hre.ethers.getSigner(duelistKing.oracleAddresses[0]), oracle),
+    //     distributor.address,
+    //     0,
+    //     distributor.interface.encodeFunctionData('issueGenesisCard', [accounts[4].address, 400]),
+    //   )
+    (await distributor.connect(operator).issueGenesisCard(accounts[4].address, 400)).wait();
 
     console.log(
       txResult.logs
