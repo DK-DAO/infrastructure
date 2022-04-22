@@ -13,8 +13,9 @@ describe('BytesTest', function () {
   it('BytesTest mus be deployed correctly', async () => {
     accounts = await hre.ethers.getSigners();
     const deployer = Deployer.getInstance(hre);
+    deployer.connect(accounts[0]);
     await deployer.contractDeploy('Libraries/Bytes', []);
-    contractBytesTest = <BytesTest>await deployer.connect(accounts[0]).contractDeploy('test/BytesTest', ['Bytes']);
+    contractBytesTest = <BytesTest>await deployer.connect(accounts[0]).contractDeploy('test/BytesTest', []);
   });
 
   it('bytes to bytes32[] should be work properly', async () => {
