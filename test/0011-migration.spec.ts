@@ -111,13 +111,18 @@ describe('DuelistKingMigration', function () {
     // Migration should be approved for transfer tokens
     await card.connect(accounts[4]).setApprovalForAll(migration.address, true);
     expect(await card.isApprovedForAll(accounts[4].address, migration.address)).to.equal(true);
+    await item.connect(accounts[4]).setApprovalForAll(migration.address, true);
+    expect(await item.isApprovedForAll(accounts[4].address, migration.address)).to.equal(true);
 
     // Owner should able to transfer NFTs
     await migration.connect(accounts[4]).migrateCard([cards[0], cards[1]]);
     expect(await card.ownerOf(cards[0])).to.equal(migration.address);
+    await migration.connect(accounts[4]).migrateBox([boxes[2]]);
+    expect(await item.ownerOf(boxes[2])).to.equal(migration.address);
 
     // Owner should able to approve another address to transfer all tokens
     await migration.approveAll(accounts[0].address);
     expect(await card.isApprovedForAll(migration.address, accounts[0].address)).to.equal(true);
+    expect(await item.isApprovedForAll(migration.address, accounts[0].address)).to.equal(true);
   });
 });
