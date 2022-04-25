@@ -8,7 +8,7 @@ import Card from './helpers/card';
 import { emptyBytes32, maxUint256, uint, zeroAddress } from './helpers/const';
 import initDuelistKing, { IDeployContext } from './helpers/deployer-duelist-king';
 import initInfrastructure from './helpers/deployer-infrastructure';
-import { craftProof, dayToSec, printAllEvents } from './helpers/functions';
+import { craftProof, dayToSec, getCurrentBlockTimestamp, printAllEvents } from './helpers/functions';
 
 let context: IDeployContext;
 let accounts: SignerWithAddress[];
@@ -17,8 +17,6 @@ let cards: string[] = [];
 let token: DuelistKingToken;
 
 describe('DuelistKingDistributor', function () {
-  this.timeout(5000000);
-
   this.beforeAll('all initialized should be correct', async () => {
     accounts = await hre.ethers.getSigners();
     context = await initDuelistKing(
@@ -40,12 +38,12 @@ describe('DuelistKingDistributor', function () {
   it('Should be failed when creating a new campaign because invalid Sales Agent', async function () {
     const {
       duelistKing: { merchant },
-      deployer,
     } = context;
+    const timestamp = await getCurrentBlockTimestamp();
     const config = {
       phaseId: 1,
       totalSale: 20000,
-      deadline: Math.round(Date.now() / 1000) + dayToSec(30),
+      deadline: Math.round(timestamp + dayToSec(30)),
       // It is $5
       basePrice: 5000000,
     };
@@ -69,11 +67,12 @@ describe('DuelistKingDistributor', function () {
     await token.connect(accounts[0]).transfer(accounts[4].address, BigNumber.from(10000).mul(uint));
 
     // Create campaign for phase 1
+    const timestamp = await getCurrentBlockTimestamp();
     printAllEvents(
       await merchant.connect(accounts[9]).createNewCampaign({
         phaseId: 1,
         totalSale: 20000,
-        deadline: Math.round(Date.now() / 1000) + dayToSec(30),
+        deadline: Math.round(timestamp + dayToSec(30)),
         // It is $5
         basePrice: 5000000,
       }),
@@ -84,7 +83,7 @@ describe('DuelistKingDistributor', function () {
       await merchant.connect(accounts[9]).createNewCampaign({
         phaseId: 20,
         totalSale: 20000,
-        deadline: Math.round(Date.now() / 1000) + dayToSec(30),
+        deadline: Math.round(timestamp + dayToSec(30)),
         // It is $5
         basePrice: 5000000,
       }),
@@ -196,7 +195,6 @@ describe('DuelistKingDistributor', function () {
     const {
       duelistKing: { item, card },
     } = context;
-    console.log((await card.balanceOf(accounts[4].address)).toNumber());
     expect((await item.balanceOf(accounts[4].address)).toNumber()).to.eq(0);
     expect((await item.totalSupply()).toNumber()).to.eq(0);
     expect((await card.balanceOf(accounts[4].address)).toNumber()).to.eq(500);
