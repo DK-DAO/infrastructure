@@ -2,7 +2,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { BigNumber, utils } from 'ethers';
 import hre from 'hardhat';
-import { DuelistKingToken } from '../typechain';
+import { DuelistKingToken, TestToken } from '../typechain';
 import BytesBuffer from './helpers/bytes';
 import Card from './helpers/card';
 import { emptyBytes32, maxUint256, uint, zeroAddress } from './helpers/const';
@@ -92,7 +92,20 @@ describe('DuelistKingDistributor', function () {
     printAllEvents(await merchant.connect(accounts[9]).manageStablecoin(token.address, 18, true));
   });
 
-  it('Any one would able to buy box from DuelistKingMerchant', async () => {
+  it('Should NOT be able to buy box with trash token', async () => {
+    const {
+      duelistKing: { merchant },
+      deployer,
+    } = context;
+    const trashToken = <TestToken>await deployer.connect(accounts[0]).contractDeploy('test1/TestToken', []);
+    await trashToken.connect(accounts[0]).transfer(accounts[4].address, BigNumber.from(10000).mul(uint));
+    await trashToken.connect(accounts[4]).approve(merchant.address, maxUint256);
+    await expect(merchant.connect(accounts[4]).buy(1, 50, trashToken.address, emptyBytes32)).to.be.revertedWith(
+      'Merchant: Stablecoin was not supported',
+    );
+  });
+
+  it('Anyone would able to buy box from DuelistKingMerchant', async () => {
     const {
       duelistKing: { merchant, item },
     } = context;
