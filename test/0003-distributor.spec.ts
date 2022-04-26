@@ -245,6 +245,31 @@ describe('DuelistKingDistributor', function () {
     );
   });
 
+  it('Duelistking Operator should able to call setRemainingBoxes() in DuelistKingDistributor', async () => {
+    const {
+      duelistKing: { merchant, distributor, card },
+      config: {
+        duelistKing: { operator },
+      },
+    } = context;
+    
+    const timestamp = await getCurrentBlockTimestamp();
+    const setAmount = 1000
+    const phaseId = 2
+    const config = {
+      phaseId,
+      totalSale: 20000,
+      deadline: Math.round(timestamp + dayToSec(30)),
+      basePrice: 5000000,
+    };
+    await expect(merchant.connect(accounts[1]).createNewCampaign(config)).to.be.revertedWith(
+      'UserRegistry: Only allow call from same domain',
+    );
+    await (await distributor.connect(operator).setRemainingBoxes(phaseId, setAmount)).wait()
+    const afterSetValue = await (await distributor.connect(operator).getRemainingBox(phaseId)).toNumber()
+    expect(afterSetValue).to.eq(setAmount)
+  });
+
   it('OracleProxy should able to forward upgradeCard() to DuelistKingDistributor', async () => {
     const {
       duelistKing: { distributor, oracle, card },
