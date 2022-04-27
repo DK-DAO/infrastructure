@@ -39,7 +39,7 @@ describe('DuelistKingDistributor', function () {
     const {
       duelistKing: { merchant },
     } = context;
-    const timestamp = await getCurrentBlockTimestamp();
+    const timestamp = await getCurrentBlockTimestamp(hre);
     const config = {
       phaseId: 1,
       totalSale: 20000,
@@ -67,7 +67,7 @@ describe('DuelistKingDistributor', function () {
     await token.connect(accounts[0]).transfer(accounts[4].address, BigNumber.from(10000).mul(uint));
 
     // Create campaign for phase 1
-    const timestamp = await getCurrentBlockTimestamp();
+    const timestamp = await getCurrentBlockTimestamp(hre);
     printAllEvents(
       await merchant.connect(accounts[9]).createNewCampaign({
         phaseId: 1,
@@ -252,10 +252,10 @@ describe('DuelistKingDistributor', function () {
         duelistKing: { operator },
       },
     } = context;
-    
-    const timestamp = await getCurrentBlockTimestamp();
-    const setAmount = 1000
-    const phaseId = 2
+
+    const timestamp = await getCurrentBlockTimestamp(hre);
+    const setAmount = 1000;
+    const phaseId = 2;
     const config = {
       phaseId,
       totalSale: 20000,
@@ -265,9 +265,9 @@ describe('DuelistKingDistributor', function () {
     await expect(merchant.connect(accounts[1]).createNewCampaign(config)).to.be.revertedWith(
       'UserRegistry: Only allow call from same domain',
     );
-    await (await distributor.connect(operator).setRemainingBoxes(phaseId, setAmount)).wait()
-    const afterSetValue = await (await distributor.connect(operator).getRemainingBox(phaseId)).toNumber()
-    expect(afterSetValue).to.eq(setAmount)
+    await (await distributor.connect(operator).setRemainingBoxes(phaseId, setAmount)).wait();
+    const afterSetValue = await (await distributor.connect(operator).getRemainingBox(phaseId)).toNumber();
+    expect(afterSetValue).to.eq(setAmount);
   });
 
   it('OracleProxy should able to forward upgradeCard() to DuelistKingDistributor', async () => {

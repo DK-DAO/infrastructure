@@ -44,7 +44,7 @@ describe('DuelistKingMigration', function () {
     token = <DuelistKingToken>await deployer.contractDeploy('test1/DuelistKingToken', [], accounts[0].address);
 
     // Create a new sales campaign
-    const timestamp = await getCurrentBlockTimestamp();
+    const timestamp = await getCurrentBlockTimestamp(hre);
     await merchant.connect(accounts[9]).createNewCampaign({
       phaseId: 1,
       totalSale: 20000,

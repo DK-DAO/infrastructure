@@ -6,7 +6,6 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { OracleProxy } from '../../typechain';
 import BytesBuffer from './bytes';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { ethers } from 'hardhat';
 
 export async function unlockSigner(hre: HardhatRuntimeEnvironment, address: string): Promise<Signer> {
   await hre.network.provider.request({
@@ -127,8 +126,8 @@ export async function craftProof(oracleSigner: SignerWithAddress, oracle: Oracle
   return BytesBuffer.newInstance().writeBytes(signedProof).writeBytes(message).invoke();
 }
 
-export async function getCurrentBlockTimestamp(): Promise<number> {
-  const blockNumber = await ethers.provider.getBlockNumber();
-  const blockDetail = await ethers.provider.getBlock(blockNumber);
+export async function getCurrentBlockTimestamp(hre: HardhatRuntimeEnvironment): Promise<number> {
+  const blockNumber = await hre.ethers.provider.getBlockNumber();
+  const blockDetail = await hre.ethers.provider.getBlock(blockNumber);
   return blockDetail.timestamp;
 }
