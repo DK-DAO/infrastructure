@@ -1,5 +1,7 @@
 # infrastructure
 
+Moved [https://github.com/orochi-network/orochi-smart-contract](https://github.com/orochi-network/orochi-smart-contract)
+
 Infrastructure of DKDAO
 
 ```
