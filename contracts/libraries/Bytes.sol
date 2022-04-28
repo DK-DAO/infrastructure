@@ -4,7 +4,7 @@ pragma abicoder v2;
 
 library Bytes {
   // Convert bytes to bytes32[]
-  function toBytes32Array(bytes memory input) public pure returns (bytes32[] memory) {
+  function toBytes32Array(bytes memory input) internal pure returns (bytes32[] memory) {
     require(input.length % 32 == 0, 'Bytes: invalid data length should divied by 32');
     bytes32[] memory result = new bytes32[](input.length / 32);
     assembly {
@@ -30,7 +30,7 @@ library Bytes {
   }
 
   // Read address from input bytes buffer
-  function readAddress(bytes memory input, uint256 offset) public pure returns (address result) {
+  function readAddress(bytes memory input, uint256 offset) internal pure returns (address result) {
     require(offset + 20 <= input.length, 'Bytes: Out of range, can not read address from bytes');
     assembly {
       result := shr(96, mload(add(add(input, 0x20), offset)))
@@ -38,7 +38,7 @@ library Bytes {
   }
 
   // Read uint256 from input bytes buffer
-  function readUint256(bytes memory input, uint256 offset) public pure returns (uint256 result) {
+  function readUint256(bytes memory input, uint256 offset) internal pure returns (uint256 result) {
     require(offset + 32 <= input.length, 'Bytes: Out of range, can not read uint256 from bytes');
     assembly {
       result := mload(add(add(input, 0x20), offset))
@@ -50,7 +50,7 @@ library Bytes {
     bytes memory input,
     uint256 offset,
     uint256 length
-  ) public pure returns (bytes memory) {
+  ) internal pure returns (bytes memory) {
     require(offset + length <= input.length, 'Bytes: Out of range, can not read bytes from bytes');
     bytes memory result = new bytes(length);
     assembly {

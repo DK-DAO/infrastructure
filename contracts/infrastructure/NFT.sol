@@ -2,7 +2,7 @@
 pragma solidity >=0.8.4 <0.9.0;
 pragma abicoder v2;
 
-import '../libraries/ERC721.sol';
+import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '../libraries/RegistryUser.sol';
 
 /**
@@ -14,17 +14,17 @@ import '../libraries/RegistryUser.sol';
 contract NFT is RegistryUser, ERC721 {
   uint256 private _supply;
 
-  // This method will replace constructor
-  function init(
+  string private _uri;
+
+  constructor(
     address registry_,
     bytes32 domain_,
     string memory name_,
     string memory symbol_,
     string memory uri_
-  ) external returns (bool) {
-    _erc721Init(name_, symbol_, uri_);
+  ) ERC721(name_, symbol_) {
+    _uri = uri_;
     _registryUserInit(registry_, domain_);
-    return true;
   }
 
   /*******************************************************
@@ -69,8 +69,13 @@ contract NFT is RegistryUser, ERC721 {
     return true;
   }
 
+  // Get base URI
+  function _baseURI() internal view override returns (string memory) {
+    return _uri;
+  }
+
   // Change the base URI
-  function changeBaseURI(string memory uri_) public onlyAllowSameDomain('Distributor') returns (bool) {
+  function changeBaseURI(string memory uri_) public onlyAllowSameDomain('Operator') returns (bool) {
     _uri = uri_;
     return true;
   }

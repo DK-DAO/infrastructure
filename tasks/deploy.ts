@@ -18,6 +18,7 @@ async function getConfig(hre: HardhatRuntimeEnvironment): Promise<IConfiguration
   if (hre.network.name === 'fantom') {
     return {
       network: hre.network.name,
+      salesAgent: accounts[9],
       infrastructure: {
         operator: getWallet(env.DUELIST_KING_DEPLOY_MNEMONIC, 0).connect(hre.ethers.provider),
         oracles: [accounts[0]],
@@ -30,6 +31,7 @@ async function getConfig(hre: HardhatRuntimeEnvironment): Promise<IConfiguration
   }
   return {
     network: hre.network.name,
+    salesAgent: accounts[9],
     infrastructure: {
       operator: accounts[0],
       oracles: [accounts[1]],

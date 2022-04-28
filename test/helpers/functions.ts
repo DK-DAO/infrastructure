@@ -125,3 +125,9 @@ export async function craftProof(oracleSigner: SignerWithAddress, oracle: Oracle
   let signedProof = await oracleSigner.signMessage(utils.arrayify(message));
   return BytesBuffer.newInstance().writeBytes(signedProof).writeBytes(message).invoke();
 }
+
+export async function getCurrentBlockTimestamp(hre: HardhatRuntimeEnvironment): Promise<number> {
+  const blockNumber = await hre.ethers.provider.getBlockNumber();
+  const blockDetail = await hre.ethers.provider.getBlock(blockNumber);
+  return blockDetail.timestamp;
+}

@@ -1,8 +1,7 @@
 import Deployer from './deployer';
 import { registryRecords } from './const';
 import { IConfigurationExtend } from './deployer-infrastructure';
-import { NFT, Registry, RNG, Press, OracleProxy, DuelistKingDistributor } from '../../typechain';
-import { ContractTransaction } from '@ethersproject/contracts';
+import { NFT, Registry, RNG, OracleProxy, DuelistKingDistributor, DuelistKingMerchant } from '../../typechain';
 import { printAllEvents } from './functions';
 
 export interface IDeployContext {
@@ -11,24 +10,15 @@ export interface IDeployContext {
   infrastructure: {
     rng: RNG;
     registry: Registry;
-    press: Press;
-    nft: NFT;
     oracle: OracleProxy;
   };
   duelistKing: {
     oracle: OracleProxy;
     distributor: DuelistKingDistributor;
+    merchant: DuelistKingMerchant;
+    card: NFT;
+    item: NFT;
   };
-}
-
-async function getContractAddress(contractTx: ContractTransaction) {
-  const txResult = await contractTx.wait();
-  const [createNewNftEvent] = txResult.events || [];
-  if (createNewNftEvent) {
-    const [, newNftAddress] = createNewNftEvent.args || [undefined, undefined];
-    return newNftAddress;
-  }
-  throw new Error('Unexpected result');
 }
 
 export default async function init(context: {
@@ -39,38 +29,76 @@ export default async function init(context: {
   // Deploy libraries
   deployer.connect(config.duelistKing.operator);
 
-  // Deploy token
-  await deployer.contractDeploy('Duelist King/DuelistKingToken', [], await config.duelistKing.operator.getAddress());
-
   const registry = <Registry>deployer.getDeployedContract('Infrastructure/Registry');
-  const nft = <NFT>deployer.getDeployedContract('Infrastructure/NFT');
   const rng = <RNG>deployer.getDeployedContract('Infrastructure/RNG');
-  const press = <Press>deployer.getDeployedContract('Infrastructure/Press');
   const infrastructureOracleProxy = <OracleProxy>deployer.getDeployedContract('Infrastructure/OracleProxy');
 
   // The Divine Contract https://github.com/chiro-hiro/thedivine
-  const theDivineContract = await deployer.deployTheDivine();
+  let theDivineContract;
+
+  if (deployer.getChainId() <= 0) {
+    throw new Error('Chain ID can not less than 0');
+  }
+
+  switch (deployer.getChainId()) {
+    case 56:
+      console.log('\tLoad existing The Divine contract');
+      theDivineContract = await deployer.contractAttach(
+        'Chiro/ITheDivine',
+        '0xF52a83a3B7d918B66BD9ae117519ddC436A82031',
+      );
+      break;
+    default:
+      theDivineContract = await deployer.deployTheDivine();
+  }
 
   const duelistKingOracleProxy = <OracleProxy>(
-    await deployer.contractDeploy(
-      'Duelist King/OracleProxy',
-      ['Bytes', 'Verifier'],
-      registry.address,
-      registryRecords.domain.duelistKing,
-    )
+    await deployer.contractDeploy('Duelist King/OracleProxy', [], registry.address, registryRecords.domain.duelistKing)
   );
 
   const distributor = <DuelistKingDistributor>(
     await deployer.contractDeploy(
       'Duelist King/DuelistKingDistributor',
-      ['Bytes'],
+      [],
       registry.address,
       registryRecords.domain.duelistKing,
       theDivineContract.address,
     )
   );
 
-  // Init project
+  const card = <NFT>(
+    await deployer.contractDeploy(
+      'Duelist King Card/NFT',
+      [],
+      registry.address,
+      registryRecords.domain.duelistKing,
+      'DuelistKingCard',
+      'DKC',
+      'https://metadata.duelistking.com/card/',
+    )
+  );
+
+  const item = <NFT>(
+    await deployer.contractDeploy(
+      'Duelist King Item/NFT',
+      [],
+      registry.address,
+      registryRecords.domain.duelistKing,
+      'DuelistKingItem',
+      'DKI',
+      'https://metadata.duelistking.com/item/',
+    )
+  );
+
+  const merchant = <DuelistKingMerchant>(
+    await deployer.contractDeploy(
+      'Duelist King/DuelistKingMerchant',
+      [],
+      registry.address,
+      registryRecords.domain.duelistKing,
+    )
+  );
+
   await deployer.safeExecute(async () => {
     // The real oracle that we searching for
     await printAllEvents(
@@ -80,52 +108,37 @@ export default async function init(context: {
           registryRecords.domain.infrastructure,
           registryRecords.domain.infrastructure,
           registryRecords.domain.infrastructure,
-          registryRecords.domain.infrastructure,
           //Duelist King
           registryRecords.domain.duelistKing,
           registryRecords.domain.duelistKing,
           registryRecords.domain.duelistKing,
+          registryRecords.domain.duelistKing,
+          registryRecords.domain.duelistKing,
         ],
         [
           // Infrastructure
-          registryRecords.name.rng,
-          registryRecords.name.nft,
-          registryRecords.name.press,
-          registryRecords.name.oracle,
-          // Duelist King
-          registryRecords.name.distributor,
-          registryRecords.name.oracle,
           registryRecords.name.operator,
+          registryRecords.name.oracle,
+          registryRecords.name.rng,
+          // Duelist King
+          registryRecords.name.operator,
+          registryRecords.name.oracle,
+          registryRecords.name.distributor,
+          registryRecords.name.merchant,
+          registryRecords.name.salesAgent,
         ],
         [
           // Infrastructure
-          rng.address,
-          nft.address,
-          press.address,
+          config.infrastructure.operatorAddress,
           infrastructureOracleProxy.address,
+          rng.address,
           // Duelist King
-          distributor.address,
-          duelistKingOracleProxy.address,
           config.duelistKing.operatorAddress,
+          duelistKingOracleProxy.address,
+          distributor.address,
+          merchant.address,
+          config.salesAgentAddress,
         ],
-      ),
-    );
-
-    const duelistKingCard = await getContractAddress(
-      await press.createNewNFT(
-        registryRecords.domain.duelistKing,
-        'DuelistKingCard',
-        'DKC',
-        'https://metadata.duelistking.com/card/',
-      ),
-    );
-
-    const duelistKingItem = await getContractAddress(
-      await press.createNewNFT(
-        registryRecords.domain.duelistKing,
-        'DuelistKingItem',
-        'DKI',
-        'https://metadata.duelistking.com/item/',
       ),
     );
 
@@ -143,8 +156,8 @@ export default async function init(context: {
         ],
         [
           // Duelist King
-          duelistKingCard,
-          duelistKingItem,
+          card.address,
+          item.address,
         ],
       ),
     );
@@ -164,13 +177,14 @@ export default async function init(context: {
     infrastructure: {
       rng,
       registry,
-      press,
-      nft,
       oracle: infrastructureOracleProxy,
     },
     duelistKing: {
       oracle: duelistKingOracleProxy,
       distributor,
+      merchant,
+      card,
+      item,
     },
   };
 }

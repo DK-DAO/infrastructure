@@ -26,11 +26,8 @@ contract DuelistKingMigration is Ownable {
     }
   }
 
-  function approveAllCard(address operator) external onlyOwner {
-    nftCard.setApprovalForAll(operator, true);
-  }
-
-  function approveAllBox(address operator) external onlyOwner {
-    nftBox.setApprovalForAll(operator, true);
+  function approveAll(address migrator) external onlyOwner {
+    nftCard.setApprovalForAll(migrator, true);
+    nftBox.setApprovalForAll(migrator, true);
   }
 }

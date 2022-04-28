@@ -6,7 +6,7 @@ import '@nomiclabs/hardhat-ethers';
 import 'hardhat-gas-reporter';
 import 'solidity-coverage';
 
-if (env.DUELIST_KING_LOCAL_MNEMONIC !== 'baby nose young alone sport inside grain rather undo donor void exotic') {
+if (env.DUELIST_KING_DEPLOY_MNEMONIC !== 'baby nose young alone sport inside grain rather undo donor void exotic') {
   require('./tasks/deploy-migration-contract');
   require('./tasks/print-account');
   require('./tasks/deploy');
@@ -34,35 +34,35 @@ const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
   networks: {
     fantom: {
-      url: env.DUELIST_KING_FANTOM_RPC,
+      url: env.DUELIST_KING_RPC,
       chainId: 250,
       accounts: {
-        mnemonic: env.DUELIST_KING_FANTOM_MNEMONIC,
+        mnemonic: env.DUELIST_KING_DEPLOY_MNEMONIC,
         path: "m/44'/60'/0'/0",
       },
     },
     binance: {
-      url: env.DUELIST_KING_BINANCE_RPC,
+      url: env.DUELIST_KING_RPC,
       chainId: 56,
       accounts: {
-        mnemonic: env.DUELIST_KING_BINANCE_MNEMONIC,
+        mnemonic: env.DUELIST_KING_DEPLOY_MNEMONIC,
         path: "m/44'/60'/0'/0",
       },
     },
     testnet: {
-      url: env.DUELIST_KING_TESTNET_RPC,
+      url: env.DUELIST_KING_RPC,
       // Fantom testnet
       chainId: 0xfa2,
       accounts: {
-        mnemonic: env.DUELIST_KING_TESTNET_MNEMONIC,
+        mnemonic: env.DUELIST_KING_DEPLOY_MNEMONIC,
         path: "m/44'/60'/0'/0",
       },
     },
     local: {
-      url: env.DUELIST_KING_LOCAL_RPC,
+      url: env.DUELIST_KING_RPC,
       chainId: 911,
       accounts: {
-        mnemonic: env.DUELIST_KING_LOCAL_MNEMONIC,
+        mnemonic: env.DUELIST_KING_DEPLOY_MNEMONIC,
         path: "m/44'/60'/0'/0",
       },
     },
@@ -74,7 +74,7 @@ const config: HardhatUserConfig = {
       initialBaseFeePerGas: 0,
       gas: 25000000,
       accounts: {
-        mnemonic: env.DUELIST_KING_LOCAL_MNEMONIC,
+        mnemonic: env.DUELIST_KING_DEPLOY_MNEMONIC,
         path: "m/44'/60'/0'/0",
       },
     },

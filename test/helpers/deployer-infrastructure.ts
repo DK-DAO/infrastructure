@@ -10,6 +10,7 @@ export interface IOperators {
 
 export interface IConfiguration {
   network: string;
+  salesAgent: Signer;
   infrastructure: IOperators;
   duelistKing: IOperators;
 }
@@ -23,6 +24,8 @@ export interface IOperatorsExtend {
 
 export interface IConfigurationExtend {
   network: string;
+  salesAgent: Signer;
+  salesAgentAddress: string;
   infrastructure: IOperatorsExtend;
   duelistKing: IOperatorsExtend;
 }
@@ -36,9 +39,11 @@ async function getAddresses(singers: Signer[]): Promise<string[]> {
 }
 
 async function extendConfig(conf: IConfiguration): Promise<IConfigurationExtend> {
-  const { network, infrastructure, duelistKing } = conf;
+  const { network, salesAgent, infrastructure, duelistKing } = conf;
   return {
     network,
+    salesAgent,
+    salesAgentAddress: await salesAgent.getAddress(),
     infrastructure: {
       operator: infrastructure.operator,
       operatorAddress: await infrastructure.operator.getAddress(),
@@ -62,34 +67,19 @@ export default async function init(
   // Connect to infrastructure operator
   deployer.connect(config.infrastructure.operator);
 
-  await deployer.contractDeploy('Libraries/Bytes', []);
-
-  await deployer.contractDeploy('Libraries/Verifier', []);
-
   // Deploy registry
   const registry = await deployer.contractDeploy('Infrastructure/Registry', []);
 
   // Deploy oracle proxy
   await deployer.contractDeploy(
     'Infrastructure/OracleProxy',
-    ['Bytes', 'Verifier'],
+    [],
     registry.address,
     registryRecords.domain.infrastructure,
   );
-
-  // Deploy press
-  await deployer.contractDeploy('Infrastructure/Press', [], registry.address, registryRecords.domain.infrastructure);
-
-  // Deploy nft
-  await deployer.contractDeploy('Infrastructure/NFT', []);
 
   // Deploy RNG
-  await deployer.contractDeploy(
-    'Infrastructure/RNG',
-    ['Bytes'],
-    registry.address,
-    registryRecords.domain.infrastructure,
-  );
+  await deployer.contractDeploy('Infrastructure/RNG', [], registry.address, registryRecords.domain.infrastructure);
 
   return {
     deployer,

@@ -12,6 +12,7 @@ describe('Registry', () => {
     context = await initDuelistKing(
       await initInfrastructure(hre, {
         network: hre.network.name,
+        salesAgent: accounts[9],
         infrastructure: {
           operator: accounts[0],
           oracles: [accounts[1]],
@@ -36,19 +37,13 @@ describe('Registry', () => {
 
   it('all records in registry should be set correctly for Infrastructure domain', async () => {
     const {
-      infrastructure: { registry, oracle, nft, press, rng },
+      infrastructure: { registry, oracle, rng },
     } = context;
     expect(oracle.address).to.eq(
       await registry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.oracle),
     );
-    expect(nft.address).to.eq(
-      await registry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.nft),
-    );
     expect(rng.address).to.eq(
       await registry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.rng),
-    );
-    expect(press.address).to.eq(
-      await registry.getAddress(registryRecords.domain.infrastructure, registryRecords.name.press),
     );
   });
 
